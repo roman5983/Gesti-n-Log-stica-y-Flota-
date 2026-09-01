@@ -1,0 +1,30 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+
+# Variables de entorno (secretos) — usar los .env.example
+.env
+.env.local
+*.local
+
+# Prisma: cliente generado y archivos subidos en runtime
+backend/src/generated/
+backend/uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos temporales de previsualización
+_preview*.jpg
+
+# Editor
+.vscode/
+.idea/
