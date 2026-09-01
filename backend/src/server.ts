@@ -4,11 +4,9 @@ import { prisma } from './database/prisma-client';
 
 const app = createApp();
 
-// 0.0.0.0 is required by container platforms (Railway/Render/Docker):
-// binding to loopback would make the app unreachable from the proxy.
-const server = app.listen(env.PORT, '0.0.0.0', () => {
+const server = app.listen(env.PORT, () => {
   // eslint-disable-next-line no-console
-  console.log(`API listening on port ${env.PORT} (${env.NODE_ENV})`);
+  console.log(`API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
 });
 
 /** Graceful shutdown: close HTTP first, then release DB connections. */
