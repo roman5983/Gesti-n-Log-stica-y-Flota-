@@ -6,6 +6,9 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // El backend compila a CommonJS (tsc). Sin esto el cliente se genera como
+  // ESM (usa `import.meta.url`) y el build de producción no arranca.
+  moduleFormat = "cjs"
 }
 
 datasource db {

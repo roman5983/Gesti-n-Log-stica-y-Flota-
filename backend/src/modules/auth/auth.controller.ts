@@ -12,8 +12,9 @@ const REFRESH_COOKIE = 'refresh_token';
 function setRefreshCookie(res: Response, token: string, expiresAt: Date): void {
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: 'strict',
+    // SameSite=None is only valid on secure cookies (cross-domain frontend).
+    secure: isProduction || env.COOKIE_SAMESITE === 'none',
+    sameSite: env.COOKIE_SAMESITE,
     path: '/api/v1/auth',
     expires: expiresAt,
   });

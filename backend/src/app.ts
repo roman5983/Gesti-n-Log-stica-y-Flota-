@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -26,9 +27,41 @@ import { settingsRoutes } from './modules/settings/settings.routes';
 export function createApp(): express.Express {
   const app = express();
 
+  // Railway/Render terminate TLS in front of the app: without this the real
+  // client IP is lost (rate limiter) and `secure` cookies are not recognised.
+  if (env.TRUST_PROXY > 0) {
+    app.set('trust proxy', env.TRUST_PROXY);
+  }
+
   // --- Global middlewares ---
-  app.use(helmet());
-  app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // credentials: refresh cookie
+  app.use(
+    helmet({
+      // The SPA is served from this same origin, so a real CSP is worth it.
+      // Emotion/MUI inject <style> tags at runtime → 'unsafe-inline' styles.
+      // Google Maps (C-3) is loaded as an external script and an iframe.
+      contentSecurityPolicy: env.SERVE_STATIC
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: ["'self'", 'https://maps.googleapis.com'],
+              styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+              fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+              imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+              connectSrc: ["'self'", 'https://maps.googleapis.com'],
+              frameSrc: ['https://www.google.com', 'https://maps.google.com'],
+              objectSrc: ["'none'"],
+              upgradeInsecureRequests: isProduction ? [] : null,
+            },
+          }
+        : undefined,
+      // Lets the browser render PDFs/images downloaded from the API.
+      crossOriginResourcePolicy: { policy: 'same-site' },
+    }),
+  );
+  // Same-origin deployment needs no CORS; kept for the split (dev) setup.
+  if (!env.SERVE_STATIC) {
+    app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // credentials: refresh cookie
+  }
   app.use(express.json({ limit: '100kb' })); // JSON bodies are small; files use multipart later
   app.use(cookieParser());
   app.use(
@@ -60,6 +93,26 @@ export function createApp(): express.Express {
   apiV1.use('/settings', settingsRoutes);
 
   app.use('/api/v1', apiV1);
+
+  // --- Static SPA (production single-service deployment) ---
+  // The React build is copied next to the compiled API. Hashed assets are
+  // cached hard; index.html never is, so a redeploy is picked up immediately.
+  if (env.SERVE_STATIC) {
+    const staticDir = path.resolve(process.cwd(), env.STATIC_DIR);
+    app.use(
+      express.static(staticDir, {
+        index: false,
+        maxAge: '1y',
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+        },
+      }),
+    );
+    // Client-side routing: any non-API GET falls back to index.html.
+    app.get(/^(?!\/api\/|\/health$).*/, (_req, res) => {
+      res.sendFile(path.join(staticDir, 'index.html'));
+    });
+  }
 
   // --- Error handling (always last) ---
   app.use(notFoundHandler);

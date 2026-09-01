@@ -118,3 +118,10 @@ cd frontend && npm test      # 5 tests: fechas datetime-local, rutas por rol
 - Los archivos `.env` (con secretos) están excluidos del repositorio vía `.gitignore`. Usar los `.env.example` como plantilla.
 - Contraseñas de usuarios con bcrypt; contraseñas de choferes además cifradas con AES-256-GCM (requisito de negocio: consultables por el administrador).
 - Autenticación con access token JWT de vida corta + refresh token opaco (hash SHA-256) en cookie httpOnly, con rotación.
+
+---
+
+## Deploy
+
+La aplicación se publica en Railway como un único servicio (la API sirve también
+el build del SPA). Los pasos están en [`docs/DEPLOY.md`](docs/DEPLOY.md).
