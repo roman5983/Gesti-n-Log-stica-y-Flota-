@@ -52,8 +52,10 @@ async function getExistingOrFail(id: number): Promise<User> {
  * the target out of that set — hard cases: soft-delete, deactivate, or
  * demote an admin — must first confirm another one remains.
  *
- * The check runs inside the caller's transaction and locks the admin rows
- * (lockActiveAdmins) so two admins acting in parallel can't both pass it.
+ * Runs inside the caller's transaction. `lockAndCountOtherActiveAdmins` locks
+ * the active-admin rows (by primary key, in id order) and counts them from
+ * the current committed state, so two admins acting in parallel serialize
+ * instead of both passing the check.
  * No-op when the target isn't a currently-counted admin.
  */
 async function assertNotRemovingLastAdmin(
@@ -62,8 +64,7 @@ async function assertNotRemovingLastAdmin(
 ): Promise<void> {
   if (target.role !== 'ADMIN' || !target.isActive) return;
 
-  await usersRepository.lockActiveAdmins(tx);
-  const othersRemaining = await usersRepository.countActiveAdmins(target.id, tx);
+  const othersRemaining = await usersRepository.lockAndCountOtherActiveAdmins(target.id, tx);
   if (othersRemaining === 0) {
     throw new BusinessRuleError(
       'No se puede completar la acción porque es el único administrador activo del ' +

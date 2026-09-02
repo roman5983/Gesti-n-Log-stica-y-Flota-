@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma-client';
-import type { Prisma, Role, User } from '../../generated/prisma/client';
+import { Prisma } from '../../generated/prisma/client';
+import type { Role, User } from '../../generated/prisma/client';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
 export interface UserFilters {
@@ -91,13 +92,41 @@ export const usersRepository = {
    * two admins acting in parallel can both pass the "one other remains" check
    * and leave the system with zero admins. See usersService.
    */
-  async lockActiveAdmins(tx: DbClient = prisma): Promise<void> {
-    // ORDER BY id: every transaction takes these row locks in the same order,
-    // so concurrent admin mutations serialize cleanly instead of deadlocking.
-    await tx.$queryRaw`SELECT id FROM users WHERE role = 'ADMIN' AND is_active = true AND deleted_at IS NULL ORDER BY id FOR UPDATE`;
+  /**
+   * Inside a transaction: lock the active-admin rows and return how many
+   * remain OTHER than `excludeId`, read from the CURRENT committed state.
+   *
+   * Two steps on purpose. The first read gets the candidate ids (snapshot,
+   * no lock). The second locks those rows BY PRIMARY KEY in id order — PK
+   * record locks in a fixed order just serialize, whereas locking via the
+   * `(role, is_active)` index takes gap/next-key locks that, with the
+   * follow-up `UPDATE is_active`, deadlock (MySQL 1213). The `FOR UPDATE`
+   * read is also a *current* read, so a transaction that acquires the lock
+   * after another one committed sees the up-to-date is_active — a plain
+   * `count()` here would read a stale REPEATABLE READ snapshot and could
+   * still let two concurrent removals both pass.
+   */
+  async lockAndCountOtherActiveAdmins(excludeId: number, tx: DbClient = prisma): Promise<number> {
+    // $queryRaw returns ids as JS BigInt — coerce.
+    const candidates = await tx.$queryRaw<{ id: bigint }[]>`
+      SELECT id FROM users WHERE role = 'ADMIN' AND is_active = true AND deleted_at IS NULL
+    `;
+    if (candidates.length === 0) return 0;
+    const ids = candidates.map((r) => Number(r.id)).sort((a, b) => a - b);
+    const locked = await tx.$queryRaw<{ id: bigint }[]>`
+      SELECT id FROM users
+      WHERE id IN (${Prisma.join(ids)}) AND role = 'ADMIN' AND is_active = true AND deleted_at IS NULL
+      ORDER BY id
+      FOR UPDATE
+    `;
+    return locked.filter((r) => Number(r.id) !== excludeId).length;
   },
 
-  /** Count usable admins (ADMIN, active, not deleted), optionally excluding one id. */
+  /**
+   * Plain (non-locking) count of usable admins, optionally excluding one id.
+   * For informational use only (e.g. shaping an error message) — the
+   * concurrency-safe check is `lockAndCountOtherActiveAdmins`.
+   */
   countActiveAdmins(excludeId?: number, tx: DbClient = prisma): Promise<number> {
     return tx.user.count({
       where: {

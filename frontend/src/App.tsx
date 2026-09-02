@@ -1,10 +1,9 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
-import axios from 'axios';
 import { useAuthStore } from './stores/auth-store';
-import { authStore } from './stores/auth-store';
 import { authApi } from './api/auth.api';
+import { refreshSession } from './api/axios';
 import { RequireAuth, RequireRole, homePathForRole } from './auth/guards';
 import { AdminLayout } from './layouts/AdminLayout';
 import { OperadorLayout } from './layouts/OperadorLayout';
@@ -25,13 +24,15 @@ import { MiViajePage } from './pages/chofer/MiViajePage';
 import { MiDocumentacionPage } from './pages/chofer/MiDocumentacionPage';
 import { MiHistorialPage } from './pages/chofer/MiHistorialPage';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
-
 /**
  * On startup, try to re-hydrate the session from the refresh cookie: the
  * access token lives only in memory and is lost on reload. If refresh
  * succeeds we fetch the current user; either way we mark init as done so the
  * guards can decide.
+ *
+ * `refreshSession` shares one in-flight request, so StrictMode's double
+ * effect invocation in dev doesn't fire two refreshes (which the server's
+ * reuse detection would read as a replay and log the user out).
  */
 function useBootstrapSession() {
   const setSession = useAuthStore((s) => s.setSession);
@@ -41,15 +42,10 @@ function useBootstrapSession() {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await axios.post<{ data: { accessToken: string } }>(
-          `${API_URL}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
+        const accessToken = await refreshSession();
         if (cancelled) return;
-        authStore.setAccessToken(data.data.accessToken);
         const user = await authApi.me();
-        if (!cancelled) setSession(user, data.data.accessToken);
+        if (!cancelled) setSession(user, accessToken);
       } catch {
         // No valid refresh cookie — stay logged out.
       } finally {
