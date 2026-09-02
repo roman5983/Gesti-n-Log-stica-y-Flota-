@@ -11,3 +11,4 @@ authRoutes.post('/login', loginRateLimiter, validate(loginSchema), authControlle
 authRoutes.post('/refresh', authController.refresh);
 authRoutes.post('/logout', authController.logout);
 authRoutes.get('/me', authenticate, authController.me);
+authRoutes.get('/me/profile', authenticate, authController.profile);

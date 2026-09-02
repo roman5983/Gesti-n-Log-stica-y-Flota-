@@ -113,7 +113,7 @@ async function main(): Promise<void> {
   await seedCatalog();
 
   // --- Users: admin + operator ---
-  const admin = await upsertUser('Administrador General', 'admin@empresa.com', 'ADMIN', 'Admin1234!');
+  await upsertUser('Administrador General', 'admin@empresa.com', 'ADMIN', 'Admin1234!');
   const operator = await upsertUser(
     'Operador de Logística',
     'operador@empresa.com',

@@ -61,16 +61,16 @@ export function DashboardPage() {
       {/* 4 KPI cards (P-OP-1 / P-AD-1) */}
       <Grid container spacing={3}>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard label="Viajes en viaje" value={metrics.trips.inProgress} icon={<LocalShippingIcon fontSize="inherit" />} color="info.main" />
+          <KpiCard label="Viajes en viaje" value={metrics.trips.inProgress} icon={<LocalShippingIcon fontSize="inherit" />} color="info.main" to="/viajes?estado=IN_PROGRESS" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard label="Pendientes de asignación" value={metrics.trips.pendingAssignment} icon={<PendingActionsIcon fontSize="inherit" />} color="warning.main" />
+          <KpiCard label="Pendientes de asignación" value={metrics.trips.pendingAssignment} icon={<PendingActionsIcon fontSize="inherit" />} color="warning.main" to="/viajes?estado=PENDING_ASSIGNMENT" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard label="Vehículos disponibles" value={metrics.fleet.available} icon={<DirectionsCarIcon fontSize="inherit" />} color="success.main" />
+          <KpiCard label="Vehículos disponibles" value={metrics.fleet.available} icon={<DirectionsCarIcon fontSize="inherit" />} color="success.main" to="/vehiculos?estado=AVAILABLE" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <KpiCard label="Alertas activas" value={metrics.alerts.pending} icon={<NotificationsActiveIcon fontSize="inherit" />} color="error.main" />
+          <KpiCard label="Alertas activas" value={metrics.alerts.pending} icon={<NotificationsActiveIcon fontSize="inherit" />} color="error.main" to="/alertas" />
         </Grid>
       </Grid>
 
@@ -78,16 +78,16 @@ export function DashboardPage() {
       {isAdmin && (
         <Grid container spacing={3} sx={{ mt: 0 }}>
           <Grid item xs={6} md={3}>
-            <KpiCard label="Vehículos totales" value={metrics.fleet.total} />
+            <KpiCard label="Vehículos totales" value={metrics.fleet.total} to="/vehiculos" />
           </Grid>
           <Grid item xs={6} md={3}>
-            <KpiCard label="Choferes activos" value={metrics.drivers.active} />
+            <KpiCard label="Choferes activos" value={metrics.drivers.active} to="/choferes" />
           </Grid>
           <Grid item xs={6} md={3}>
-            <KpiCard label="Mantenimientos pendientes" value={metrics.maintenances.pending} />
+            <KpiCard label="Mantenimientos pendientes" value={metrics.maintenances.pending} to="/mantenimiento" />
           </Grid>
           <Grid item xs={6} md={3}>
-            <KpiCard label="Usuarios del sistema" value={metrics.users.total} />
+            <KpiCard label="Usuarios del sistema" value={metrics.users.total} to="/usuarios" />
           </Grid>
         </Grid>
       )}

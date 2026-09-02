@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -24,8 +25,16 @@ const STATUS_OPTIONS: { value: TripStatus; label: string }[] = [
   { value: 'COMPLETED', label: 'Finalizado' },
 ];
 
+/** Reads an optional `?estado=` param so dashboard shortcuts can preset the filter. */
+function statusFromParams(value: string | null): TripStatus | '' {
+  return STATUS_OPTIONS.some((o) => o.value === value) ? (value as TripStatus) : '';
+}
+
 export function ViajesPage() {
-  const [statusFilter, setStatusFilter] = useState<TripStatus | ''>('');
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<TripStatus | ''>(() =>
+    statusFromParams(searchParams.get('estado')),
+  );
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 

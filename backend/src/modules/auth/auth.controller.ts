@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { env, isProduction } from '../../config/env';
+import { isProduction } from '../../config/env';
 import { authService } from './auth.service';
 import type { LoginDto } from './auth.schemas';
 
@@ -56,6 +56,15 @@ export const authController = {
       // authenticate middleware guarantees req.user
       const user = await authService.getCurrentUser(req.user!.id);
       res.status(200).json({ data: user });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async profile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await authService.getProfile(req.user!.id);
+      res.status(200).json({ data });
     } catch (err) {
       next(err);
     }

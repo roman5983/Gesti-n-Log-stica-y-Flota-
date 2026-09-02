@@ -84,6 +84,31 @@ export const usersRepository = {
     });
   },
 
+  /**
+   * Row-lock every currently-usable admin (ADMIN, active, not deleted) inside
+   * a transaction, to serialize concurrent operations that could each remove
+   * a different "last" admin (delete / deactivate / demote). Without this,
+   * two admins acting in parallel can both pass the "one other remains" check
+   * and leave the system with zero admins. See usersService.
+   */
+  async lockActiveAdmins(tx: DbClient = prisma): Promise<void> {
+    // ORDER BY id: every transaction takes these row locks in the same order,
+    // so concurrent admin mutations serialize cleanly instead of deadlocking.
+    await tx.$queryRaw`SELECT id FROM users WHERE role = 'ADMIN' AND is_active = true AND deleted_at IS NULL ORDER BY id FOR UPDATE`;
+  },
+
+  /** Count usable admins (ADMIN, active, not deleted), optionally excluding one id. */
+  countActiveAdmins(excludeId?: number, tx: DbClient = prisma): Promise<number> {
+    return tx.user.count({
+      where: {
+        role: 'ADMIN',
+        isActive: true,
+        deletedAt: null,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+    });
+  },
+
   /** Whether the user has a driver row (blocks role changes — see service). */
   async hasDriverProfile(id: number): Promise<boolean> {
     const driver = await prisma.driver.findUnique({

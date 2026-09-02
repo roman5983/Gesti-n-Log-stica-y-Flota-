@@ -25,15 +25,18 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
   const [detail, setDetail] = useState<Maintenance | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  async function transition(m: Maintenance, action: 'start' | 'complete') {
-    setActionError(null);
-    try {
-      await (action === 'start' ? maintenancesApi.start(m.id) : maintenancesApi.complete(m.id));
-      await reload();
-    } catch (err) {
-      setActionError(apiErrorMessage(err));
-    }
-  }
+  const transition = useCallback(
+    async (m: Maintenance, action: 'start' | 'complete') => {
+      setActionError(null);
+      try {
+        await (action === 'start' ? maintenancesApi.start(m.id) : maintenancesApi.complete(m.id));
+        await reload();
+      } catch (err) {
+        setActionError(apiErrorMessage(err));
+      }
+    },
+    [reload],
+  );
 
   const columns = useMemo<Column<Maintenance>[]>(
     () => [
@@ -71,8 +74,7 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [transition],
   );
 
   // The detail dialog should reflect fresh data after an upload; find the

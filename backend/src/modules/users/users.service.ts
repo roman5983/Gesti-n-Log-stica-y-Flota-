@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../database/prisma-client';
-import type { Role, User } from '../../generated/prisma/client';
+import type { Prisma, Role, User } from '../../generated/prisma/client';
 import { BusinessRuleError, ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { encrypt } from '../../shared/utils/crypto';
 import { sendCredentialsEmail } from '../../shared/services/mailer';
@@ -44,6 +44,54 @@ async function getExistingOrFail(id: number): Promise<User> {
   const user = await usersRepository.findById(id);
   if (!user) throw new NotFoundError(`User ${id} not found`);
   return user;
+}
+
+/**
+ * Last-admin rule: the system must always keep at least one usable
+ * administrator (ADMIN, active, not deleted). Any operation that would take
+ * the target out of that set — hard cases: soft-delete, deactivate, or
+ * demote an admin — must first confirm another one remains.
+ *
+ * The check runs inside the caller's transaction and locks the admin rows
+ * (lockActiveAdmins) so two admins acting in parallel can't both pass it.
+ * No-op when the target isn't a currently-counted admin.
+ */
+async function assertNotRemovingLastAdmin(
+  tx: Prisma.TransactionClient,
+  target: User,
+): Promise<void> {
+  if (target.role !== 'ADMIN' || !target.isActive) return;
+
+  await usersRepository.lockActiveAdmins(tx);
+  const othersRemaining = await usersRepository.countActiveAdmins(target.id, tx);
+  if (othersRemaining === 0) {
+    throw new BusinessRuleError(
+      'No se puede completar la acción porque es el único administrador activo del ' +
+        'sistema. El sistema debe conservar al menos un administrador con acceso para ' +
+        'poder gestionar usuarios, configuración y auditoría. Designá o activá a otro ' +
+        'administrador antes de eliminar, desactivar o cambiar el rol de este.',
+      'RN-ULTIMO-ADMIN',
+    );
+  }
+}
+
+/**
+ * Message for a blocked self-action. When the actor is also the only usable
+ * admin left, it appends the last-admin explanation — that's the usual way
+ * an admin meets this rule from the UI (the one admin row is your own).
+ */
+async function selfActionBlockedMessage(actor: User, action: string): Promise<string> {
+  let msg = `No podés ${action} tu propia cuenta.`;
+  if (actor.role === 'ADMIN' && actor.isActive) {
+    const others = await usersRepository.countActiveAdmins(actor.id);
+    if (others === 0) {
+      msg +=
+        ' Además, sos el único administrador activo y el sistema no puede quedarse sin ' +
+        'administradores: hace falta al menos uno con acceso para gestionar usuarios, ' +
+        'configuración y auditoría. Creá o activá otro administrador primero.';
+    }
+  }
+  return msg;
 }
 
 export const usersService = {
@@ -111,12 +159,19 @@ export const usersService = {
     }
     // An admin demoting themselves would lock them out of user management.
     if (dto.role && dto.role !== existing.role && id === actorId) {
-      throw new BusinessRuleError('You cannot change your own role');
+      throw new BusinessRuleError(
+        await selfActionBlockedMessage(existing, 'cambiar el rol de'),
+        'RN-ULTIMO-ADMIN',
+      );
     }
 
     const passwordHash = dto.password ? await bcrypt.hash(dto.password, BCRYPT_ROUNDS) : undefined;
 
     const updated = await prisma.$transaction(async (tx) => {
+      // Demoting the last admin would leave the system unmanageable.
+      if (dto.role && dto.role !== existing.role) {
+        await assertNotRemovingLastAdmin(tx, existing);
+      }
       const user = await usersRepository.update(
         id,
         { name: dto.name, email: dto.email, role: dto.role, passwordHash },
@@ -150,13 +205,18 @@ export const usersService = {
   },
 
   async setActive(id: number, isActive: boolean, actorId: number): Promise<UserResponse> {
-    if (id === actorId) {
-      throw new BusinessRuleError('You cannot activate or deactivate your own account');
-    }
     const existing = await getExistingOrFail(id);
+    if (id === actorId) {
+      throw new BusinessRuleError(
+        await selfActionBlockedMessage(existing, 'activar o desactivar'),
+        'RN-ULTIMO-ADMIN',
+      );
+    }
     if (existing.isActive === isActive) return toResponse(existing); // idempotent
 
     const updated = await prisma.$transaction(async (tx) => {
+      // Deactivating the last admin would leave the system unmanageable.
+      if (!isActive) await assertNotRemovingLastAdmin(tx, existing);
       const user = await usersRepository.update(id, { isActive }, tx);
       await auditLogsService.record(
         {
@@ -177,12 +237,27 @@ export const usersService = {
   },
 
   async softDelete(id: number, actorId: number): Promise<void> {
-    if (id === actorId) {
-      throw new BusinessRuleError('You cannot delete your own account');
-    }
     const existing = await getExistingOrFail(id);
+    // Deleting your own account is allowed, but only while the system keeps
+    // another active admin (last-admin rule). The transaction re-checks this
+    // under a lock; this early check just gives a clearer message up front.
+    if (
+      id === actorId &&
+      existing.role === 'ADMIN' &&
+      (await usersRepository.countActiveAdmins(actorId)) === 0
+    ) {
+      throw new BusinessRuleError(
+        'No podés eliminar tu propia cuenta porque sos el único administrador ' +
+          'activo: el sistema debe conservar al menos un administrador con acceso ' +
+          'para gestionar usuarios, configuración y auditoría. Designá o activá a ' +
+          'otro administrador y volvé a intentarlo.',
+        'RN-ULTIMO-ADMIN',
+      );
+    }
 
     await prisma.$transaction(async (tx) => {
+      // Deleting the last admin would leave the system unmanageable.
+      await assertNotRemovingLastAdmin(tx, existing);
       await usersRepository.softDelete(id, tx);
       await auditLogsService.record(
         {

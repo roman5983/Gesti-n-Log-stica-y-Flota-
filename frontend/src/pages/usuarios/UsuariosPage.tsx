@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -21,11 +22,14 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { usersApi, ADMINISTRATIVE_ROLES, type User } from '../../api/users.api';
 import { apiErrorMessage } from '../../api/axios';
+import { useAuth } from '../../auth/use-auth';
 import { UserFormDialog } from './UserFormDialog';
 
 type AdminRoleFilter = 'ADMIN' | 'OPERATOR' | '';
 
 export function UsuariosPage() {
+  const { user: currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [roleFilter, setRoleFilter] = useState<AdminRoleFilter>('');
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -54,30 +58,52 @@ export function UsuariosPage() {
     setEditing(null);
     setFormOpen(true);
   }
-  function openEdit(user: User) {
+  // Stable across renders (only setState) so the `columns` memo below stays valid.
+  const openEdit = useCallback((user: User) => {
     setEditing(user);
     setFormOpen(true);
-  }
+  }, []);
 
-  async function toggleActive(user: User) {
+  const toggleActive = useCallback(
+    async (user: User) => {
+      setActionError(null);
+      try {
+        await usersApi.setActive(user.id, !user.isActive);
+        await reload();
+      } catch (err) {
+        setActionError(apiErrorMessage(err));
+      }
+    },
+    [reload],
+  );
+
+  const askDelete = useCallback((user: User) => {
     setActionError(null);
-    try {
-      await usersApi.setActive(user.id, !user.isActive);
-      await reload();
-    } catch (err) {
-      setActionError(apiErrorMessage(err));
-    }
+    setToDelete(user);
+  }, []);
+
+  function cancelDelete() {
+    setActionError(null);
+    setToDelete(null);
   }
 
   async function confirmDelete() {
     if (!toDelete) return;
+    const deletingSelf = toDelete.id === currentUser?.id;
     setBusy(true);
     setActionError(null);
     try {
       await usersApi.remove(toDelete.id);
       setToDelete(null);
+      if (deletingSelf) {
+        // Own account gone: the session is revoked server-side — end it here too.
+        await logout();
+        navigate('/login', { replace: true });
+        return;
+      }
       await reload();
     } catch (err) {
+      // Keep the dialog open so the reason (e.g. last-admin rule) is shown in context.
       setActionError(apiErrorMessage(err));
     } finally {
       setBusy(false);
@@ -112,7 +138,7 @@ export function UsuariosPage() {
               </IconButton>
             </Tooltip>
             <Tooltip title="Eliminar">
-              <IconButton size="small" color="error" onClick={() => setToDelete(u)}>
+              <IconButton size="small" color="error" onClick={() => askDelete(u)}>
                 <DeleteIcon fontSize="small" />
               </IconButton>
             </Tooltip>
@@ -120,8 +146,7 @@ export function UsuariosPage() {
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [openEdit, toggleActive, askDelete],
   );
 
   return (
@@ -215,12 +240,17 @@ export function UsuariosPage() {
       <ConfirmDialog
         open={toDelete !== null}
         title="Eliminar usuario"
-        message={`¿Seguro que querés eliminar a ${toDelete?.name}? Esta acción es una baja lógica y revoca sus sesiones.`}
+        message={
+          toDelete?.id === currentUser?.id
+            ? `Vas a eliminar tu propia cuenta (${toDelete?.name}). Es una baja lógica: se cerrará tu sesión y no podrás volver a entrar con este usuario.`
+            : `¿Seguro que querés eliminar a ${toDelete?.name}? Esta acción es una baja lógica y revoca sus sesiones.`
+        }
         confirmLabel="Eliminar"
         confirmColor="error"
         loading={busy}
+        error={actionError}
         onConfirm={confirmDelete}
-        onCancel={() => setToDelete(null)}
+        onCancel={cancelDelete}
       />
     </Box>
   );

@@ -20,6 +20,7 @@ import { AlertasPage } from './pages/alertas/AlertasPage';
 import { ReportesPage } from './pages/reportes/ReportesPage';
 import { AuditoriaPage } from './pages/auditoria/AuditoriaPage';
 import { ConfiguracionPage } from './pages/configuracion/ConfiguracionPage';
+import { MisDatosPage } from './pages/perfil/MisDatosPage';
 import { MiViajePage } from './pages/chofer/MiViajePage';
 import { MiDocumentacionPage } from './pages/chofer/MiDocumentacionPage';
 import { MiHistorialPage } from './pages/chofer/MiHistorialPage';
@@ -84,6 +85,18 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
+        {/* Shared for every authenticated role — same page, layout by role.
+            Must come first: a path listed here wins over the role groups. */}
+        <Route
+          element={
+            <RequireAuth>
+              <RoleShell />
+            </RequireAuth>
+          }
+        >
+          <Route path="/mi-perfil" element={<MisDatosPage />} />
+        </Route>
+
         {/* Admin + Operator web app (dark sidebar layout) */}
         <Route
           element={
@@ -147,4 +160,12 @@ export default function App() {
 function RoleShellSwitch() {
   const role = useAuthStore((s) => s.user?.role);
   return role === 'ADMIN' ? <AdminLayout /> : <OperadorLayout />;
+}
+
+/** Layout for routes shared by every role (e.g. /mi-perfil), chosen by role. */
+function RoleShell() {
+  const role = useAuthStore((s) => s.user?.role);
+  if (role === 'ADMIN') return <AdminLayout />;
+  if (role === 'OPERATOR') return <OperadorLayout />;
+  return <ChoferLayout />;
 }
