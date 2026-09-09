@@ -8,6 +8,7 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { AppSidebarLayout, type NavItem } from '../components/AppSidebarLayout';
 
 /** Admin sidebar (DOC-5 §5.2). */
@@ -22,6 +23,7 @@ const navItems: NavItem[] = [
   { label: 'Auditoría', path: '/auditoria', icon: <HistoryIcon /> },
   { label: 'Reportes', path: '/reportes', icon: <AssessmentIcon /> },
   { label: 'Configuración', path: '/configuracion', icon: <SettingsIcon /> },
+  { label: 'Mis datos', path: '/mi-perfil', icon: <AccountCircleIcon /> },
 ];
 
 export function AdminLayout() {

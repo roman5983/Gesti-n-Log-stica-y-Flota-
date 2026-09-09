@@ -52,15 +52,18 @@ export function AlertasPage() {
     }
   }
 
-  async function handleResolve(a: Alert) {
-    setActionError(null);
-    try {
-      await alertsApi.resolve(a.id);
-      await reload();
-    } catch (err) {
-      setActionError(apiErrorMessage(err));
-    }
-  }
+  const handleResolve = useCallback(
+    async (a: Alert) => {
+      setActionError(null);
+      try {
+        await alertsApi.resolve(a.id);
+        await reload();
+      } catch (err) {
+        setActionError(apiErrorMessage(err));
+      }
+    },
+    [reload],
+  );
 
   const columns = useMemo<Column<Alert>[]>(
     () => [
@@ -85,8 +88,7 @@ export function AlertasPage() {
           ]
         : []),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isAdmin, status],
+    [isAdmin, status, handleResolve],
   );
 
   return (

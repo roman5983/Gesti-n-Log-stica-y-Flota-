@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -22,12 +23,20 @@ const STATUS_OPTIONS: { value: VehicleStatus; label: string }[] = [
   { value: 'ON_TRIP', label: 'En viaje' },
 ];
 
+/** Reads an optional `?estado=` param so dashboard shortcuts can preset the filter. */
+function statusFromParams(value: string | null): VehicleStatus | '' {
+  return STATUS_OPTIONS.some((o) => o.value === value) ? (value as VehicleStatus) : '';
+}
+
 export function VehiculosPage() {
   const { user } = useAuth();
   // Vehicle mutations are ADMIN-only in the backend; the Operator has read
   // access here (shared route), so hide the actions that would 403.
   const canManage = user?.role === 'ADMIN';
-  const [statusFilter, setStatusFilter] = useState<VehicleStatus | ''>('');
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<VehicleStatus | ''>(() =>
+    statusFromParams(searchParams.get('estado')),
+  );
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
@@ -50,15 +59,18 @@ export function VehiculosPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function toggleActive(v: Vehicle) {
-    setActionError(null);
-    try {
-      await vehiclesApi.setActive(v.id, v.status === 'INACTIVE');
-      await reload();
-    } catch (err) {
-      setActionError(apiErrorMessage(err));
-    }
-  }
+  const toggleActive = useCallback(
+    async (v: Vehicle) => {
+      setActionError(null);
+      try {
+        await vehiclesApi.setActive(v.id, v.status === 'INACTIVE');
+        await reload();
+      } catch (err) {
+        setActionError(apiErrorMessage(err));
+      }
+    },
+    [reload],
+  );
 
   async function confirmDelete() {
     if (!toDelete) return;
@@ -121,7 +133,7 @@ export function VehiculosPage() {
           ]
         : []),
     ],
-    [canManage],
+    [canManage, toggleActive],
   );
 
   return (

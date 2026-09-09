@@ -34,3 +34,22 @@ export interface LoginResponse {
   user: PublicUser;
   accessToken: string;
 }
+
+export type LicenseCategory = 'A' | 'B' | 'C' | 'E';
+
+/** Read-only "Mis datos" profile of the current user (all roles). */
+export interface UserProfile {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
+  driver: {
+    dni: string;
+    licenseCategory: LicenseCategory;
+    licenseExpiryDate: string;
+    completedTrips: number;
+    avgKm: number;
+  } | null;
+}

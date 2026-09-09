@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -14,6 +15,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   confirmColor?: 'primary' | 'error';
   loading?: boolean;
+  /** Shown as an error Alert inside the dialog (e.g. a rejected business rule). */
+  error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -26,6 +29,7 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmar',
   confirmColor = 'primary',
   loading = false,
+  error = null,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -34,6 +38,11 @@ export function ConfirmDialog({
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <DialogContentText>{message}</DialogContentText>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel} disabled={loading}>

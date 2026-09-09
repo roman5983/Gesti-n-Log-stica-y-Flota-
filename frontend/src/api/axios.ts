@@ -17,10 +17,13 @@ api.interceptors.request.use((config) => {
 });
 
 /**
- * Transparent refresh on 401: when a request fails with 401, try
- * POST /auth/refresh once, update the token and replay the original request.
- * Concurrent 401s share a single in-flight refresh so we don't hammer the
- * endpoint. A failed refresh clears the session (the app redirects to login).
+ * Transparent refresh: POST /auth/refresh, update the in-memory token.
+ * ALL callers (the 401 interceptor AND the startup bootstrap) go through
+ * `refreshSession`, which shares a single in-flight request. This matters
+ * with the server's refresh-token reuse detection: two parallel refreshes
+ * with the same cookie would look like a replay and revoke every session
+ * (e.g. React StrictMode double-invoking the bootstrap effect in dev).
+ * A failed refresh clears the session (the app redirects to login).
  */
 let refreshPromise: Promise<string> | null = null;
 
@@ -36,6 +39,13 @@ async function refreshAccessToken(): Promise<string> {
   return token;
 }
 
+export function refreshSession(): Promise<string> {
+  refreshPromise ??= refreshAccessToken().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<ApiError>) => {
@@ -45,10 +55,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && original && !original._retried && !isAuthEndpoint) {
       original._retried = true;
       try {
-        refreshPromise ??= refreshAccessToken().finally(() => {
-          refreshPromise = null;
-        });
-        const token = await refreshPromise;
+        const token = await refreshSession();
         original.headers = { ...original.headers, Authorization: `Bearer ${token}` };
         return api.request(original);
       } catch {
