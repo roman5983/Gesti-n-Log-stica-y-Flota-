@@ -18,6 +18,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAuth } from '../../auth/use-auth';
 import { homePathForRole } from '../../auth/guards';
 import { apiErrorMessage } from '../../api/axios';
+import { ColorModeToggle } from '../../components/ColorModeToggle';
 
 /** Login screen (P-CH-1). No password recovery link (A-9). */
 export function LoginPage() {
@@ -54,6 +55,7 @@ export function LoginPage() {
   return (
     <Box
       sx={{
+        position: 'relative',
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
@@ -62,6 +64,12 @@ export function LoginPage() {
         p: 2,
       }}
     >
+      {/* Available before signing in, so the choice is already applied on the
+          first screen the user sees. */}
+      <Box sx={{ position: 'absolute', top: 12, right: 12, color: 'text.secondary' }}>
+        <ColorModeToggle />
+      </Box>
+
       <Card sx={{ width: '100%', maxWidth: 400 }}>
         <CardContent sx={{ p: 4 }}>
           <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>

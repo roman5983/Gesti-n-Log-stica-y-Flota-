@@ -21,6 +21,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import type { ReactNode } from 'react';
 import { useAuth } from '../auth/use-auth';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ColorModeToggle } from './ColorModeToggle';
 
 export interface NavItem {
   label: string;
@@ -44,13 +45,13 @@ export function AppSidebarLayout({ title, navItems }: { title: string; navItems:
   }
 
   const drawer = (
-    <Box sx={{ height: '100%', bgcolor: '#1a2035', color: 'grey.100' }}>
+    <Box sx={{ height: '100%', bgcolor: 'sidebar.bg', color: 'sidebar.text' }}>
       <Toolbar>
-        <Typography variant="h6" noWrap>
+        <Typography variant="h6" noWrap sx={{ color: 'sidebar.title' }}>
           Gestión Logística
         </Typography>
       </Toolbar>
-      <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} />
+      <Divider sx={{ borderColor: 'sidebar.divider' }} />
       <List>
         {navItems.map((item) => (
           <ListItemButton
@@ -59,8 +60,9 @@ export function AppSidebarLayout({ title, navItems }: { title: string; navItems:
             to={item.path}
             onClick={() => setMobileOpen(false)}
             sx={{
-              color: 'grey.300',
-              '&.active': { bgcolor: 'rgba(255,255,255,0.08)', color: 'common.white' },
+              color: 'sidebar.text',
+              '&:hover': { bgcolor: 'sidebar.hoverBg' },
+              '&.active': { bgcolor: 'sidebar.activeBg', color: 'sidebar.activeText' },
             }}
           >
             <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>{item.icon}</ListItemIcon>
@@ -98,6 +100,7 @@ export function AppSidebarLayout({ title, navItems }: { title: string; navItems:
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
+          <ColorModeToggle />
           <IconButton color="inherit" aria-label="Notificaciones">
             <NotificationsIcon />
           </IconButton>

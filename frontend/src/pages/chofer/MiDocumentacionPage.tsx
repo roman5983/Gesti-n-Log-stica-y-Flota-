@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { documentsApi, type DocumentType, type DriverDocument } from '../../api/documents.api';
 import { apiErrorMessage } from '../../api/axios';
 import { useAuth } from '../../auth/use-auth';
+import { formatDateOnly } from '../../utils/datetime';
 
 const DOC_LABELS: Record<DocumentType, string> = {
   DNI: 'DNI',
@@ -69,7 +70,7 @@ export function MiDocumentacionPage() {
                       {d.expired && <Chip size="small" label="Vencido" color="error" />}
                     </Stack>
                     <Typography variant="caption" color="text.secondary">
-                      Vence: {new Date(d.expiryDate).toLocaleDateString('es-AR')}
+                      Vence: {formatDateOnly(d.expiryDate)}
                     </Typography>
                   </Stack>
                   <IconButton onClick={() => handleOpen(d.id)} aria-label="Abrir">

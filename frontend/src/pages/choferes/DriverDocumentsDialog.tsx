@@ -23,6 +23,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { documentsApi, type DocumentType, type DriverDocument } from '../../api/documents.api';
 import type { Driver } from '../../api/drivers.api';
 import { apiErrorMessage } from '../../api/axios';
+import { formatDateOnly } from '../../utils/datetime';
 
 const DOC_TYPES: { value: DocumentType; label: string }[] = [
   { value: 'DNI', label: 'DNI' },
@@ -165,7 +166,7 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
                         {d.expired && <Chip size="small" label="Vencido" color="error" />}
                       </Stack>
                     }
-                    secondary={`Vence: ${new Date(d.expiryDate).toLocaleDateString('es-AR')} · ${d.fileName}`}
+                    secondary={`Vence: ${formatDateOnly(d.expiryDate)} · ${d.fileName}`}
                   />
                 </ListItemButton>
               </ListItem>

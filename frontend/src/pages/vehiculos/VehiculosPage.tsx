@@ -15,6 +15,7 @@ import { vehiclesApi, type Vehicle, type VehicleStatus } from '../../api/vehicle
 import { apiErrorMessage } from '../../api/axios';
 import { useAuth } from '../../auth/use-auth';
 import { VehicleFormDialog } from './VehicleFormDialog';
+import { formatDateOnly } from '../../utils/datetime';
 
 const STATUS_OPTIONS: { value: VehicleStatus; label: string }[] = [
   { value: 'AVAILABLE', label: 'Disponible' },
@@ -98,9 +99,7 @@ export function VehiculosPage() {
         key: 'insurance',
         label: 'Seguro',
         render: (v) =>
-          v.insuranceExpiryDate
-            ? new Date(v.insuranceExpiryDate).toLocaleDateString('es-AR')
-            : '—',
+          v.insuranceExpiryDate ? formatDateOnly(v.insuranceExpiryDate) : '—',
       },
       ...(canManage
         ? [

@@ -8,6 +8,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../auth/use-auth';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ColorModeToggle } from '../components/ColorModeToggle';
 
 /** Driver layout: mobile-style with bottom navigation (DOC-5 §5.3). */
 const navItems = [
@@ -35,6 +36,7 @@ export function ChoferLayout() {
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Gestión Logística
           </Typography>
+          <ColorModeToggle />
           <IconButton color="inherit" onClick={() => setLogoutOpen(true)} aria-label="Cerrar sesión">
             <LogoutIcon />
           </IconButton>

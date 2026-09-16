@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isoToLocalInput, localInputToIso } from './datetime';
+import { formatDateOnly, isoToLocalInput, localInputToIso } from './datetime';
 
 describe('datetime helpers (datetime-local ↔ ISO)', () => {
   it('round-trips a local input value without drift', () => {
@@ -20,5 +20,29 @@ describe('datetime helpers (datetime-local ↔ ISO)', () => {
     const original = new Date('2026-12-25T15:30:00.000Z');
     const input = isoToLocalInput(original.toISOString());
     expect(localInputToIso(input)).toBe(original.toISOString());
+  });
+});
+
+describe('formatDateOnly (@db.Date fields)', () => {
+  it('keeps the calendar day the backend stored, whatever the browser timezone', () => {
+    // Regression guard. These arrive as UTC midnight because the columns carry
+    // no time; formatting them in local time west of Greenwich (Argentina is
+    // UTC-3) rolls back to the previous day, so a licence expiring on the 15th
+    // used to render as the 14th.
+    for (const iso of [
+      '2026-01-01T00:00:00.000Z',
+      '2026-03-15T00:00:00.000Z',
+      '2026-12-31T00:00:00.000Z',
+    ]) {
+      const [day, month, year] = formatDateOnly(iso).split('/').map(Number);
+      const expected = new Date(iso);
+      expect(day).toBe(expected.getUTCDate());
+      expect(month).toBe(expected.getUTCMonth() + 1);
+      expect(year).toBe(expected.getUTCFullYear());
+    }
+  });
+
+  it('formats in es-AR day/month/year order', () => {
+    expect(formatDateOnly('2026-03-15T00:00:00.000Z')).toBe('15/3/2026');
   });
 });

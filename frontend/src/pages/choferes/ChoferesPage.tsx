@@ -12,6 +12,7 @@ import { useAuth } from '../../auth/use-auth';
 import { DriverFormDialog } from './DriverFormDialog';
 import { DriverCredentialsDialog } from './DriverCredentialsDialog';
 import { DriverDocumentsDialog } from './DriverDocumentsDialog';
+import { formatDateOnly } from '../../utils/datetime';
 
 export function ChoferesPage() {
   const { user } = useAuth();
@@ -50,7 +51,7 @@ export function ChoferesPage() {
         render: (d) => (
           <Chip
             size="small"
-            label={new Date(d.licenseExpiryDate).toLocaleDateString('es-AR')}
+            label={formatDateOnly(d.licenseExpiryDate)}
             color={d.licenseValid ? 'default' : 'error'}
             variant={d.licenseValid ? 'outlined' : 'filled'}
           />

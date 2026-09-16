@@ -23,3 +23,25 @@ export function localInputToIso(value: string): string {
   // `new Date("YYYY-MM-DDTHH:mm")` parses as LOCAL time; toISOString() → UTC.
   return new Date(value).toISOString();
 }
+
+/**
+ * Formats a *date-only* field (Prisma `@db.Date`: license/insurance/document
+ * expiry) for display.
+ *
+ * Those columns carry no time, so Prisma serializes them as UTC midnight
+ * ("2026-03-15T00:00:00.000Z"). Rendering that with a plain
+ * `toLocaleDateString()` in Argentina (UTC-3) walks the clock back three hours
+ * and shows the *previous* day — a licence expiring on 15/03 reads as 14/03.
+ * Reading the parts back in UTC keeps the calendar day the backend stored.
+ *
+ * Only for date-only fields: real instants (departureAt, scheduledAt,
+ * occurredAt) must stay in local time.
+ */
+export function formatDateOnly(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-AR', { timeZone: 'UTC' });
+}
+
+/** Formats a true instant (date + time) in the user's local timezone. */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('es-AR');
+}

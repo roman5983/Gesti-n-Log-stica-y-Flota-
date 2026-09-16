@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Card, CardContent, CircularProgress, Grid, Typography } from '@mui/material';
+import { Alert, Box, Card, CardContent, CircularProgress, Grid, Typography, alpha, useTheme } from '@mui/material';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
@@ -21,6 +21,7 @@ import { useAuth } from '../../auth/use-auth';
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const theme = useTheme();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,13 +100,39 @@ export function DashboardPage() {
             Viajes por mes
           </Typography>
           <Box sx={{ height: 320 }}>
+            {/* Recharts renders raw SVG and knows nothing about the MUI theme,
+                so grid, axes, tooltip and bars are fed from the palette by hand
+                — otherwise the chart stays light-themed over a dark page. */}
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={metrics.tripsPerMonth}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" />
-                <YAxis allowDecimals={false} />
-                <RechartsTooltip />
-                <Bar dataKey="count" name="Viajes" fill="#1e88e5" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
+                <XAxis
+                  dataKey="month"
+                  stroke={theme.palette.text.secondary}
+                  tick={{ fill: theme.palette.text.secondary }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  stroke={theme.palette.text.secondary}
+                  tick={{ fill: theme.palette.text.secondary }}
+                />
+                <RechartsTooltip
+                  cursor={{ fill: alpha(theme.palette.primary.main, 0.08) }}
+                  contentStyle={{
+                    backgroundColor: theme.palette.background.paper,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: theme.shape.borderRadius,
+                    color: theme.palette.text.primary,
+                  }}
+                  itemStyle={{ color: theme.palette.text.primary }}
+                  labelStyle={{ color: theme.palette.text.secondary }}
+                />
+                <Bar
+                  dataKey="count"
+                  name="Viajes"
+                  fill={theme.palette.primary.main}
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </Box>
