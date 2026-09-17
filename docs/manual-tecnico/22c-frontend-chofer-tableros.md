@@ -1773,5 +1773,58 @@ resultado en una tabla y clasifique cada caso como inofensivo, dudoso o a correg
 
 ---
 
+## 22C.5. Actualización posterior — navegación al origen y confirmación al resolver
+
+> **Fecha:** 2026-09-17. **Motivación:** pedido de producto directo, sin pasar por el capítulo 25: *"quiero que cada alerta redireccione a la persona o de dónde venga la misma"* y *"antes de marcar algo como resuelto tiene que haber una confirmación"*. Se apoya en el hallazgo 7 (§22C.4.2, tabla de revisión) y en el hallazgo 10, que quedan documentados abajo como parcialmente resueltos.
+
+### 22C.5.1. El botón "Ir al origen"
+
+`AlertasPage` agrega una función pura `sourceLink(a: Alert)` que traduce `entityType` + `entityId` (y, para documentos, el `linkedDriverId` nuevo de §14.11) a una ruta del frontend:
+
+```ts
+function sourceLink(a: Alert): string | null {
+  switch (a.entityType) {
+    case 'VEHICLE':
+      return `/vehiculos?highlight=${a.entityId}`;
+    case 'DRIVER':
+      return `/choferes?highlight=${a.entityId}`;
+    case 'DRIVER_DOCUMENT':
+      return a.linkedDriverId ? `/choferes?highlight=${a.linkedDriverId}` : null;
+    default:
+      return null;
+  }
+}
+```
+
+La columna "Acciones" se separó en dos: un ícono `LaunchIcon` ("Ir al origen"), habilitado para **todos** los roles con acceso a la pantalla, y el `DoneIcon` de resolver, que sigue siendo ADMIN-only y solo en la pestaña "Pendientes" (sin cambios ahí respecto del capítulo 22B). El botón de origen se deshabilita (`disabled={!sourceLink(a)}`) cuando no hay ruta resoluble — hoy nunca ocurre en la práctica porque las tres condiciones del backend (§14.2) cubren `VEHICLE`, `DRIVER` y `DRIVER_DOCUMENT` con `linkedDriverId` resuelto, pero la función queda preparada para un `entityType` futuro sin mapear.
+
+**Reutiliza el patrón `?estado=` de §22A** (`VehiculosPage` ya leía un query param para preseleccionar un filtro desde los accesos directos del dashboard, capítulo agregado en `fb406c0`). Aquí el query param es `highlight` y, en vez de preseleccionar un filtro, **abre directamente el diálogo de edición o de documentación** de la entidad:
+
+- `VehiculosPage` agrega un `useEffect` con dependencias `[highlight, canManage]` que llama `vehiclesApi.getById(id)` (método nuevo en `vehicles.api.ts` — el backend ya exponía `GET /vehicles/:id`, el cliente no lo usaba) y abre `VehicleFormDialog` con el vehículo recibido.
+- `ChoferesPage` hace lo mismo con `driversApi.getById(id)` (ya existía) y abre `DriverDocumentsDialog`, que es la vista donde vive tanto la licencia (alertas `DRIVER`) como los documentos (`DRIVER_DOCUMENT`) — un solo destino cubre ambos tipos de alerta de chofer.
+
+Ninguno de los dos `useEffect` necesitó `eslint-disable`: a diferencia de los tres cierres obsoletos que el capítulo 22B predijo y el 22C confirmó (§22C.4, tabla de revisión, hallazgo 3), aquí las dependencias declaradas son exactamente las que el efecto usa — `highlight` deriva de `searchParams.get(...)` leído en el cuerpo del componente, no capturado en un cierre viejo.
+
+### 22C.5.2. Confirmación antes de resolver
+
+El hallazgo 7 de §22C.4.2 decía: *"'Resolver' no advierte que la alerta volverá"* — el clic en el `DoneIcon` llamaba a `alertsApi.resolve(a.id)` sin ningún paso intermedio. Ahora:
+
+```ts
+const [toResolve, setToResolve] = useState<Alert | null>(null);
+// el ícono llama setToResolve(a) en vez de resolver directo
+```
+
+y se reutiliza `ConfirmDialog` (§21, el mismo componente que `VehiculosPage` usa para confirmar bajas) con el texto de la alerta interpolado: *"¿Marcar como resuelta la alerta '{tipo}'?"*.
+
+**Lo que el hallazgo 7 pedía y esto NO cubre:** el diálogo confirma la *acción* de resolver, pero no explica que el motor es un **reconciliador** (§14.3) y que una condición que persiste **va a regenerar la alerta con un id nuevo** en la siguiente evaluación. Ese matiz semántico — distinguir "resolver de verdad" de "reconocer y silenciar" — es el mismo que el ejercicio 12 de §14.10 plantea con `snoozedUntil`; sigue sin resolverse.
+
+### 22C.5.3. Verificación
+
+Probado manualmente contra el entorno local de desarrollo: login como `admin@empresa.com`, clic en "Ir al origen" de una alerta `INSURANCE_EXPIRED` (`VEHICLE #2`) → abre `VehiculosPage` con el diálogo de edición de la patente `BBB222` ya cargado. Clic en "Ir al origen" de una alerta `DOCUMENT_EXPIRED` (`DRIVER_DOCUMENT #9`) → abre `ChoferesPage` con la documentación de "Juan Pérez" (el chofer resuelto vía `linkedDriverId`), mostrando el documento ART marcado "Vencido". El diálogo de confirmación se probó sobre una alerta pendiente y se canceló sin resolverla. `tsc --noEmit` limpio en `backend/` y `frontend/` tras el cambio.
+
+**Archivos tocados:** `backend/src/modules/alerts/alerts.service.ts`, `frontend/src/api/alerts.api.ts`, `frontend/src/api/vehicles.api.ts`, `frontend/src/pages/alertas/AlertasPage.tsx`, `frontend/src/pages/vehiculos/VehiculosPage.tsx`, `frontend/src/pages/choferes/ChoferesPage.tsx`.
+
+---
+
 > **Siguiente:** [Capítulo 23 — Flujos end-to-end: los seis casos de uso completos](./23-flujos-end-to-end.md)
 > **Anterior:** [Capítulo 22B — Las pantallas de viajes y mantenimiento](./22b-frontend-viajes-mantenimiento.md)

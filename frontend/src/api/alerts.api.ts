@@ -13,6 +13,8 @@ export interface Alert {
   raisedAt: string;
   resolvedById: number | null;
   resolvedAt: string | null;
+  /** DRIVER_DOCUMENT alerts only: the driver that owns the document. */
+  linkedDriverId?: number;
 }
 
 export interface ListAlertsParams {

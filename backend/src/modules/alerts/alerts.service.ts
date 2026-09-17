@@ -27,9 +27,11 @@ export interface AlertResponse {
   raisedAt: Date;
   resolvedById: number | null;
   resolvedAt: Date | null;
+  /** DRIVER_DOCUMENT alerts only: the driver that owns the document (entityId is the document's id, not the driver's). */
+  linkedDriverId?: number;
 }
 
-function toResponse(a: Alert): AlertResponse {
+function toResponse(a: Alert, linkedDriverId?: number): AlertResponse {
   return {
     id: a.id,
     alertType: a.alertType,
@@ -40,6 +42,7 @@ function toResponse(a: Alert): AlertResponse {
     raisedAt: a.raisedAt,
     resolvedById: a.resolvedById,
     resolvedAt: a.resolvedAt,
+    ...(linkedDriverId !== undefined ? { linkedDriverId } : {}),
   };
 }
 
@@ -204,7 +207,26 @@ export const alertsService = {
       alertsRepository.findMany(filters, { skip: (query.page - 1) * query.limit, take: query.limit }),
       alertsRepository.count(filters),
     ]);
-    return { items: alerts.map(toResponse), total };
+
+    // Resolve the owning driver for DRIVER_DOCUMENT alerts (entityId there is
+    // the document's id, not the driver's) so the frontend can link straight
+    // to the person the alert is about.
+    const documentIds = alerts
+      .filter((a) => a.entityType === 'DRIVER_DOCUMENT')
+      .map((a) => a.entityId);
+    const driverByDocumentId = new Map<number, number>();
+    if (documentIds.length > 0) {
+      const docs = await prisma.driverDocument.findMany({
+        where: { id: { in: documentIds } },
+        select: { id: true, driverId: true },
+      });
+      for (const doc of docs) driverByDocumentId.set(doc.id, doc.driverId);
+    }
+
+    return {
+      items: alerts.map((a) => toResponse(a, driverByDocumentId.get(a.entityId))),
+      total,
+    };
   },
 
   /**
