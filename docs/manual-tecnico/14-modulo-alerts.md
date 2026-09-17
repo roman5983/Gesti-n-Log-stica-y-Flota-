@@ -1030,4 +1030,34 @@ SELECT COUNT(*) FROM alerts
 
 ---
 
+## 14.11. Actualización posterior — `linkedDriverId` en `alertsService.list()`
+
+> **Fecha:** 2026-09-17. **Motivación:** pedido de producto ("cada alerta tiene que redireccionar a la persona o de dónde venga"), resuelto junto con la navegación de §22C.5.
+
+`alertsService.list()` (§14.5.1, líneas 197-208 originales) devolvía `entityType` + `entityId` tal cual salían de la tabla `alerts`. Para `DRIVER_DOCUMENT`, **`entityId` es el id del documento, no el del chofer** (§14.2, `scanConditions` línea 106: `entityId: doc.id`) — así que el frontend no tenía forma de saber a qué chofer pertenecía un documento vencido sin una consulta adicional.
+
+**Cambio:** `list()` ahora junta, en un segundo `findMany` por lote (no N+1), los `driverId` de todos los documentos referenciados por las alertas de la página actual:
+
+```ts
+const documentIds = alerts
+  .filter((a) => a.entityType === 'DRIVER_DOCUMENT')
+  .map((a) => a.entityId);
+const driverByDocumentId = new Map<number, number>();
+if (documentIds.length > 0) {
+  const docs = await prisma.driverDocument.findMany({
+    where: { id: { in: documentIds } },
+    select: { id: true, driverId: true },
+  });
+  for (const doc of docs) driverByDocumentId.set(doc.id, doc.driverId);
+}
+```
+
+El resultado se expone como `linkedDriverId?: number` en `AlertResponse`, presente **solo** cuando `entityType === 'DRIVER_DOCUMENT'` y se pudo resolver. Para `VEHICLE` y `DRIVER` no hace falta: `entityId` ya es directamente el id de la entidad (§14.2, líneas 80 y 153).
+
+**Por qué un `findMany` por lote y no `include` en la alerta:** no hay relación declarada en el esquema entre `alerts` y las tablas de negocio — es la relación polimórfica sin FK que el capítulo 3 ya señaló (§3.7.2) y que el hallazgo 10 de §22C.5 vuelve a nombrar. Un `include` de Prisma no es posible sin esa FK; resolver por lote después de traer la página es la misma estrategia que el ejercicio 3.3 de §22C plantea como opción ("resolución en la respuesta"), aplicada aquí solo al caso `DRIVER_DOCUMENT`, que es el único donde `entityId` no apunta directamente a la entidad final.
+
+**Lo que esto NO resuelve:** la columna "Entidad" del frontend sigue mostrando `VEHICLE #2` en vez de la patente — ese es el hallazgo 10 completo de §22C.5, y sigue pendiente. `linkedDriverId` solo resuelve el caso puntual de **navegación** (§22C.5.1); no toca la presentación de la tabla.
+
+---
+
 **Anterior:** [Capítulo 13 — Mantenimiento](13-modulo-maintenance.md) · **Siguiente:** Capítulo 15 — Auditoría *(pendiente)*

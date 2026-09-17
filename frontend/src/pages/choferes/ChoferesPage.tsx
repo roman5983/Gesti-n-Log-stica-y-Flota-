@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, Chip, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -39,6 +40,18 @@ export function ChoferesPage() {
   const [editing, setEditing] = useState<Driver | null>(null);
   const [credentialsFor, setCredentialsFor] = useState<Driver | null>(null);
   const [documentsFor, setDocumentsFor] = useState<Driver | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  // Deep link from Alertas ("ir al origen"): open that chofer's documentation.
+  const [searchParams] = useSearchParams();
+  const highlight = searchParams.get('highlight');
+  useEffect(() => {
+    if (!highlight || !canManage) return;
+    driversApi
+      .getById(Number(highlight))
+      .then((d) => setDocumentsFor(d))
+      .catch(() => setLinkError('No se encontró el chofer indicado.'));
+  }, [highlight, canManage]);
 
   const columns = useMemo<Column<Driver>[]>(
     () => [
@@ -109,6 +122,7 @@ export function ChoferesPage() {
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {linkError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setLinkError(null)}>{linkError}</Alert>}
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
         <TextField

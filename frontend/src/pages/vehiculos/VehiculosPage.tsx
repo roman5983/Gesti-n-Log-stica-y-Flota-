@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -59,6 +59,16 @@ export function VehiculosPage() {
   const [toDelete, setToDelete] = useState<Vehicle | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Deep link from Alertas ("ir al origen"): open the vehicle straight away.
+  const highlight = searchParams.get('highlight');
+  useEffect(() => {
+    if (!highlight || !canManage) return;
+    vehiclesApi
+      .getById(Number(highlight))
+      .then((v) => { setEditing(v); setFormOpen(true); })
+      .catch(() => setActionError('No se encontró el vehículo indicado.'));
+  }, [highlight, canManage]);
 
   const toggleActive = useCallback(
     async (v: Vehicle) => {

@@ -41,6 +41,11 @@ export const vehiclesApi = {
     return { items: data.data, total: (data.meta as PaginationMeta).total };
   },
 
+  async getById(id: number): Promise<Vehicle> {
+    const { data } = await api.get<ApiResponse<Vehicle>>(`/vehicles/${id}`);
+    return data.data;
+  },
+
   async create(input: CreateVehicleInput): Promise<Vehicle> {
     const { data } = await api.post<ApiResponse<Vehicle>>('/vehicles', input);
     return data.data;
