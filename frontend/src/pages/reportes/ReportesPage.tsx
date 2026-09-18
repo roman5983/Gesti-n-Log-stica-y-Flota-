@@ -14,11 +14,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from '@mui/material';
 import { PageHeader } from '../../components/PageHeader';
 import { KpiCard } from '../../components/KpiCard';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { reportsApi, type TripReport } from '../../api/reports.api';
 import { apiErrorMessage } from '../../api/axios';
 
@@ -49,9 +49,8 @@ export function ReportesPage() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }}>
-            <TextField label="Desde" type="date" size="small" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
-            <TextField label="Hasta" type="date" size="small" value={dateTo} onChange={(e) => setDateTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }} justifyContent="space-between">
+            <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
             <Button variant="contained" onClick={generate} disabled={loading || !dateFrom || !dateTo}>
               Generar informe
             </Button>

@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { createTripSchema, assignTripSchema, finishTripSchema } from './trips.schemas';
 
+/** A calendar date safely in the future, regardless of when the suite runs. */
+const futureDeparture = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
 describe('trip schemas', () => {
   it('accepts a valid create payload and ignores origin (RN-21 fixed origin)', () => {
     const parsed = createTripSchema.parse({
       destination: 'Córdoba',
-      departureAt: '2026-08-01T10:00:00.000Z',
+      departureAt: futureDeparture,
       // origin is not a field of the schema; even if sent, it is stripped.
       origin: 'anything',
     });
@@ -14,7 +17,13 @@ describe('trip schemas', () => {
   });
 
   it('rejects a create without destination', () => {
-    expect(() => createTripSchema.parse({ departureAt: '2026-08-01T10:00:00Z' })).toThrow();
+    expect(() => createTripSchema.parse({ departureAt: futureDeparture })).toThrow();
+  });
+
+  it('rejects a departureAt before today', () => {
+    expect(() =>
+      createTripSchema.parse({ destination: 'Córdoba', departureAt: '2020-01-01T10:00:00.000Z' }),
+    ).toThrow();
   });
 
   it('assign requires a positive driverId', () => {

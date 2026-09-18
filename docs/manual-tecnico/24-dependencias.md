@@ -28,11 +28,15 @@ Verifiqué las cuatro con búsquedas en todo `src/`. Son ~4 MB de `node_modules`
 caro, **son la evidencia de una intención abandonada**: alguien iba a usar selectores de
 fecha de MUI y a probar componentes, y no lo hizo.
 
+> ✅ **Actualización 2026-09-18 (§24.5.3, al final del capítulo):** dos de los cuatro ya no aplican tal cual — `@mui/x-date-pickers` y `dayjs` se conectaron (`LocalizationProvider` en `main.tsx`) y se usan en `DateRangeFilter` (Reportes y Viajes, §22B.9.1). **Pero no para el bug del punto 2** — léase la actualización de esa sección antes de asumir que está resuelto. `@testing-library/react`, `@testing-library/jest-dom` y `jsdom` siguen exactamente igual: instalados, sin uso.
+
 **2. `@mui/x-date-pickers` sin usar explica el bug más extendido del proyecto.** El
 paquete resuelve exactamente el problema de fechas de §22A.4: un `<DatePicker>` de MUI con
 `dayjs` no tiene el error de la medianoche UTC. Está instalado. En su lugar se usaron
 `<input type="date">` a mano y `toLocaleDateString`, y de ahí salen los cuatro sitios donde
 un vencimiento se muestra un día antes. **La herramienta estaba en el proyecto.**
+
+> ⚠️ **Actualización 2026-09-18:** la frase "la herramienta estaba en el proyecto, y no se usó" ya no es exacta en su literalidad — ahora se usa, pero **para un problema distinto** (filtros de rango de fecha en Reportes/Viajes, no el formateo de vencimientos). Los cuatro sitios del bug de §22A.4 (`licenseExpiryDate`, `insuranceExpiryDate`, y los dos de documentos) siguen usando `toLocaleDateString` sin `dayjs.utc(...)` — **sin tocar**. El hallazgo sigue vigente; ver §24.5.3 para el detalle de qué cambió y qué no.
 
 **3. Falta el paquete cuya ausencia causó tres bugs.** No hay ESLint. Los nueve
 `eslint-disable` del código (§22B.5.2) silencian un linter que no existe, y tres de ellos
@@ -148,8 +152,8 @@ con `--omit=dev`… donde `prisma` no estaría. Se desarrolla en §24.3.2.
 | `axios` | ^1.7.7 | Cliente HTTP con interceptores | ✅ |
 | `zustand` | ^5.0.1 | Estado global | ✅ |
 | `recharts` | ^2.13.3 | Gráficos | ✅ *(1 pantalla)* |
-| **`@mui/x-date-pickers`** | ^7.22.2 | Selectores de fecha | 🔴 **NO SE USA** |
-| **`dayjs`** | ^1.11.13 | Manejo de fechas | 🔴 **NO SE USA** |
+| **`@mui/x-date-pickers`** | ^7.22.2 | Selectores de fecha | ⚠️ **Se usa desde 2026-09-18** (`DateRangeFilter`, §22B.9.1) — *no* en los 4 sitios del bug de §22A.4 |
+| **`dayjs`** | ^1.11.13 | Manejo de fechas | ⚠️ **Ídem** — sin `.utc()`, sin tocar el bug de vencimientos |
 
 **Frontend — desarrollo (10)**
 
@@ -788,6 +792,14 @@ mano, mal, en catorce sitios.
 Lo que no se puede es dejarlo como está: **un `package.json` que declara una intención que
 el código no cumple**.
 
+> ✅ **Actualización 2026-09-18 — se tomó la salida 1, a medias.** Se agregó el `LocalizationProvider` que faltaba (`main.tsx`, §22B.9.1) y se construyó `DateRangeFilter` con `<DatePicker>` de MUI para los filtros "Desde"/"Hasta" de Reportes y Viajes. **Esto resuelve la mitad correcta del hallazgo** — la de "el `package.json` promete algo que el código no cumple" — pero **no la mitad que dolía más**, la de §22A.4: los cuatro sitios donde un vencimiento (`licenseExpiryDate`, `insuranceExpiryDate`, los dos de `driverDocument`) se muestra un día antes por `new Date(fechaDATE).toLocaleDateString('es-AR')` sin `.utc()` siguen exactamente igual.
+>
+> Vale la pena decir por qué el mismo cambio no arrastró la corrección del otro bug, aunque las dos cosas usan la misma librería: son dos usos distintos de `dayjs`. `DateRangeFilter` trabaja con **rangos de fecha que el usuario elige** (`Desde`/`Hasta`, sin husos horarios involucrados — son cadenas `YYYY-MM-DD` puras, igual antes y después del cambio). El bug de §22A.4 es sobre **formatear un instante UTC que ya existe en la base de datos** para mostrarlo en pantalla — un problema de conversión de zona horaria, no de selección. Que el proyecto tenga ahora un `<DatePicker>` montado en `main.tsx` hace que la *siguiente* corrección de ese bug sea más barata (el adaptador ya está listo, `dayjs.utc(...)` funciona igual esté o no montado un `<DatePicker>` en pantalla), pero no la ejecuta sola.
+>
+> **La frase que cierra esta sección deja de ser cierta en su forma original** ("un `package.json` que declara una intención que el código no cumple") y pasa a ser: *un `package.json` que declara una intención, cumplida solo para el caso de uso que se necesitó primero.* Sigue siendo una situación a resolver conscientemente —usar `dayjs.utc(...)` en los cuatro sitios restantes, ahora que el paquete ya está en el árbol de importación real, es literalmente una línea por sitio— pero ya no es la misma anomalía de "instalado y nunca tocado".
+
+**Archivos tocados por la actualización:** `frontend/src/main.tsx`, `frontend/src/components/DateRangeFilter.tsx` (documentado en detalle en §22B.9.1 y §22C.6.1).
+
 ### 24.5.4 · `react-router-dom` ^6.28.0
 
 **Qué resuelve.** En una SPA no hay navegación real: el servidor manda siempre el mismo
@@ -977,6 +989,9 @@ en `AddressAutocomplete.tsx:30,35`. Sin él, todo el SDK sería `any`.
    `@mui/x-date-pickers` + `dayjs` resolvían el bug de fechas más extendido del proyecto;
    `@testing-library/*` habría detectado los tres cierres obsoletos. **Las dos herramientas
    que evitaban los hallazgos más repetidos del manual estaban instaladas.**
+   *(Actualización 2026-09-18, §24.5.3: los dos primeros ya se usan, pero para filtros de
+   rango en Reportes/Viajes — no para el bug de fechas que este punto describe, que sigue
+   sin resolverse. `@testing-library/*` sigue sin usar.)*
 
 3. **La dependencia más cara es la que falta.** Sin ESLint, nueve supresiones silencian a
    un linter inexistente y tres cierres obsoletos llegaron a producción. Veinte minutos de
@@ -994,7 +1009,7 @@ en `AddressAutocomplete.tsx:30,35`. Sin él, todo el SDK sería `any`.
 
 | # | Gravedad | Hallazgo | Evidencia |
 |--:|:--|:--|:--|
-| 1 | 🔴 Alta | **`@mui/x-date-pickers` y `dayjs` instalados y sin usar** — y resuelven exactamente el bug de fechas de §22A.4. Cero apariciones en `frontend/src/`. La herramienta estaba en el proyecto. | `package.json` vs búsqueda en `src/` |
+| 1 | ⚠️ Media *(era Alta; degradado 2026-09-18, §24.5.3)* | **`@mui/x-date-pickers` y `dayjs`, instalados y sin usar → ahora usados, pero no para el bug que motivó el hallazgo.** Se conectaron para `DateRangeFilter` (filtros de rango en Reportes/Viajes). El bug de fechas de §22A.4 (vencimientos mostrados un día antes, 4 sitios) sigue sin `dayjs.utc(...)` — sigue reproducible. | `package.json` vs búsqueda en `src/`; `DateRangeFilter.tsx` |
 | 2 | 🔴 Alta | **ESLint no está instalado**, y su ausencia causó tres cierres obsoletos que `exhaustive-deps` habría marcado. Nueve `eslint-disable` sin linter. | `package.json` (ambos), 9 comentarios |
 | 3 | 🔴 Alta | **`@testing-library/react` y `jest-dom` instalados y sin usar.** Ninguna prueba renderiza un componente. Habrían detectado los tres cierres obsoletos. | 8 archivos de prueba, ninguno los importa |
 | 4 | ⚠️ Media | **`multer` en la línea 1.x**, en mantenimiento. La 2.x se publicó tras corregir vulnerabilidades de denegación de servicio. La dependencia a revisar antes de desplegar. | `^1.4.5-lts.1` |

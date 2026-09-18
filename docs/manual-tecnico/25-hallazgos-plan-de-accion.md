@@ -148,7 +148,7 @@ supresión: nadie lo vio.
 | Vencimientos un día antes (4 sitios) | §22A.4 |
 | Distintivo correcto junto a fecha errónea | §22C.3.2 · `MiDocumentacionPage` |
 | Tabla y formulario discrepan sobre el mismo dato | §22A.4 vs `VehicleFormDialog:40` |
-| `@mui/x-date-pickers` y `dayjs` instalados y sin usar | §24.5.3 |
+| `@mui/x-date-pickers` y `dayjs` instalados y sin usar *(desde 2026-09-18: se usan, pero solo para filtros de rango en Reportes/Viajes — no para este bug, ver §24.5.3)* | §24.5.3 |
 
 Una columna `DATE` llega como medianoche UTC. `new Date(x).toLocaleDateString('es-AR')` la
 convierte a hora argentina restando tres horas y **cruza al día anterior**.
