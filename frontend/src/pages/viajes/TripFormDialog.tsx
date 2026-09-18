@@ -18,6 +18,13 @@ import { AddressAutocomplete } from '../../components/AddressAutocomplete';
 /** Fixed origin for every trip (RN-21) — shown read-only. */
 const FIXED_ORIGIN = 'Ciudad Industria, Autopista Córdoba - Rosario, Rosario, Santa Fe';
 
+/** Today at local midnight, formatted for a datetime-local input's `min`. */
+function todayLocalInputMin(): string {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return `${midnight.getFullYear()}-${String(midnight.getMonth() + 1).padStart(2, '0')}-${String(midnight.getDate()).padStart(2, '0')}T00:00`;
+}
+
 interface Props {
   open: boolean;
   /** null → create; a trip → edit (only allowed while PENDING_ASSIGNMENT, A-4). */
@@ -49,6 +56,10 @@ export function TripFormDialog({ open, trip = null, onClose, onSaved }: Props) {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (departureAt < todayLocalInputMin()) {
+      setError('La fecha de salida no puede ser anterior a hoy');
+      return;
+    }
     setSubmitting(true);
     try {
       // Send an unambiguous UTC instant, independent of the server's timezone.
@@ -88,6 +99,7 @@ export function TripFormDialog({ open, trip = null, onClose, onSaved }: Props) {
               required
               fullWidth
               InputLabelProps={{ shrink: true }}
+              inputProps={{ min: todayLocalInputMin() }}
             />
             <TextField label="Observaciones" value={notes} onChange={(e) => setNotes(e.target.value)} fullWidth multiline minRows={2} />
           </Stack>

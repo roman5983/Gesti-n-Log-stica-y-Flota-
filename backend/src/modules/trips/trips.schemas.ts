@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { paginationSchema } from '../../shared/schemas';
+import { utcStartOfToday } from '../../shared/utils/dates';
+
+/** RN: a trip's departure cannot be scheduled before today's calendar date. */
+const notBeforeToday = (date: Date) => date >= utcStartOfToday();
+const NOT_BEFORE_TODAY_MESSAGE = 'departureAt cannot be before today';
 
 /**
  * Trip creation only generates the route (A-1). The origin is fixed (RN-21)
@@ -9,7 +14,7 @@ import { paginationSchema } from '../../shared/schemas';
  */
 export const createTripSchema = z.object({
   destination: z.string().min(2).max(120),
-  departureAt: z.coerce.date(),
+  departureAt: z.coerce.date().refine(notBeforeToday, { message: NOT_BEFORE_TODAY_MESSAGE }),
   notes: z.string().max(1000).optional(),
   estimatedDistanceKm: z.coerce.number().positive().max(99999).optional(),
   estimatedTimeMin: z.coerce.number().int().positive().max(100000).optional(),
@@ -20,7 +25,7 @@ export type CreateTripDto = z.infer<typeof createTripSchema>;
 export const updateTripSchema = z
   .object({
     destination: z.string().min(2).max(120).optional(),
-    departureAt: z.coerce.date().optional(),
+    departureAt: z.coerce.date().refine(notBeforeToday, { message: NOT_BEFORE_TODAY_MESSAGE }).optional(),
     notes: z.string().max(1000).nullable().optional(),
     estimatedDistanceKm: z.coerce.number().positive().max(99999).nullable().optional(),
     estimatedTimeMin: z.coerce.number().int().positive().max(100000).nullable().optional(),
