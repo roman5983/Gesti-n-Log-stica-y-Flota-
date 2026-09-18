@@ -11,6 +11,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusChip } from '../../components/StatusChip';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { tripsApi, type Trip, type TripStatus } from '../../api/trips.api';
 import { apiErrorMessage } from '../../api/axios';
@@ -159,21 +160,10 @@ export function ViajesPage() {
             <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
           ))}
         </TextField>
-        <TextField
-          label="Desde"
-          type="date"
-          size="small"
-          value={dateFrom}
-          onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
-          InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-          label="Hasta"
-          type="date"
-          size="small"
-          value={dateTo}
-          onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
-          InputLabelProps={{ shrink: true }}
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onChange={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }}
         />
       </Stack>
 
