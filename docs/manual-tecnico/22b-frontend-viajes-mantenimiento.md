@@ -288,6 +288,8 @@ explicó (el desdoblamiento que evita una petición por tecla). Los tres filtros
 usuario termina de elegir. La ausencia de `appliedSearch` no es una omisión: es que no
 hace falta.
 
+> ✅ **Actualización 2026-09-18 (§22B.9):** los dos `<input type="date">` de "Desde"/"Hasta" se reemplazaron por `<DateRangeFilter>`, un componente nuevo con calendario (`@mui/x-date-pickers`, hasta ahora sin usar — §24.5.3) y chips de atajos (Hoy, Últimos 7/30 días, Este mes, Mes anterior). El estado sigue siendo el mismo par de `string` `dateFrom`/`dateTo`; lo que cambia es el control que los produce, no el contrato con el backend. Ver §22B.9 para el detalle.
+
 **2. Las fechas del filtro viajan como cadenas crudas.**
 
 ```tsx
@@ -665,6 +667,8 @@ asignarlo y finalizarlo. Aparecerá en los reportes de 2019.
 Si es intencional —cargar viajes que ya ocurrieron para completar el histórico— debería
 estar documentado; el resto del sistema es estricto con las fechas (RN-1 con licencias,
 RN-5 con kilometrajes), así que la asimetría llama la atención.
+
+> ✅ **Actualización 2026-09-18 (§22B.9):** resuelto, en las dos capas. `inputProps={{ min: todayLocalInputMin() }}` se agregó a este `TextField`, y el esquema del backend gana un `.refine()` que rechaza `departureAt` anterior al día de hoy (§12.12) — la resolución no se dejó solo del lado del cliente, que es fácil de saltear. La decisión final **no** fue "prohibir el pasado por completo": el pedido fue "fecha anterior a **hoy**", así que un viaje con salida más temprano en el día de hoy sigue siendo válido — el histórico del mismo día no quedó bloqueado, solo ayer y antes.
 
 ```tsx
 <AddressAutocomplete label="Destino" value={destination} onChange={setDestination} required />
@@ -2269,6 +2273,89 @@ hallazgos de gravedad alta de este capítulo:
 borrar observaciones, desactivar `monthsAlert`, y actuar desde la página 3 sin saltar a
 la 1. Las pruebas deben **fallar** contra el código actual. Luego corrija y verifique
 que pasan.
+
+---
+
+## 22B.9. Actualización posterior — `DateRangeFilter` y el fin del viaje-al-pasado
+
+> **Fecha:** 2026-09-18. **Motivación:** dos pendientes resueltos en la misma sesión, ambos anotados por este capítulo antes de pedirse formalmente: el selector de fecha nativo sin atajos (§22B.3.1) y la ausencia de `min` en `TripFormDialog` (§22B.4.1). El segundo llegó como pedido explícito del usuario — *"que no se puedan crear viajes para una fecha anterior a hoy"* — casi palabra por palabra lo que la advertencia de §22B.4.1 ya proponía.
+
+### 22B.9.1. `DateRangeFilter`: por qué un componente nuevo y no un `<DatePicker>` suelto por pantalla
+
+`ReportesPage` (§22C.5.1) tiene el mismo par "Desde"/"Hasta" que `ViajesPage`, con el mismo formato de `string` (`YYYY-MM-DD`) viajando hacia `reportsApi.trips(dateFrom, dateTo)` y `tripsApi.list({ dateFrom, dateTo })` respectivamente. En vez de poner un `<DatePicker>` en cada pantalla, se extrajo `frontend/src/components/DateRangeFilter.tsx` — el catálogo de componentes compartidos que §21.2.1 documentó como "corto" (ver también §22B.3.1, punto 4, sobre el bloque de error duplicado cuatro veces) gana una pieza más:
+
+```tsx
+interface Props {
+  dateFrom: string;
+  dateTo: string;
+  onChange: (dateFrom: string, dateTo: string) => void;
+  size?: 'small' | 'medium';
+}
+```
+
+La firma conserva el mismo contrato de `string` que ya usaban ambas pantallas — **no** se migró el estado de las páginas a objetos `Dayjs`. Internamente, el componente convierte entre `Dayjs` (lo que pide `<DatePicker>`) y el `YYYY-MM-DD` que ya recorre toda la cadena hasta Zod (`z.coerce.date()`, §12.4 / `reports.schemas.ts`). Es la misma filosofía que §22B.2.4 elogió en `localInputToIso`/`isoToLocalInput`: la conversión vive en un solo lugar, en los bordes, y el resto del código no se entera.
+
+```tsx
+const SHORTCUTS: Shortcut[] = [
+  { label: 'Hoy', range: () => { const t = dayjs().format(DATE_FORMAT); return [t, t]; } },
+  { label: 'Últimos 7 días', range: () => [dayjs().subtract(6, 'day').format(DATE_FORMAT), dayjs().format(DATE_FORMAT)] },
+  // Últimos 30 días, Este mes, Mes anterior…
+];
+```
+
+Cada atajo es una función que devuelve `[from, to]`; un `Chip` por atajo llama a `onChange(...range())`. El chip activo se calcula comparando el rango actual contra lo que cada atajo produciría en este momento:
+
+```tsx
+const activeShortcut = useMemo(
+  () => SHORTCUTS.find((s) => { const [from, to] = s.range(); return from === dateFrom && to === dateTo; })?.label,
+  [dateFrom, dateTo],
+);
+```
+
+Es una comparación **por valor, no por identidad de atajo elegido** — no hay un `useState<string | null>` que recuerde "el usuario tocó el chip X". La consecuencia práctica: si son las 10:00 del 18/09 y el usuario elige "Hoy", el chip queda resaltado; si dejara la pestaña abierta hasta pasada la medianoche, en el siguiente render el rango guardado (18/09–18/09) ya **no** coincidiría con lo que "Hoy" calcularía en ese instante (19/09–19/09), y el resaltado se apagaría solo, sin que nadie tocara nada. Es un comportamiento correcto y no buscado explícitamente — una consecuencia de haber preferido derivar el resaltado del valor en vez de guardar una bandera separada, la misma preferencia que §22B.4.1 señaló como correcta para `isEdit`.
+
+**`LocalizationProvider` se agregó una sola vez**, en `frontend/src/main.tsx`, envolviendo a `AppThemeProvider`:
+
+```tsx
+<LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+  <AppThemeProvider>
+    <App />
+  </AppThemeProvider>
+</LocalizationProvider>
+```
+
+Esto es lo que §24.5.3 señaló como la pieza que faltaba: `@mui/x-date-pickers` y `dayjs` estaban instalados y **nunca se había montado un `LocalizationProvider`** en el árbol, sin el cual ningún `<DatePicker>` puede renderizar. Con esta sola línea, cualquier `<DatePicker>` futuro en el proyecto queda listo para usarse sin configuración adicional — algo a tener en cuenta si se retoma el hallazgo de §22A.4 (los cuatro sitios que muestran un vencimiento un día antes): el adaptador ya está montado, falta solo aplicar `dayjs.utc(...)` en esos sitios puntuales, que **no** se tocaron en este cambio (§24.5.3, actualización posterior).
+
+### 22B.9.2. El `min` de `TripFormDialog`, en las dos capas
+
+```tsx
+function todayLocalInputMin(): string {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return `${midnight.getFullYear()}-${String(midnight.getMonth() + 1).padStart(2, '0')}-${String(midnight.getDate()).padStart(2, '0')}T00:00`;
+}
+```
+
+Una función local, no importada de `utils/datetime.ts` (§22B.2.4): construye la medianoche **local** del día de hoy en el formato exacto que un `<input type="datetime-local">` espera para su atributo `min`. Es deliberadamente distinta de `utcStartOfToday()` del backend (§12.12.1, `shared/utils/dates.ts`): el input trabaja en hora **local** del navegador (igual que `localInputToIso`, §22B.2.4), así que su `min` también debe construirse en hora local — mezclar los dos criterios habría corrido el límite por el desplazamiento horario, exactamente el error que ese mismo helper de backend fue escrito para evitar en su propio dominio.
+
+```tsx
+if (departureAt < todayLocalInputMin()) {
+  setError('La fecha de salida no puede ser anterior a hoy');
+  return;
+}
+```
+
+**Por qué esta comparación funciona siendo `departureAt` y `todayLocalInputMin()` dos strings.** Ambas tienen el mismo formato fijo `YYYY-MM-DDTHH:mm` (dígitos con ceros a la izquierda, orden año-mes-día): para cadenas con ese formato, la comparación lexicográfica de JavaScript (`<`) coincide exactamente con el orden cronológico. Es el mismo principio por el que ISO 8601 se diseñó ordenable como texto.
+
+**Por qué la validación explícita, si ya está el `min` nativo.** El `min` de un `<input type="datetime-local">` es una ayuda de interfaz —el navegador lo hace notar con su propio mensaje, como se vio en la verificación— pero **no impide** que un valor inválido llegue al estado de React: `form_input`/pegar/autocompletar pueden poner cualquier valor en el campo sin pasar por la interacción que el navegador vigila. La comprobación en `handleSubmit` es la misma defensa en profundidad que §22B.4.1 documentó para `preventDefault()`: no confiar en que el único camino de entrada sea el que el desarrollador imaginó.
+
+**La regla se aplica también al editar**, no solo al crear — a diferencia de la primera versión de este cambio, que solo la aplicaba en `!isEdit`. La razón: el backend valida `departureAt` en `updateTripSchema` igual que en `createTripSchema` (§12.12.2), así que dejar pasar la edición del lado del cliente solo pospondría el mismo rechazo al 400 del servidor, con peor experiencia (el usuario ve el error recién después del viaje de ida y vuelta a la red, en vez de antes de enviarlo).
+
+### 22B.9.3. Verificación
+
+`tsc --noEmit` limpio en `frontend/`. Probado en navegador: el atajo "Hoy" de `DateRangeFilter` fija ambas fechas y filtra `ViajesPage` de inmediato; el calendario emergente abre en español (`adapterLocale="es"`). En `TripFormDialog`, forzar `2020-01-01T10:00` en el campo (vía `form_input`, saltando la interacción normal del calendario) dispara el propio mensaje nativo del navegador — *"El valor debe ser igual o posterior a 18/09/2026 00:00"*— al intentar enviar, confirmando que el `min` funciona incluso frente a una escritura directa del valor.
+
+**Archivos tocados:** `frontend/src/main.tsx`, `frontend/src/components/DateRangeFilter.tsx` (nuevo), `frontend/src/pages/viajes/ViajesPage.tsx`, `frontend/src/pages/viajes/TripFormDialog.tsx`, `backend/src/modules/trips/trips.schemas.ts` (§12.12). `ReportesPage` usa el mismo `DateRangeFilter`; se documenta en §22C.5 (actualización posterior).
 
 ---
 

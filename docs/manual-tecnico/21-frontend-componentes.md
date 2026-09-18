@@ -14,7 +14,7 @@ Esta es la capa que evita que las 29 pantallas del capítulo 22 sean 29 implemen
 
 | Categoría | Archivos | Conocen el dominio | Llaman a la API |
 |:--|:--|:-:|:-:|
-| **Genéricos** | `DataTable`, `ConfirmDialog`, `KpiCard`, `PageHeader` | ❌ No | ❌ No |
+| **Genéricos** | `DataTable`, `ConfirmDialog`, `KpiCard`, `PageHeader`, `DateRangeFilter` *(2026-09-18, §21.10)* | ❌ No | ❌ No |
 | **Semi-específicos** | `StatusChip`, `RouteMap`, `AddressAutocomplete` | ⚠️ Parcial | ❌ No |
 | **Estructurales** | `AppSidebarLayout` + los 3 layouts | ⚠️ Solo la sesión | ❌ No |
 | **Lógica compartida** | `usePaginatedList` | ❌ No | ⚠️ Recibe la función |
@@ -1153,6 +1153,18 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 15. Reemplazar `pb: 8` de `ChoferLayout` por una medición real de la altura de la barra, o extraer una constante compartida.
 16. Rediseñar la API de `usePaginatedList` para recibir los filtros como objeto, haciendo imposible el bucle infinito. Comparar ergonomía y robustez con la versión actual.
 17. Agregar formato de números a `KpiCard` con `toLocaleString('es-AR')` y verificar en el dashboard.
+
+---
+
+## 21.10. Actualización posterior — `DateRangeFilter`, el noveno componente genérico
+
+> **Fecha:** 2026-09-18. El detalle completo —por qué se extrajo como componente compartido, cómo se resuelve el atajo activo, y por qué `LocalizationProvider` se montó una sola vez en `main.tsx`— está en §22B.9.1, donde se introdujo junto con el cambio que lo motivó (el selector de fecha nativo de Viajes y Reportes). Esta sección solo lo ubica en el catálogo de este capítulo.
+
+`DateRangeFilter.tsx` (96 líneas) cumple la misma regla que el resto de §21.1: **no conoce el dominio y no llama a la API.** Recibe `dateFrom`/`dateTo` como `string` y un `onChange`; no sabe si el rango que filtra es de viajes o de un informe. Es genérico en el mismo sentido que `DataTable<T>` — reutilizado tal cual por `ViajesPage` y `ReportesPage` (§22B.9.1, §22C.6.1) sin ninguna variación entre los dos usos.
+
+**Por qué no es "semi-específico" como `StatusChip` o `RouteMap`.** Esos dos conocen tipos del dominio (`TripStatus`, coordenadas de viajes). `DateRangeFilter` no importa ningún tipo de `api/`; su único acoplamiento es al formato `YYYY-MM-DD` que ambas pantallas ya usaban antes de que el componente existiera — un acoplamiento de formato, no de dominio.
+
+Con esta incorporación, el catálogo de §21.1 pasa de ocho a **nueve** componentes en `src/components/`. La cifra "8 de `src/components/` (514 líneas)" del encabezado de este capítulo (§21, línea 4) queda desactualizada por este cambio — y, de forma independiente, también podría estarlo por trabajo de una sesión anterior no documentado aquí (`ColorModeToggle`, `AppThemeProvider`): no se verificó ese recuento por estar fuera del alcance de esta actualización.
 
 ---
 

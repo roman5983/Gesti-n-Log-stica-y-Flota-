@@ -219,6 +219,8 @@ departureAt: z.coerce.date(),
 
 **La validación mínima razonable** sería que un viaje nuevo no pueda tener salida anterior a, digamos, 24 horas atrás — permitiendo correcciones sin permitir errores de año.
 
+> ✅ **Actualización 2026-09-18 (§12.12):** este hallazgo está **parcialmente resuelto**. Se agregó un `.refine()` que rechaza `departureAt` anterior al **día** de hoy (no a "hace 24 horas": la regla pedida fue "fecha anterior a hoy", así que se compara contra `utcStartOfToday()`, no contra `Date.now()`). Sigue sin resolverse la segunda mitad del hallazgo: `finishedAt < departureAt` en la finalización (§12.6, `finish`) no se valida. Ver §12.12 para el detalle.
+
 **Líneas 14-15 — los límites numéricos**
 
 ```ts
@@ -1226,7 +1228,7 @@ curl -X POST .../trips/12/finish -d '{"arrivalKm":45000}'   # mismo km que la sa
    | 4 | 🔴 **`arrivalKm` sin cota superior.** Un valor absurdo corrompe el odómetro del vehículo permanentemente y rompe todos los cálculos de mantenimiento por kilometraje. | Media |
    | 5 | ⚠️ **No se valida el mantenimiento vencido al asignar**, aunque `vehicles.service.ts:181` sugiere que RN-3 debería hacerlo. | Media |
    | 6 | ⚠️ **`update` y `delete` NO bloquean** — a diferencia de `assign` y `finish` del mismo módulo. Un viaje puede editarse justo mientras se asigna. | Media |
-   | 7 | ⚠️ **Sin validación temporal:** se puede crear un viaje con salida en 2020, y nada impide `finishedAt < departureAt` (el bug del seed, §4.7.5). | Media |
+   | 7 | ⚠️ **Sin validación temporal** *(parcialmente resuelto, §12.12)*: ya no se puede crear/editar un viaje con salida anterior a hoy; sigue sin validarse que `finishedAt < departureAt` (el bug del seed, §4.7.5). | Media |
    | 8 | ⚠️ **`if (driver)` silencioso en `finish`:** si el chofer fue dado de baja durante el viaje, las estadísticas no se actualizan y nadie se entera. Cadena de tres módulos. | Baja |
    | 9 | ⚠️ **La auditoría del vehículo queda bajo `entity='TRIP'`.** Buscar el historial del vehículo 3 no devuelve sus cambios de estado por asignación. | Baja |
    | 10 | ⚠️ **403 en `getById` confirma la existencia del viaje**, permitiendo enumeración. Inconsistente con `getExistingOrFail`, que usa 404 en el mismo archivo. | Baja |
@@ -1315,6 +1317,68 @@ curl -X POST .../trips/12/finish -d '{"arrivalKm":45000}'   # mismo km que la sa
 14. Agregar bloqueo y relectura a `update` y `delete`, en coherencia con `assign` y `finish`.
 15. Persistir `tripKm` como columna de `trips` al finalizar, y reescribir la consulta de conciliación del ejemplo 5 usándola.
 16. Hacer que `error-handler` serialice el campo `rule` y verificar con el ejercicio 3 que `RN-1` y `RN-4` ahora llegan al cliente.
+
+---
+
+## 12.12. Actualización posterior — `departureAt` no puede ser anterior a hoy
+
+> **Fecha:** 2026-09-18. **Motivación:** pedido de producto directo — *"hace que no se puedan crear viajes para una fecha anterior a hoy"* — que resulta ser exactamente el hallazgo 7 de §12.9 y la advertencia de §12.4 sobre la línea 12 de `createTripSchema`. El manual ya había señalado el problema y hasta propuesto la forma del arreglo; esta sección documenta la versión que se implementó.
+
+### 12.12.1. Por qué "anterior a hoy" y no "anterior a ahora"
+
+El pedido fue literal: **fecha**, no **instante**. Un operador que carga un viaje a las 23:50 para las 23:55 de ese mismo día no debería toparse con un rechazo por unos minutos de margen — y tampoco debería depender de la hora exacta en que se abrió el formulario. Por eso la comparación se hace contra el **inicio del día de hoy en UTC**, reutilizando `utcStartOfToday()` (§6, `shared/utils/dates.ts`), el mismo helper que ya usaba §14.2 para decidir si una licencia o un seguro está vencido:
+
+```ts
+// backend/src/modules/trips/trips.schemas.ts
+import { utcStartOfToday } from '../../shared/utils/dates';
+
+const notBeforeToday = (date: Date) => date >= utcStartOfToday();
+const NOT_BEFORE_TODAY_MESSAGE = 'departureAt cannot be before today';
+
+export const createTripSchema = z.object({
+  destination: z.string().min(2).max(120),
+  departureAt: z.coerce.date().refine(notBeforeToday, { message: NOT_BEFORE_TODAY_MESSAGE }),
+  // ...
+});
+```
+
+**Por qué no `Date.now()`.** Con el instante actual como referencia, un viaje cargado el mismo día pero con `departureAt` en una hora ya pasada (p. ej. son las 15:00 y se quiere registrar un viaje que salió a las 09:00, para completar el histórico del día) quedaría rechazado — y esa es precisamente una de las dos columnas "a favor" que §12.4 listaba en su tabla ("Registrar viajes ocurridos y no cargados"). Comparar contra el **día calendario** conserva esa flexibilidad y solo bloquea lo que el pedido pidió bloquear: ayer o antes.
+
+**Reutilizar `utcStartOfToday()` en vez de crear un segundo criterio de "hoy".** El comentario original de ese helper (§6.7) advierte exactamente sobre esto: construir la medianoche en hora local desplazaría el límite por el huso horario del servidor. Como `departureAt` se guarda como instante UTC (`DATETIME`, no `DATE`), y el resto del sistema ya usa `utcStartOfToday()` como referencia de "hoy" para vencimientos, usar el mismo helper aquí evita que la aplicación tenga dos nociones de "hoy" que podrían divergir en los bordes (23:00–00:00 en Argentina, UTC−3).
+
+### 12.12.2. El mismo `.refine()` en `updateTripSchema`
+
+```ts
+export const updateTripSchema = z
+  .object({
+    // ...
+    departureAt: z.coerce.date().refine(notBeforeToday, { message: NOT_BEFORE_TODAY_MESSAGE }).optional(),
+    // ...
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+```
+
+**Por qué también en `update` y no solo en `create`.** Un viaje solo es editable en `PENDING_ASSIGNMENT` (RN-22, §12.3), y `TripFormDialog` (§22B.4.1) es el mismo componente para crear y editar — reprogramar la salida a una fecha pasada sería el mismo error de tipeo que `create` ya bloquea. `.optional()` se aplica **después** del `.refine()`: si `departureAt` no viene en el payload, el refine ni se evalúa (Zod no valida campos ausentes en un esquema opcional); si viene, pasa por la misma regla que `create`.
+
+**Lo que sigue sin resolverse:** el hallazgo 7 tenía dos mitades. Esta actualización cierra la primera (`departureAt` en el pasado). La segunda —`finishedAt < departureAt` no se valida en `finish` (§12.6)— queda igual que antes; el bug del seed de §4.7.5 sigue siendo reproducible con un viaje que ya existía antes de este cambio.
+
+### 12.12.3. Verificación
+
+`vitest run src/modules/trips` — 5/5 tests, incluido uno nuevo (`rejects a departureAt before today`, con `2020-01-01` como fecha claramente pasada). Los dos tests existentes que usaban una fecha fija (`2026-08-01`, ya vencida al día de este cambio) se migraron a `Date.now() + 24h` para no acoplar el test a la fecha en que se ejecuta.
+
+Verificación manual vía `curl` directo al backend (sin pasar por el frontend, para confirmar que la regla vive del lado del servidor y no solo en el `<input>`):
+
+```
+POST /api/v1/trips {"destination":"Rosario Centro","departureAt":"2020-01-01T10:00:00.000Z"}
+→ 400 VALIDATION_ERROR: "departureAt cannot be before today"
+
+POST /api/v1/trips {"destination":"Rosario Centro","departureAt":"2027-01-01T10:00:00.000Z"}
+→ 201, viaje creado (borrado después de la prueba)
+```
+
+El lado del cliente —`min` en el `<input type="datetime-local">` de `TripFormDialog` y la validación explícita antes del `submit`— se documenta en §22B.4.1 (actualización posterior), que además confirma que resuelve la advertencia *"Lo que falta: `inputProps={{ min: ... }}`"* señalada en ese mismo capítulo.
+
+**Archivos tocados:** `backend/src/modules/trips/trips.schemas.ts`, `backend/src/modules/trips/trips.schemas.test.ts`, `frontend/src/pages/viajes/TripFormDialog.tsx`.
 
 ---
 

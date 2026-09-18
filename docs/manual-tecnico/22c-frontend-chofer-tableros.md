@@ -805,6 +805,8 @@ bien hechas:
 
 Es el uso más justificado de un `Snackbar` del proyecto.
 
+> ✅ **Actualización 2026-09-18 (§22C.6):** este botón manual **sigue existiendo, sin cambios** — las tres cosas bien hechas de arriba se conservan intactas. Lo que se agregó fue un segundo disparador, silencioso y periódico (`setInterval` de 60s), que llama al mismo `alertsApi.evaluate()` en segundo plano. El botón sigue siendo la única forma de obtener el resumen textual ("cuántas nuevas, cuántas auto-resueltas"); el polling solo mantiene la tabla al día sin que nadie tenga que acordarse de pulsarlo. Detalle en §22C.6.
+
 **⚠️ Lo que "Resolver" no dice.** El botón marca una alerta como resuelta. Pero el motor
 de alertas es un **reconciliador** (§14.3): en cada evaluación compara el estado real
 del mundo con las alertas existentes y crea las que faltan. Si un administrador resuelve
@@ -885,7 +887,9 @@ que es equivalente a guardar en una variable. Compacto y correcto.
 
 **⚠️ El período no tiene tope, ni aquí ni en el servidor.**
 
-Los dos `<input type="date">` de las líneas 53-54 no tienen `min` ni `max`. El botón solo
+> ✅ **Actualización 2026-09-18 (§22C.6):** los dos `<input type="date">` de las líneas 53-54 se reemplazaron por `<DateRangeFilter>` (calendario + atajos, documentado en §22B.9.1). **Esto no resuelve el hallazgo de esta sección** — el componente nuevo tampoco impone `min`/`max`: sigue siendo posible elegir "1900" a "2100" a mano en el calendario. El cambio fue de *control de entrada*, no de *validación de rango*; ambos siguen faltando, tanto en el cliente como en `reportQuerySchema`.
+
+Los dos `<input type="date">` de las líneas 53-54 (ahora `<DateRangeFilter>`, ver la nota de arriba) no tienen `min` ni `max`. El botón solo
 exige que ambos estén llenos. Y el esquema del backend:
 
 ```ts
@@ -1823,6 +1827,60 @@ y se reutiliza `ConfirmDialog` (§21, el mismo componente que `VehiculosPage` us
 Probado manualmente contra el entorno local de desarrollo: login como `admin@empresa.com`, clic en "Ir al origen" de una alerta `INSURANCE_EXPIRED` (`VEHICLE #2`) → abre `VehiculosPage` con el diálogo de edición de la patente `BBB222` ya cargado. Clic en "Ir al origen" de una alerta `DOCUMENT_EXPIRED` (`DRIVER_DOCUMENT #9`) → abre `ChoferesPage` con la documentación de "Juan Pérez" (el chofer resuelto vía `linkedDriverId`), mostrando el documento ART marcado "Vencido". El diálogo de confirmación se probó sobre una alerta pendiente y se canceló sin resolverla. `tsc --noEmit` limpio en `backend/` y `frontend/` tras el cambio.
 
 **Archivos tocados:** `backend/src/modules/alerts/alerts.service.ts`, `frontend/src/api/alerts.api.ts`, `frontend/src/api/vehicles.api.ts`, `frontend/src/pages/alertas/AlertasPage.tsx`, `frontend/src/pages/vehiculos/VehiculosPage.tsx`, `frontend/src/pages/choferes/ChoferesPage.tsx`.
+
+---
+
+## 22C.6. Actualización posterior — `DateRangeFilter` en Reportes y polling silencioso en Alertas
+
+> **Fecha:** 2026-09-18. **Motivación:** dos pendientes del mismo lote que §22B.9 y §12.12 — el selector de fecha nativo (aquí, en `ReportesPage`) y el botón "Evaluar alertas" bajo demanda (§22C.4.2), que el pedido original describía textualmente como *"solo botón 'Evaluar alertas' a demanda, sin job/polling/websockets"*.
+
+### 22C.6.1. `ReportesPage` adopta `DateRangeFilter`
+
+El componente es el mismo `DateRangeFilter` que §22B.9.1 documenta en detalle (calendario `@mui/x-date-pickers` + chips de atajos), reutilizado tal cual porque `ReportesPage` tenía exactamente el mismo par `dateFrom`/`dateTo` en formato `string` que `ViajesPage`:
+
+```tsx
+<DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
+```
+
+**Lo que este cambio no toca:** la decisión de "generación bajo demanda" de §22C.5.1 (sin `useEffect` al abrir, el usuario debe pulsar "Generar informe") sigue intacta — el componente nuevo solo cambia *cómo* se eligen las fechas, no *cuándo* se dispara la consulta. Tampoco agrega el `min`/`max` que el hallazgo de §22C.5.1 señala como faltante (nota agregada ahí mismo): los atajos (`Últimos 30 días`, etc.) acotan la selección *por conveniencia*, pero el calendario sigue permitiendo elegir manualmente cualquier fecha, incluido 1900. Ese hallazgo permanece abierto.
+
+### 22C.6.2. `AlertasPage`: un `useEffect` con `setInterval`, y por qué sus dependencias sí son correctas
+
+```tsx
+useEffect(() => {
+  const tick = async () => {
+    if (document.visibilityState !== 'visible') return;
+    try {
+      if (isAdmin) await alertsApi.evaluate();
+    } catch {
+      // ignore — next tick retries
+    }
+    await reload();
+  };
+  const id = setInterval(() => { void tick(); }, POLL_INTERVAL_MS);
+  return () => clearInterval(id);
+}, [isAdmin, reload]);
+```
+
+**`document.visibilityState !== 'visible'` corta el tick temprano** cuando la pestaña está en segundo plano (otra pestaña al frente, o la ventana minimizada). No pausa el `setInterval` en sí —el temporizador de 60 segundos sigue corriendo igual, los navegadores modernos lo ralentizan solos en pestañas inactivas— pero evita el trabajo de red mientras nadie mira la pantalla. Es una comprobación barata comparada con lanzar una petición HTTP para descartar la respuesta sin usarla.
+
+**El `catch` vacío es deliberado, con un comentario que lo explica** (`// ignore — next tick retries`). Es la única forma correcta de manejar un `ConflictError` 409 esperado (§14.4.5, el `GET_LOCK` ocupado) en un proceso de fondo que el usuario no inició a propósito: no hay ningún lugar razonable donde mostrar ese error —no hay un `Snackbar` para cada tick fallido, sería ruido— y el próximo tick, 60 segundos después, vuelve a intentarlo.
+
+**Por qué `[isAdmin, reload]` y no `[]`.** Esta es la comprobación que el capítulo 22C lleva insistiendo desde §22C.2 (introducción a `exhaustive-deps`) y confirmó tres veces como cierre obsoleto real (`VehiculosPage` en §22A, `MaintenanceListTab` en §22B, y esta misma `AlertasPage` dos secciones atrás, en §22C.4.2, con su `handleResolve` congelado). La regla que §22B.3.1 formuló para `ViajesPage`:
+
+> Un `useMemo`/`useEffect` con dependencias vacías es seguro **si y solo si** los manejadores usan exclusivamente valores de identidad estable. En cuanto uno llame a algo derivado del estado —`reload`, `items`, `user`— el cierre queda congelado.
+
+`reload` (= `load` de `usePaginatedList`, §19.8) **no** es estable: cambia de identidad con cada `page`/`limit`. Omitirlo de las dependencias habría reproducido, en este `useEffect` nuevo, el **mismo bug de tercera vez** que §22C.4.2 acaba de terminar de explicar dos secciones antes en el mismo archivo — el intervalo capturaría el `reload` de la página 1 para siempre, y recargar desde la página 3 de "Pendientes" volvería a la 1 cada 60 segundos. Incluirlo es correcto **y tiene un efecto colateral esperado**: cada vez que el usuario cambia de página o de pestaña (`Pendientes`/`Resueltas`, que cambia `status` y por lo tanto `fetchFn` y por lo tanto `reload`), el `useEffect` se limpia (`clearInterval`) y arma un intervalo nuevo con el `reload` fresco. El conteo de 60 segundos se reinicia en cada interacción del usuario, lo cual es exactamente lo deseable: no tiene sentido que un tick programado con el `reload` de la página anterior dispare justo después de que el usuario cambió de página a mano.
+
+**Por qué solo ADMIN llama a `evaluate()`.** `POST /alerts/evaluate` sigue protegido con `authorize('ADMIN')` en el servidor (§14.6) — un chofer o un no-admin que lo intentara recibiría 403. El polling respeta esa frontera en el cliente en vez de descubrirla por prueba y error: los roles sin permiso solo hacen `reload()` (un `GET /alerts`, sin restricción de rol), así que igual ven las alertas que algún administrador con la pantalla abierta haya generado — pero no disparan la evaluación ellos mismos.
+
+**Por qué no se agregó un job de servidor.** Se discute con el detalle completo del motor de evaluación en §14.12 (actualización posterior del capítulo 14); esta sección se limita a la mitad que vive en `AlertasPage`.
+
+### 22C.6.3. Verificación
+
+`tsc --noEmit` limpio en `frontend/`. `ReportesPage`: atajo "Últimos 30 días" seguido de "Generar informe" trae el resumen correcto (viajes finalizados, km totales, tablas por chofer/vehículo/destino) contra el entorno local. `AlertasPage`: la pantalla carga sin errores nuevos en la consola del navegador; el botón manual "Evaluar alertas" se probó y sigue funcionando exactamente igual que antes de este cambio.
+
+**Archivos tocados:** `frontend/src/pages/reportes/ReportesPage.tsx`, `frontend/src/pages/alertas/AlertasPage.tsx`. (`DateRangeFilter.tsx` y `main.tsx` se cuentan en §22B.9, donde se introdujeron.)
 
 ---
 
