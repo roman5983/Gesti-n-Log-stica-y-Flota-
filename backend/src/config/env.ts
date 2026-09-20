@@ -32,6 +32,9 @@ const envSchema = z.object({
   MAIL_FROM: z.string().default('Gestión Logística <no-reply@empresa.com>'),
   /** Login URL included in the credentials email. */
   APP_URL: z.string().url().default('http://localhost:5173'),
+
+  /** Minutes between automatic alert evaluations. 0 disables the job. */
+  ALERTS_EVAL_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);
