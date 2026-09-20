@@ -67,7 +67,7 @@ function toAuditSnapshot(m: MaintenanceWithRelations) {
 
 async function getExistingOrFail(id: number): Promise<MaintenanceWithRelations> {
   const maintenance = await maintenancesRepository.findById(id);
-  if (!maintenance) throw new NotFoundError(`Maintenance ${id} not found`);
+  if (!maintenance) throw new NotFoundError(`No se encontró el mantenimiento ${id}`);
   return maintenance;
 }
 
@@ -95,13 +95,13 @@ export const maintenancesService = {
   /** Register (schedule) a maintenance: it is born PENDING (C-6). */
   async create(dto: CreateMaintenanceDto, actorId: number): Promise<MaintenanceResponse> {
     const vehicle = await vehiclesRepository.findById(dto.vehicleId);
-    if (!vehicle) throw new NotFoundError(`Vehicle ${dto.vehicleId} not found`);
+    if (!vehicle) throw new NotFoundError(`No se encontró el vehículo ${dto.vehicleId}`);
 
     const type = await prisma.maintenanceType.findUnique({
       where: { id: dto.maintenanceTypeId },
       select: { id: true },
     });
-    if (!type) throw new NotFoundError(`Maintenance type ${dto.maintenanceTypeId} not found`);
+    if (!type) throw new NotFoundError(`No se encontró el tipo de mantenimiento ${dto.maintenanceTypeId}`);
 
     const created = await prisma.$transaction(async (tx) => {
       // Lock the vehicle row, then check for an open maintenance INSIDE the
@@ -110,7 +110,7 @@ export const maintenancesService = {
       // this rule, unlike email/plate).
       await maintenancesRepository.lockVehicle(dto.vehicleId, tx);
       if (await maintenancesRepository.hasOpenForVehicle(dto.vehicleId, undefined, tx)) {
-        throw new ConflictError('This vehicle already has an open maintenance');
+        throw new ConflictError('Este vehículo ya tiene un mantenimiento abierto');
       }
       const maintenance = await maintenancesRepository.create(
         {
@@ -142,14 +142,14 @@ export const maintenancesService = {
     const existing = await getExistingOrFail(id);
     // RN-22: a completed maintenance is immutable (it belongs to history).
     if (existing.status === 'COMPLETED') {
-      throw new BusinessRuleError('A completed maintenance cannot be edited');
+      throw new BusinessRuleError('Un mantenimiento finalizado no se puede editar');
     }
     if (dto.maintenanceTypeId && dto.maintenanceTypeId !== existing.maintenanceTypeId) {
       const type = await prisma.maintenanceType.findUnique({
         where: { id: dto.maintenanceTypeId },
         select: { id: true },
       });
-      if (!type) throw new NotFoundError(`Maintenance type ${dto.maintenanceTypeId} not found`);
+      if (!type) throw new NotFoundError(`No se encontró el tipo de mantenimiento ${dto.maintenanceTypeId}`);
     }
     // Cross-field invariant against effective values: the schema only sees
     // fields present in this request, so a partial edit (only km, or only
@@ -158,7 +158,7 @@ export const maintenancesService = {
     const effectiveNextKm =
       dto.nextMaintenanceKm !== undefined ? dto.nextMaintenanceKm : existing.nextMaintenanceKm;
     if (effectiveNextKm !== null && effectiveNextKm < effectiveKm) {
-      throw new BusinessRuleError('nextMaintenanceKm must be greater than or equal to km');
+      throw new BusinessRuleError('El km del próximo mantenimiento debe ser mayor o igual al km actual');
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -199,13 +199,13 @@ export const maintenancesService = {
   async start(id: number, actorId: number): Promise<MaintenanceResponse> {
     const existing = await getExistingOrFail(id);
     if (existing.status !== 'PENDING') {
-      throw new BusinessRuleError(`Only PENDING maintenances can be started (current: ${existing.status})`);
+      throw new BusinessRuleError('Solo se pueden iniciar mantenimientos pendientes');
     }
     const vehicle = await vehiclesRepository.findById(existing.vehicleId);
-    if (!vehicle) throw new NotFoundError(`Vehicle ${existing.vehicleId} not found`);
+    if (!vehicle) throw new NotFoundError(`No se encontró el vehículo ${existing.vehicleId}`);
     if (vehicle.status !== 'AVAILABLE') {
       throw new BusinessRuleError(
-        `Vehicle must be AVAILABLE to start maintenance (current: ${vehicle.status})`,
+        'El vehículo debe estar disponible para iniciar el mantenimiento',
       );
     }
 
@@ -236,7 +236,7 @@ export const maintenancesService = {
     const existing = await getExistingOrFail(id);
     if (existing.status !== 'IN_PROGRESS') {
       throw new BusinessRuleError(
-        `Only IN_PROGRESS maintenances can be completed (current: ${existing.status})`,
+        'Solo se pueden finalizar mantenimientos en curso',
       );
     }
 
@@ -332,7 +332,7 @@ export const maintenancesService = {
     const attachment = await maintenancesRepository.findAttachment(attachmentId, maintenanceId);
     if (!attachment) {
       throw new NotFoundError(
-        `Attachment ${attachmentId} not found for maintenance ${maintenanceId}`,
+        `No se encontró el adjunto ${attachmentId} del mantenimiento ${maintenanceId}`,
       );
     }
     return {

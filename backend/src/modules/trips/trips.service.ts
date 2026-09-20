@@ -70,7 +70,7 @@ function auditSnapshot(t: TripWithRelations) {
 
 async function getExistingOrFail(id: number): Promise<TripWithRelations> {
   const trip = await tripsRepository.findById(id);
-  if (!trip) throw new NotFoundError(`Trip ${id} not found`);
+  if (!trip) throw new NotFoundError(`No se encontró el viaje ${id}`);
   return trip;
 }
 
@@ -97,7 +97,7 @@ export const tripsService = {
   async getById(id: number, actor: AuthenticatedUser): Promise<TripResponse> {
     const trip = await getExistingOrFail(id);
     if (actor.role === 'DRIVER' && trip.driverId !== actor.id) {
-      throw new ForbiddenError('You can only view your own trips');
+      throw new ForbiddenError('Solo podés ver tus propios viajes');
     }
     return toResponse(trip);
   },
@@ -130,7 +130,7 @@ export const tripsService = {
     const existing = await getExistingOrFail(id);
     // A-4/RN-22: once assigned, a trip cannot be edited.
     if (existing.status !== 'PENDING_ASSIGNMENT') {
-      throw new BusinessRuleError('Only trips pending assignment can be edited');
+      throw new BusinessRuleError('Solo se pueden editar viajes pendientes de asignación');
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -171,12 +171,12 @@ export const tripsService = {
   async assign(id: number, dto: AssignTripDto, actorId: number): Promise<TripResponse> {
     const existing = await getExistingOrFail(id);
     if (existing.status !== 'PENDING_ASSIGNMENT') {
-      throw new BusinessRuleError('This trip is not pending assignment');
+      throw new BusinessRuleError('Este viaje no está pendiente de asignación');
     }
 
     // Driver eligibility (read outside the tx; re-verified under lock below).
     const driver = await driversRepository.findById(dto.driverId);
-    if (!driver) throw new NotFoundError(`Driver ${dto.driverId} not found`);
+    if (!driver) throw new NotFoundError(`No se encontró el chofer ${dto.driverId}`);
 
     const assigned = await prisma.$transaction(async (tx) => {
       // Lock the driver, then re-check availability under the lock (RN-19/RN-6:
@@ -188,13 +188,13 @@ export const tripsService = {
       // if the driver was deactivated in the meantime. isActive/license are
       // checked on this fresh copy.
       const lockedDriver = await driversRepository.findById(dto.driverId, tx);
-      if (!lockedDriver) throw new NotFoundError(`Driver ${dto.driverId} not found`);
+      if (!lockedDriver) throw new NotFoundError(`No se encontró el chofer ${dto.driverId}`);
       if (!lockedDriver.user.isActive) {
-        throw new BusinessRuleError('Driver is not active');
+        throw new BusinessRuleError('El chofer no está activo');
       }
       // RN-1: license valid through its expiry date.
       if (lockedDriver.licenseExpiryDate < utcStartOfToday()) {
-        throw new BusinessRuleError('Driver license is expired', 'RN-1');
+        throw new BusinessRuleError('La licencia del chofer está vencida', 'RN-1');
       }
       // RN-4: no EXPIRED active documentation blocks assignment.
       // Deliberate simplification (business decision for this case): the
@@ -202,20 +202,20 @@ export const tripsService = {
       // loaded is still assignable. This avoids day-to-day operational
       // blocks; it is intentional, not an oversight.
       if (await documentsRepository.hasExpiredActive(dto.driverId, tx)) {
-        throw new BusinessRuleError('Driver has expired documentation', 'RN-4');
+        throw new BusinessRuleError('El chofer tiene documentación vencida', 'RN-4');
       }
       // RN-19/RN-6: driver must not already be on an active trip.
       if (await tripsRepository.hasActiveTrip(dto.driverId, tx)) {
-        throw new ConflictError('Driver already has an active trip');
+        throw new ConflictError('El chofer ya tiene un viaje en curso');
       }
 
       // RN-12/RN-2/C-1: auto-select and lock an AVAILABLE vehicle.
       const vehicleId = await tripsRepository.pickAvailableVehicle(tx);
       if (vehicleId === null) {
-        throw new ConflictError('No available vehicle to assign');
+        throw new ConflictError('No hay vehículos disponibles para asignar');
       }
       const vehicle = await vehiclesRepository.findById(vehicleId, tx);
-      if (!vehicle) throw new ConflictError('No available vehicle to assign');
+      if (!vehicle) throw new ConflictError('No hay vehículos disponibles para asignar');
 
       // Effects: trip → IN_PROGRESS with driver/vehicle and a km snapshot;
       // vehicle → ON_TRIP.
@@ -257,7 +257,7 @@ export const tripsService = {
     // Early ownership check (authorization does not change with concurrency).
     const preview = await getExistingOrFail(id);
     if (actor.role === 'DRIVER' && preview.driverId !== actor.id) {
-      throw new ForbiddenError('You can only finish your own trip');
+      throw new ForbiddenError('Solo podés finalizar tu propio viaje');
     }
 
     const now = new Date();
@@ -268,14 +268,14 @@ export const tripsService = {
       // the trip already COMPLETED and is rejected.
       await tripsRepository.lockTrip(id, tx);
       const existing = await tripsRepository.findById(id, tx);
-      if (!existing) throw new NotFoundError(`Trip ${id} not found`);
+      if (!existing) throw new NotFoundError(`No se encontró el viaje ${id}`);
       if (existing.status !== 'IN_PROGRESS') {
-        throw new BusinessRuleError('Only in-progress trips can be finished');
+        throw new BusinessRuleError('Solo se pueden finalizar viajes en curso');
       }
       // RN-5: arrival km strictly greater than departure km.
       if (existing.departureKm === null || dto.arrivalKm <= existing.departureKm) {
         throw new BusinessRuleError(
-          `Arrival km must be greater than departure km (${existing.departureKm})`,
+          `El km de llegada debe ser mayor al km de salida (${existing.departureKm})`,
           'RN-5',
         );
       }
@@ -337,7 +337,7 @@ export const tripsService = {
   async delete(id: number, actorId: number): Promise<void> {
     const existing = await getExistingOrFail(id);
     if (existing.status !== 'PENDING_ASSIGNMENT') {
-      throw new BusinessRuleError('Only trips pending assignment can be deleted');
+      throw new BusinessRuleError('Solo se pueden eliminar viajes pendientes de asignación');
     }
     await prisma.$transaction(async (tx) => {
       await tripsRepository.delete(id, tx);

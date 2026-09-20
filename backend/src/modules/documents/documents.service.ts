@@ -47,12 +47,12 @@ function auditSnapshot(doc: DriverDocument) {
 function assertCanAccess(actor: AuthenticatedUser, driverId: number): void {
   if (actor.role === 'ADMIN') return;
   if (actor.role === 'DRIVER' && actor.id === driverId) return;
-  throw new ForbiddenError('You can only access your own documents');
+  throw new ForbiddenError('Solo podés acceder a tus propios documentos');
 }
 
 async function getDriverOrFail(driverId: number): Promise<void> {
   const driver = await driversRepository.findById(driverId);
-  if (!driver) throw new NotFoundError(`Driver ${driverId} not found`);
+  if (!driver) throw new NotFoundError(`No se encontró el chofer ${driverId}`);
 }
 
 /** Fetch a document ensuring it belongs to the given driver. */
@@ -62,7 +62,7 @@ async function getOwnedDocumentOrFail(
 ): Promise<DriverDocument> {
   const doc = await documentsRepository.findById(documentId);
   if (!doc || doc.driverId !== driverId) {
-    throw new NotFoundError(`Document ${documentId} not found for driver ${driverId}`);
+    throw new NotFoundError(`No se encontró el documento ${documentId} del chofer ${driverId}`);
   }
   return doc;
 }
@@ -89,7 +89,7 @@ export const documentsService = {
     // delete the current one first — a driver cannot silently stack documents.
     if (await documentsRepository.activeTypeExists(driverId, dto.documentType)) {
       throw new ConflictError(
-        `Driver ${driverId} already has an active ${dto.documentType} document`,
+        `El chofer ${driverId} ya tiene un documento ${dto.documentType} vigente`,
       );
     }
 
@@ -142,7 +142,7 @@ export const documentsService = {
     if (dto.documentType && dto.documentType !== existing.documentType) {
       if (await documentsRepository.activeTypeExists(driverId, dto.documentType, documentId)) {
         throw new ConflictError(
-          `Driver ${driverId} already has an active ${dto.documentType} document`,
+          `El chofer ${driverId} ya tiene un documento ${dto.documentType} vigente`,
         );
       }
     }

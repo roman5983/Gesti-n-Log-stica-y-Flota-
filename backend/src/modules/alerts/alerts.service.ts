@@ -81,14 +81,14 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
         alertType: 'LICENSE_EXPIRED',
         entityType: 'DRIVER',
         entityId: d.userId,
-        description: `License of driver ${d.user.name} is expired`,
+        description: `La licencia del chofer ${d.user.name} está vencida`,
       });
     } else if (d.licenseExpiryDate <= soon) {
       candidates.push({
         alertType: 'LICENSE_EXPIRING',
         entityType: 'DRIVER',
         entityId: d.userId,
-        description: `License of driver ${d.user.name} expires within ${EXPIRY_ALERT_LEAD_DAYS} days`,
+        description: `La licencia del chofer ${d.user.name} vence en los próximos ${EXPIRY_ALERT_LEAD_DAYS} días`,
       });
     }
   }
@@ -107,14 +107,14 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
         alertType: 'DOCUMENT_EXPIRED',
         entityType: 'DRIVER_DOCUMENT',
         entityId: doc.id,
-        description: `${doc.documentType} document is expired`,
+        description: `El documento ${doc.documentType} está vencido`,
       });
     } else if (doc.expiryDate <= soon) {
       candidates.push({
         alertType: 'DOCUMENT_EXPIRING',
         entityType: 'DRIVER_DOCUMENT',
         entityId: doc.id,
-        description: `${doc.documentType} document expires within ${EXPIRY_ALERT_LEAD_DAYS} days`,
+        description: `El documento ${doc.documentType} vence en los próximos ${EXPIRY_ALERT_LEAD_DAYS} días`,
       });
     }
   }
@@ -155,14 +155,14 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
           alertType: 'INSURANCE_EXPIRED',
           entityType: 'VEHICLE',
           entityId: v.id,
-          description: `Insurance of vehicle ${v.licensePlate} is expired`,
+          description: `El seguro del vehículo ${v.licensePlate} está vencido`,
         });
       } else if (v.insuranceExpiryDate <= soon) {
         candidates.push({
           alertType: 'INSURANCE_EXPIRING',
           entityType: 'VEHICLE',
           entityId: v.id,
-          description: `Insurance of vehicle ${v.licensePlate} expires within ${EXPIRY_ALERT_LEAD_DAYS} days`,
+          description: `El seguro del vehículo ${v.licensePlate} vence en los próximos ${EXPIRY_ALERT_LEAD_DAYS} días`,
         });
       }
     }
@@ -172,7 +172,7 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
         alertType: 'VEHICLE_INACTIVE',
         entityType: 'VEHICLE',
         entityId: v.id,
-        description: `Vehicle ${v.licensePlate} is inactive`,
+        description: `El vehículo ${v.licensePlate} está inactivo`,
       });
     }
 
@@ -187,7 +187,7 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
           alertType: 'MAINTENANCE_KM_EXCEEDED',
           entityType: 'VEHICLE',
           entityId: v.id,
-          description: `Vehicle ${v.licensePlate} exceeded the maintenance km threshold`,
+          description: `El vehículo ${v.licensePlate} superó el km de mantenimiento`,
         });
       }
     }
@@ -250,7 +250,7 @@ export const alertsService = {
           SELECT GET_LOCK(${EVALUATE_LOCK}, 10) AS locked
         `;
         if (Number(rows[0]?.locked ?? 0) !== 1) {
-          throw new ConflictError('Another evaluation is already in progress');
+          throw new ConflictError('Ya hay una evaluación en curso');
         }
 
         try {
@@ -304,9 +304,9 @@ export const alertsService = {
   /** Mark a pending alert as resolved (Admin). Idempotent guard on state. */
   async resolve(id: number, actorId: number): Promise<AlertResponse> {
     const existing = await alertsRepository.findById(id);
-    if (!existing) throw new NotFoundError(`Alert ${id} not found`);
+    if (!existing) throw new NotFoundError(`No se encontró la alerta ${id}`);
     if (existing.status === 'RESOLVED') {
-      throw new BusinessRuleError('Alert is already resolved');
+      throw new BusinessRuleError('La alerta ya está resuelta');
     }
 
     const resolved = await prisma.$transaction(async (tx) => {

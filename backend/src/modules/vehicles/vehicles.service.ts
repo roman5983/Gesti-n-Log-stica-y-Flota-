@@ -56,7 +56,7 @@ function toAuditSnapshot(vehicle: Vehicle) {
 
 async function getExistingOrFail(id: number): Promise<Vehicle> {
   const vehicle = await vehiclesRepository.findById(id);
-  if (!vehicle) throw new NotFoundError(`Vehicle ${id} not found`);
+  if (!vehicle) throw new NotFoundError(`No se encontró el vehículo ${id}`);
   return vehicle;
 }
 
@@ -79,7 +79,7 @@ export const vehiclesService = {
 
   async create(dto: CreateVehicleDto, actorId: number): Promise<VehicleResponse> {
     if (await vehiclesRepository.plateTaken(dto.licensePlate)) {
-      throw new ConflictError(`License plate ${dto.licensePlate} is already registered`);
+      throw new ConflictError(`La patente ${dto.licensePlate} ya está registrada`);
     }
 
     const created = await prisma.$transaction(async (tx) => {
@@ -115,7 +115,7 @@ export const vehiclesService = {
 
     if (dto.licensePlate && dto.licensePlate !== existing.licensePlate) {
       if (await vehiclesRepository.plateTaken(dto.licensePlate, id)) {
-        throw new ConflictError(`License plate ${dto.licensePlate} is already registered`);
+        throw new ConflictError(`La patente ${dto.licensePlate} ya está registrada`);
       }
     }
     // initialKm anchors the whole km history (RN-5 snapshots, RN-11 updates):
@@ -125,7 +125,7 @@ export const vehiclesService = {
     if (dto.initialKm !== undefined && dto.initialKm !== existing.initialKm) {
       if (await vehiclesRepository.hasHistory(id)) {
         throw new BusinessRuleError(
-          'Initial km cannot be changed once the vehicle has trips or maintenances',
+          'El km inicial no se puede cambiar una vez que el vehículo tiene viajes o mantenimientos',
         );
       }
       accumulatedKm = dto.initialKm; // no history → odometer follows the correction
@@ -168,12 +168,12 @@ export const vehiclesService = {
     const existing = await getExistingOrFail(id);
     if (existing.status === 'INACTIVE') return toResponse(existing); // idempotent
     if (existing.status === 'ON_TRIP') {
-      throw new BusinessRuleError('A vehicle on an active trip cannot be deactivated');
+      throw new BusinessRuleError('No se puede dar de baja un vehículo con un viaje en curso');
     }
     // A vehicle in the workshop has an open maintenance whose completion would
     // move it back to AVAILABLE, silently overwriting an INACTIVE set here.
     if (existing.status === 'IN_WORKSHOP') {
-      throw new BusinessRuleError('A vehicle undergoing maintenance cannot be deactivated');
+      throw new BusinessRuleError('No se puede dar de baja un vehículo en mantenimiento');
     }
     return toResponse(await this.transition(existing, 'INACTIVE', 'DEACTIVATE', actorId));
   },
@@ -182,7 +182,7 @@ export const vehiclesService = {
   async activate(id: number, actorId: number): Promise<VehicleResponse> {
     const existing = await getExistingOrFail(id);
     if (existing.status !== 'INACTIVE') {
-      throw new BusinessRuleError(`Only INACTIVE vehicles can be activated (current: ${existing.status})`);
+      throw new BusinessRuleError('Solo se pueden reactivar vehículos inactivos');
     }
     return toResponse(await this.transition(existing, 'AVAILABLE', 'ACTIVATE', actorId));
   },
@@ -213,13 +213,13 @@ export const vehiclesService = {
   async softDelete(id: number, actorId: number): Promise<void> {
     const existing = await getExistingOrFail(id);
     if (existing.status === 'ON_TRIP') {
-      throw new BusinessRuleError('A vehicle on an active trip cannot be deleted');
+      throw new BusinessRuleError('No se puede eliminar un vehículo con un viaje en curso');
     }
     // An open maintenance (PENDING/IN_PROGRESS) would end up pointing at a
     // deleted vehicle. Covers IN_WORKSHOP and any scheduled-but-not-started
     // maintenance — broader and more precise than checking the status alone.
     if (await maintenancesRepository.hasOpenForVehicle(id)) {
-      throw new BusinessRuleError('A vehicle with an open maintenance cannot be deleted');
+      throw new BusinessRuleError('No se puede eliminar un vehículo con un mantenimiento abierto');
     }
 
     await prisma.$transaction(async (tx) => {

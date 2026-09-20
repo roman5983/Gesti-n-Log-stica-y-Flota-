@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
+import './shared/zod-es';
 import { env, isProduction } from './config/env';
 import { errorHandler, notFoundHandler } from './middlewares/error-handler';
 import { authRoutes } from './modules/auth/auth.routes';

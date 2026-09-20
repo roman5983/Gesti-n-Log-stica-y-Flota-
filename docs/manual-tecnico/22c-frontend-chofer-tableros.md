@@ -1886,5 +1886,17 @@ useEffect(() => {
 
 ---
 
+## 22C.11. Actualización posterior — paginador en el historial del chofer
+
+> **Fecha:** 2026-09-20. **Motivación:** el hallazgo de §22C.3.3 (*"el chofer nunca puede ver más de 50 viajes"*): `MiHistorialPage` pedía `usePaginatedList(fetchFn, 50)` pero descartaba `total`, `page` y `setPage`, sin ningún control.
+
+`MiHistorialPage` ahora usa el hook completo (`total`, `page`, `setPage`, `limit`, `setLimit`) y renderiza un `TablePagination` de MUI debajo de las tarjetas (opciones 10/25/50, por defecto 10; con etiquetas en español como `DataTable`, §21.3.3). Se muestra solo si `total > 0`. Se usa `TablePagination` suelto y no `DataTable` porque esta pantalla es una lista de tarjetas pensada para móvil, no una tabla.
+
+`fetchFn` conserva dependencias `[]` (no hay filtros), así que el hook solo recarga al cambiar `page` o `limit`; cambiar de tamaño de página vuelve a la 1, igual que en el resto de las pantallas.
+
+**Verificación:** con 14 viajes finalizados de un chofer (2 reales + 12 de prueba, luego borrados): página 1 → 10 tarjetas "1–10 de 14"; siguiente → 4 tarjetas "11–14 de 14"; anterior → vuelve a 10. **Archivo:** `frontend/src/pages/chofer/MiHistorialPage.tsx`. El diagrama de §22C.7.1 (*"50 viajes máx."*) y el hallazgo original quedan como registro de la situación previa.
+
+---
+
 > **Siguiente:** [Capítulo 23 — Flujos end-to-end: los seis casos de uso completos](./23-flujos-end-to-end.md)
 > **Anterior:** [Capítulo 22B — Las pantallas de viajes y mantenimiento](./22b-frontend-viajes-mantenimiento.md)

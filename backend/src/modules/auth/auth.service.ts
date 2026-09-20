@@ -78,11 +78,11 @@ export const authService = {
     // Same error for "not found", "inactive" and "wrong password":
     // never reveal which credential failed (account enumeration).
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('Invalid credentials');
+      throw new UnauthorizedError('Credenciales inválidas');
     }
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
-      throw new UnauthorizedError('Invalid credentials');
+      throw new UnauthorizedError('Credenciales inválidas');
     }
 
     return issueSession(user);
@@ -102,23 +102,23 @@ export const authService = {
   async refresh(refreshToken: string): Promise<AuthenticatedSession> {
     const stored = await authRepository.findByHash(sha256(refreshToken));
     if (!stored) {
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      throw new UnauthorizedError('Sesión inválida o vencida');
     }
 
     if (stored.revoked) {
       // Replay of a rotated/revoked token → assume the token was stolen.
       await authRepository.revokeAllForUser(stored.userId);
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      throw new UnauthorizedError('Sesión inválida o vencida');
     }
 
     if (stored.expiresAt <= new Date()) {
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      throw new UnauthorizedError('Sesión inválida o vencida');
     }
 
     const user = await usersRepository.findById(stored.userId);
     if (!user || !user.isActive) {
       await authRepository.revokeAllForUser(stored.userId);
-      throw new UnauthorizedError('Invalid or expired refresh token');
+      throw new UnauthorizedError('Sesión inválida o vencida');
     }
 
     await authRepository.revoke(stored.id);
@@ -136,7 +136,7 @@ export const authService = {
   async getCurrentUser(userId: number): Promise<PublicUser> {
     const user = await usersRepository.findById(userId);
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('User no longer valid');
+      throw new UnauthorizedError('El usuario ya no es válido');
     }
     return toPublicUser(user);
   },
@@ -145,7 +145,7 @@ export const authService = {
   async getProfile(userId: number): Promise<UserProfile> {
     const user = await usersRepository.findById(userId);
     if (!user || !user.isActive) {
-      throw new UnauthorizedError('User no longer valid');
+      throw new UnauthorizedError('El usuario ya no es válido');
     }
 
     let driver: UserProfile['driver'] = null;

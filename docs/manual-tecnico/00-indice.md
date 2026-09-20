@@ -100,10 +100,10 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | Cap. | Archivo | Contenido | Líneas |
 |:-:|:--|:--|--:|
 | 5 | [`05-backend-bootstrap.md`](05-backend-bootstrap.md) | Qué es Express y cómo encadena middlewares. `env.ts` (fallo rápido), `constants.ts`, `app.ts` (el orden es la semántica), `server.ts` (apagado ordenado) | 1.677 |
-| 6 | [`06-backend-shared.md`](06-backend-shared.md) | Jerarquía `AppError`. Esquemas compartidos. Aumento de módulo. `crypto.ts` (AES-256-GCM, SHA-256). `dates.ts` y el problema UTC. `files.ts`. El mailer | 1.892 |
+| 6 | [`06-backend-shared.md`](06-backend-shared.md) | Jerarquía `AppError`. Esquemas compartidos. Aumento de módulo. `crypto.ts` (AES-256-GCM, SHA-256). `dates.ts` y el problema UTC. `files.ts`. El mailer | 1.911 |
 | 7 | [`07-backend-middlewares.md`](07-backend-middlewares.md) | `authenticate` (anatomía del JWT), `authorize` (fábrica + cierre), `validate` (Zod y la asignación masiva), `error-handler` (6 casos), `rate-limiter`, `upload` | 1.449 |
 | 8 | [`08-modulo-auth.md`](08-modulo-auth.md) | Dónde guardar los tokens. Estrategia de doble token. Las 5 opciones de la cookie. Login, refresh, logout y `me`, línea por línea | 1.398 |
-| 9 | [`09-modulo-users.md`](09-modulo-users.md) | El módulo CRUD de referencia. `assignableRoles`. Transacciones. La lápida del email. La carrera de los administradores | 1.484 |
+| 9 | [`09-modulo-users.md`](09-modulo-users.md) | El módulo CRUD de referencia. `assignableRoles`. Transacciones. La lápida del email. La carrera de los administradores | 1.503 |
 | 10 | [`10-modulo-vehicles.md`](10-modulo-vehicles.md) | Máquina de estados. Estado compartido entre tres módulos. Campos derivados. Inmutabilidad por acumulación | 1.178 |
 | 11 | [`11-modulo-drivers-documents.md`](11-modulo-drivers-documents.md) | Creación atómica en dos tablas. `assertCanAccess`. Contraseñas cifradas reversibles (A-9). Compensación al subir archivos | 1.332 |
 | 12 | [`12-modulo-trips.md`](12-modulo-trips.md) | El patrón bloquear-releer-validar-escribir. `FOR UPDATE SKIP LOCKED`. Las 7 validaciones de la asignación. Los efectos en cascada de finalizar | 1.385 |
@@ -121,9 +121,9 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 19 | [`19-frontend-api.md`](19-frontend-api.md) | Por qué una capa de API. Interceptores. El refresco transparente y sus tres protecciones. El contrato duplicado. `blob.ts`, `datetime.ts` | 1.068 |
 | 20 | [`20-frontend-auth-estado.md`](20-frontend-auth-estado.md) | Zustand vs Redux vs Context. La doble interfaz del store. Los guards son ergonomía, no seguridad. `LoginPage` | 1.078 |
 | 21 | [`21-frontend-componentes.md`](21-frontend-componentes.md) | Restricciones de reutilización. Componentes genéricos. `DataTable`. `usePaginatedList` y su trampa. `AppSidebarLayout`, `RouteMap` | 1.171 |
-| 22A | [`22a-frontend-pantallas-abm.md`](22a-frontend-pantallas-abm.md) | **El patrón de listado explicado una vez**, con `VehiculosPage` como caso canónico. El bug de las fechas. Usuarios, choferes y sus cuatro diálogos | 1.137 |
-| 22B | [`22b-frontend-viajes-mantenimiento.md`](22b-frontend-viajes-mantenimiento.md) | El diálogo como unidad de transacción. `datetime-local` bien resuelto. La máquina de estados dibujada con iconos. Los seis diálogos línea por línea | 2.363 |
-| 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.890 |
+| 22A | [`22a-frontend-pantallas-abm.md`](22a-frontend-pantallas-abm.md) | **El patrón de listado explicado una vez**, con `VehiculosPage` como caso canónico. El bug de las fechas. Usuarios, choferes y sus cuatro diálogos | 1.151 |
+| 22B | [`22b-frontend-viajes-mantenimiento.md`](22b-frontend-viajes-mantenimiento.md) | El diálogo como unidad de transacción. `datetime-local` bien resuelto. La máquina de estados dibujada con iconos. Los seis diálogos línea por línea | 2.384 |
+| 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.902 |
 
 ### Parte V — Integración y cierre
 

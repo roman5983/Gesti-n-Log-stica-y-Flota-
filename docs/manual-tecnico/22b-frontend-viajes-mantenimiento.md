@@ -2359,5 +2359,26 @@ if (departureAt < todayLocalInputMin()) {
 
 ---
 
+## 22B.10. Actualización posterior — `AddressAutocomplete` en modo estricto
+
+> **Fecha:** 2026-09-20. **Motivación:** pendiente de producto: *"el autocompletado de direcciones sigue permitiendo texto libre sin bloquear guardado"*. Ver §22B.4.2, donde el componente se describía como *"valida contra direcciones reales"* sin hacerlo.
+
+**Regla:** con clave de Google Maps **y** con el SDK efectivamente enganchado, el valor del campo solo es válido si (a) lo eligió el usuario de la lista de Places o (b) lo puso el padre (p. ej. la dirección ya guardada al editar un viaje). Lo escrito a mano y no elegido se rechaza.
+
+**Cómo, sin cambiar la API del componente** (`TripFormDialog` no se tocó):
+
+- `lastTyped` (ref): último texto escrito por el usuario. `trusted` (ref): último valor de confianza. En cada render, si `value !== lastTyped.current`, el valor **no salió del teclado** (lo eligió Places o lo fijó el padre) y pasa a ser de confianza.
+- `invalid = sdkReady && value !== '' && value !== trusted.current`.
+- Un `useEffect` llama a `inputRef.current.setCustomValidity(...)`: como el campo está dentro del `<form>` de `TripFormDialog`, **el navegador bloquea el envío** con su propio mensaje, sin que el formulario sepa nada.
+- Feedback visual: el `TextField` se marca en error y cambia el texto de ayuda **después de salir del campo** (`touched`), para no gritar mientras se escribe.
+
+**Degradación:** `sdkReady` pasa a `true` recién cuando se crea el `Autocomplete`. Sin clave, o si el SDK no carga, el campo sigue siendo texto libre — bloquear todos los guardados por una caída de Google habría sido peor que el problema original.
+
+**Límite:** es una regla **del cliente**. El backend sigue aceptando cualquier `destination` de 2 a 120 caracteres; quien llame a la API directamente puede saltarse la validación (no hay forma de validarla en el servidor sin una segunda consulta a Google).
+
+**Verificación:** sin clave real no se puede usar el SDK, así que se simuló `google.maps.places.Autocomplete` en la página con una clave falsa: dirección elegida → válida; la misma editada a mano (`… XYZ`) → inválida con "Elegí una dirección de la lista" y ayuda en rojo; al elegir de nuevo → válida. `tsc` limpio. **Archivo:** `frontend/src/components/AddressAutocomplete.tsx`.
+
+---
+
 > **Siguiente:** [Capítulo 22C — Pantallas del chofer, tableros y consulta](./22c-frontend-chofer-tableros.md)
 > **Anterior:** [Capítulo 22A — Las pantallas de listado y ABM](./22a-frontend-pantallas-abm.md)

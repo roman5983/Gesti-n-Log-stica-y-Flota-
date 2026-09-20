@@ -70,7 +70,7 @@ function toAuditSnapshot(driver: DriverWithUser) {
 
 async function getExistingOrFail(id: number): Promise<DriverWithUser> {
   const driver = await driversRepository.findById(id);
-  if (!driver) throw new NotFoundError(`Driver ${id} not found`);
+  if (!driver) throw new NotFoundError(`No se encontró el chofer ${id}`);
   return driver;
 }
 
@@ -94,10 +94,10 @@ export const driversService = {
   /** Atomic creation: user (role DRIVER) + driver profile in one transaction. */
   async create(dto: CreateDriverDto, actorId: number): Promise<DriverResponse> {
     if (await usersRepository.emailTaken(dto.email)) {
-      throw new ConflictError(`Email ${dto.email} is already in use`);
+      throw new ConflictError(`El email ${dto.email} ya está en uso`);
     }
     if (await driversRepository.dniTaken(dto.dni)) {
-      throw new ConflictError(`DNI ${dto.dni} is already registered`);
+      throw new ConflictError(`El DNI ${dto.dni} ya está registrado`);
     }
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
@@ -144,12 +144,12 @@ export const driversService = {
 
     if (dto.email && dto.email !== existing.user.email) {
       if (await usersRepository.emailTaken(dto.email, id)) {
-        throw new ConflictError(`Email ${dto.email} is already in use`);
+        throw new ConflictError(`El email ${dto.email} ya está en uso`);
       }
     }
     if (dto.dni && dto.dni !== existing.dni) {
       if (await driversRepository.dniTaken(dto.dni, id)) {
-        throw new ConflictError(`DNI ${dto.dni} is already registered`);
+        throw new ConflictError(`El DNI ${dto.dni} ya está registrado`);
       }
     }
 

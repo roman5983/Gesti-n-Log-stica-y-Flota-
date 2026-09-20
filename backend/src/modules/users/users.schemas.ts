@@ -8,15 +8,15 @@ import { paginationSchema } from '../../shared/schemas';
  */
 const assignableRoles = z.enum(['ADMIN', 'OPERATOR'], {
   errorMap: () => ({
-    message: 'Role must be ADMIN or OPERATOR. Drivers are created via POST /api/v1/drivers',
+    message: 'El rol debe ser ADMIN u OPERATOR. Los choferes se crean desde la sección Choferes',
   }),
 });
 
 const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(/[A-Za-z]/, 'Password must contain a letter')
-  .regex(/\d/, 'Password must contain a number');
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .regex(/[A-Za-z]/, 'La contraseña debe contener una letra')
+  .regex(/\d/, 'La contraseña debe contener un número');
 
 export const createUserSchema = z.object({
   name: z.string().min(2).max(100),
@@ -33,7 +33,7 @@ export const updateUserSchema = z
     password: passwordSchema.optional(),
     role: assignableRoles.optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;
 
 const roleEnum = z.enum(['ADMIN', 'OPERATOR', 'DRIVER']);
@@ -52,7 +52,7 @@ export const listUsersQuerySchema = paginationSchema.extend({
       const parsed = v.split(',').map((r) => r.trim().toUpperCase());
       const result = z.array(roleEnum).safeParse(parsed);
       if (!result.success) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid role value' });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Valor de rol inválido' });
         return z.NEVER;
       }
       return result.data;

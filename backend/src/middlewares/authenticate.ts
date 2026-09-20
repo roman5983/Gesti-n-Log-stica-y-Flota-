@@ -12,7 +12,7 @@ import type { JwtPayload } from '../shared/types/auth';
 export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
-    next(new UnauthorizedError('Missing access token'));
+    next(new UnauthorizedError('Falta el token de acceso'));
     return;
   }
 
@@ -21,6 +21,6 @@ export function authenticate(req: Request, _res: Response, next: NextFunction): 
     req.user = { id: payload.sub, role: payload.role };
     next();
   } catch {
-    next(new UnauthorizedError('Invalid or expired access token'));
+    next(new UnauthorizedError('Token de acceso inválido o vencido'));
   }
 }

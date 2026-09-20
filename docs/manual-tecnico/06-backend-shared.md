@@ -1889,4 +1889,23 @@ sequenceDiagram
 
 ---
 
+## Actualización posterior — mensajes de error en español
+
+> **Fecha:** 2026-09-20. **Motivación:** el frontend muestra tal cual `error.message` (`apiErrorMessage`, capítulo 19), así que el usuario veía mensajes como *"A driver on an active trip cannot be deactivated"*.
+
+**Qué cambió.**
+
+- Los **83 mensajes** de `BusinessRuleError`, `ConflictError`, `NotFoundError`, `UnauthorizedError`, `ForbiddenError` y `BadRequestError` de los servicios, controladores y middlewares se tradujeron (voseo, igual que los dos mensajes de "último administrador" que ya estaban en español). También los del `error-handler`, el `rate-limiter`, los `message` de los esquemas Zod y las descripciones de las alertas (`alerts.service.ts`).
+- Los mensajes con `(current: ${status})` perdieron ese sufijo: exponían códigos internos (`PENDING`, `IN_PROGRESS`) que no significan nada para el usuario. Ej.: *"Solo se pueden iniciar mantenimientos pendientes"*.
+- **`shared/zod-es.ts` (nuevo)** registra con `z.setErrorMap` los textos por defecto de Zod 3 (*"Campo obligatorio"*, *"Debe tener al menos 2 caracteres"*, *"Email inválido"*, *"Fecha inválida"*…). Se importa una vez en `app.ts`; los `message` explícitos de cada esquema siguen teniendo prioridad. Zod 3 no trae locale español (el de Zod 4 sí, pero el proyecto usa la API 3).
+- Frontend: `apiErrorMessage` ahora agrega el detalle de un `VALIDATION_ERROR` (*"Datos de la solicitud inválidos (destination: Debe tener al menos 2 caracteres)"*). Antes solo se veía el mensaje genérico.
+
+**Lo que NO cambió.** Los códigos (`code`), el campo `rule` y los nombres de campo (`path`) siguen en inglés: son contrato con el cliente, no texto para personas. Los mensajes **internos** (p. ej. `Invalid encrypted payload format` en `crypto.ts`, logs) tampoco se tradujeron. Las **alertas ya guardadas** conservan su descripción en inglés hasta que se resuelvan y se regeneren (la evaluación reconcilia por tipo/entidad, no por texto); para refrescarlas: `DELETE FROM alerts WHERE status = 'PENDING'` y esperar al job (§14.13).
+
+⚠️ **Los ejemplos de todo el manual conservan los mensajes originales en inglés** (capítulos 6-17, 23 y los ejemplos de respuesta): documentan el código tal como estaba cuando se escribieron. Ante una duda, el texto vigente es el del código fuente.
+
+**Verificación:** `tsc` limpio, 24/24 tests, y respuestas reales del backend: login inválido (*"Credenciales inválidas"*), sin token, ruta inexistente, email inválido, viaje sin datos, viaje con fecha pasada, chofer inexistente y baja de un chofer en viaje, todos en español.
+
+---
+
 **Anterior:** [Capítulo 5 — Arranque del backend](05-backend-bootstrap.md) · **Siguiente:** Capítulo 7 — Los middlewares *(pendiente)*

@@ -1134,4 +1134,18 @@ Alert: "File exceeds the maximum size of 1024 KB"
 
 ---
 
+## Actualización posterior — baja y reactivación de choferes desde la interfaz
+
+> **Fecha:** 2026-09-20. **Motivación:** pendiente de producto: *"el backend tiene endpoint deactivate, pero la UI no lo expone para choferes"*. Un chofer es un `User` con rol `DRIVER`, así que la acción usa `usersApi.setActive(id, active)` (`POST /users/:id/activate|deactivate`, solo ADMIN); no hizo falta un endpoint nuevo.
+
+`ChoferesPage` agrega, en la columna de acciones (solo ADMIN), un ícono **Dar de baja** (`BlockIcon`, rojo) o **Reactivar** (`CheckCircleIcon`, verde) según `driver.isActive`, y un chip **Inactivo** junto al nombre. Ambas acciones pasan por `ConfirmDialog` (§21): el estado `toToggle` guarda el chofer y `confirmToggle` llama a la API y hace `reload()`.
+
+**Por qué el manejador vive fuera del `useMemo` de columnas.** Las columnas siguen con dependencias `[canManage]`; el ícono solo llama a `setToToggle` (setter de `useState`, identidad estable), que es el caso seguro de §22B.3.1. La llamada a `reload` está en `confirmToggle`, fuera del memo, así que **no** reproduce el cierre obsoleto de §22A.3.5.
+
+**Reglas que vienen del backend:** no se puede desactivar la propia cuenta ni al último admin (`RN-ULTIMO-ADMIN`), la baja cierra las sesiones abiertas del chofer, y —agregado en esta actualización— **no se puede dar de baja a un chofer con un viaje en curso** (ver capítulo 9). Los errores se muestran en el mismo `Alert` de la pantalla.
+
+**Verificación:** `tsc` limpio; probado en el navegador (baja con confirmación, chip "Inactivo", reactivación, y rechazo para un chofer en viaje). **Archivos:** `frontend/src/pages/choferes/ChoferesPage.tsx`, `backend/src/modules/users/users.service.ts`.
+
+---
+
 **Anterior:** [Capítulo 21 — Componentes y layouts](21-frontend-componentes.md) · **Siguiente:** Capítulo 22B — Viajes y mantenimiento *(pendiente)*

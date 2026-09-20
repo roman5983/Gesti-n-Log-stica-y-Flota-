@@ -10,6 +10,6 @@ export const loginRateLimiter = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: {
-    error: { code: 'TOO_MANY_REQUESTS', message: 'Too many login attempts, try again later' },
+    error: { code: 'TOO_MANY_REQUESTS', message: 'Demasiados intentos de inicio de sesión, probá de nuevo más tarde' },
   },
 });

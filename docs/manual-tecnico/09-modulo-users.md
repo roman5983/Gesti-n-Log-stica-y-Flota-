@@ -1481,4 +1481,23 @@ SELECT action, entity, entity_id, occurred_at,
 
 ---
 
+## Actualización posterior — un chofer en viaje no se puede dar de baja
+
+> **Fecha:** 2026-09-20. **Motivación:** la UI de Choferes ahora expone la baja (ver capítulo 22A, misma fecha); el endpoint `POST /users/:id/deactivate` ya existía pero cualquier chofer podía desactivarse en pleno viaje, dejando un viaje `IN_PROGRESS` con un chofer que no puede iniciar sesión para finalizarlo.
+
+`usersService.setActive` gana un guard, análogo al que `vehiclesService.deactivate` ya tenía para vehículos en viaje:
+
+```ts
+if (!isActive && existing.role === 'DRIVER') {
+  const onTrip = await prisma.trip.count({ where: { driverId: id, status: 'IN_PROGRESS' } });
+  if (onTrip > 0) throw new BusinessRuleError('No se puede dar de baja a un chofer con un viaje en curso');
+}
+```
+
+Va **después** del retorno idempotente y antes de la transacción. Solo aplica a la baja (no a reactivar) y solo al rol `DRIVER`. La comprobación no es atómica con el `update` (una asignación concurrente podría colarse entre ambos), pero `assign` ya rechaza a choferes inactivos (§12) y la ventana es la misma que ya documenta el hallazgo 11 de ese capítulo.
+
+**Verificación:** con María Gómez (viaje en curso en el seed) la baja devuelve 422 con ese mensaje (en español, ver capítulo 6); con Juan Pérez (sin viaje) se da de baja, aparece el chip "Inactivo" y se reactiva. **Archivo:** `backend/src/modules/users/users.service.ts`.
+
+---
+
 **Anterior:** [Capítulo 8 — El módulo de autenticación](08-modulo-auth.md) · **Siguiente:** Capítulo 10 — El módulo de vehículos *(pendiente)*

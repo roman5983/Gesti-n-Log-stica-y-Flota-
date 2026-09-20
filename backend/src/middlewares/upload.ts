@@ -16,7 +16,7 @@ import { BadRequestError } from '../shared/errors/app-error';
 export function createUploader() {
   function fileFilter(_req: Request, file: Express.Multer.File, cb: FileFilterCallback): void {
     if (!ALLOWED_MIME_TYPES.includes(file.mimetype as (typeof ALLOWED_MIME_TYPES)[number])) {
-      cb(new BadRequestError('Only PDF, JPG and PNG files are allowed'));
+      cb(new BadRequestError('Solo se permiten archivos PDF, JPG y PNG'));
       return;
     }
     cb(null, true);

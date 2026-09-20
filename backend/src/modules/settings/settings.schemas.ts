@@ -15,5 +15,5 @@ export const updateSettingsSchema = z
     language: z.string().min(1).max(10).optional(),
     dateFormat: z.string().min(1).max(20).optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateSettingsDto = z.infer<typeof updateSettingsSchema>;

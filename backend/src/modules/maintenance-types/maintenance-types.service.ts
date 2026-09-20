@@ -34,7 +34,7 @@ function toResponse(type: MaintenanceType): MaintenanceTypeResponse {
 
 async function getExistingOrFail(id: number): Promise<MaintenanceType> {
   const type = await maintenanceTypesRepository.findById(id);
-  if (!type) throw new NotFoundError(`Maintenance type ${id} not found`);
+  if (!type) throw new NotFoundError(`No se encontró el tipo de mantenimiento ${id}`);
   return type;
 }
 
@@ -56,7 +56,7 @@ export const maintenanceTypesService = {
 
   async create(dto: CreateMaintenanceTypeDto, actorId: number): Promise<MaintenanceTypeResponse> {
     if (await maintenanceTypesRepository.nameTaken(dto.name)) {
-      throw new ConflictError(`Maintenance type "${dto.name}" already exists`);
+      throw new ConflictError(`El tipo de mantenimiento "${dto.name}" ya existe`);
     }
 
     const created = await prisma.$transaction(async (tx) => {
@@ -83,7 +83,7 @@ export const maintenanceTypesService = {
   ): Promise<MaintenanceTypeResponse> {
     const existing = await getExistingOrFail(id);
     if (dto.name !== existing.name && (await maintenanceTypesRepository.nameTaken(dto.name, id))) {
-      throw new ConflictError(`Maintenance type "${dto.name}" already exists`);
+      throw new ConflictError(`El tipo de mantenimiento "${dto.name}" ya existe`);
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -126,7 +126,7 @@ export const maintenanceTypesService = {
     const existing = await getExistingOrFail(id);
     if (await maintenanceTypesRepository.isInUse(id)) {
       throw new BusinessRuleError(
-        'This maintenance type is referenced by existing maintenances and cannot be deleted',
+        'Este tipo de mantenimiento está en uso por mantenimientos existentes y no se puede eliminar',
       );
     }
 

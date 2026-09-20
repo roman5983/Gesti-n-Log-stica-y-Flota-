@@ -34,13 +34,13 @@ function toResponse(s: CompanySettings): SettingsResponse {
 export const settingsService = {
   async get(): Promise<SettingsResponse> {
     const settings = await settingsRepository.get();
-    if (!settings) throw new NotFoundError('Company settings not initialized');
+    if (!settings) throw new NotFoundError('La configuración de la empresa no está inicializada');
     return toResponse(settings);
   },
 
   async update(dto: UpdateSettingsDto, actorId: number): Promise<SettingsResponse> {
     const existing = await settingsRepository.get();
-    if (!existing) throw new NotFoundError('Company settings not initialized');
+    if (!existing) throw new NotFoundError('La configuración de la empresa no está inicializada');
 
     const updated = await prisma.$transaction(async (tx) => {
       const settings = await settingsRepository.update(dto, tx);

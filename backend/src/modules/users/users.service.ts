@@ -42,7 +42,7 @@ function toAuditSnapshot(user: User) {
 
 async function getExistingOrFail(id: number): Promise<User> {
   const user = await usersRepository.findById(id);
-  if (!user) throw new NotFoundError(`User ${id} not found`);
+  if (!user) throw new NotFoundError(`No se encontró el usuario ${id}`);
   return user;
 }
 
@@ -118,7 +118,7 @@ export const usersService = {
 
   async create(dto: CreateUserDto, actorId: number): Promise<UserResponse> {
     if (await usersRepository.emailTaken(dto.email)) {
-      throw new ConflictError(`Email ${dto.email} is already in use`);
+      throw new ConflictError(`El email ${dto.email} ya está en uso`);
     }
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
 
@@ -150,13 +150,13 @@ export const usersService = {
 
     if (dto.email && dto.email !== existing.email) {
       if (await usersRepository.emailTaken(dto.email, id)) {
-        throw new ConflictError(`Email ${dto.email} is already in use`);
+        throw new ConflictError(`El email ${dto.email} ya está en uso`);
       }
     }
     // A role change on a user with a driver profile would orphan its
     // driver data (DNI, license, documents) — structurally inconsistent.
     if (dto.role && dto.role !== existing.role && (await usersRepository.hasDriverProfile(id))) {
-      throw new BusinessRuleError('Cannot change the role of a user with a driver profile');
+      throw new BusinessRuleError('No se puede cambiar el rol de un usuario con perfil de chofer');
     }
     // An admin demoting themselves would lock them out of user management.
     if (dto.role && dto.role !== existing.role && id === actorId) {
@@ -214,6 +214,13 @@ export const usersService = {
       );
     }
     if (existing.isActive === isActive) return toResponse(existing); // idempotent
+
+    if (!isActive && existing.role === 'DRIVER') {
+      const onTrip = await prisma.trip.count({ where: { driverId: id, status: 'IN_PROGRESS' } });
+      if (onTrip > 0) {
+        throw new BusinessRuleError('No se puede dar de baja a un chofer con un viaje en curso');
+      }
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       // Deactivating the last admin would leave the system unmanageable.

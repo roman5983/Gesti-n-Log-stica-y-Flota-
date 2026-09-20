@@ -9,11 +9,11 @@ import { ForbiddenError, UnauthorizedError } from '../shared/errors/app-error';
 export function authorize(...allowedRoles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
-      next(new UnauthorizedError('Authentication required'));
+      next(new UnauthorizedError('Se requiere autenticación'));
       return;
     }
     if (!allowedRoles.includes(req.user.role)) {
-      next(new ForbiddenError('Insufficient permissions for this operation'));
+      next(new ForbiddenError('No tenés permisos para realizar esta operación'));
       return;
     }
     next();

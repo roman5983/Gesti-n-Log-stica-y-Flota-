@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GlobalStyles, TextField } from '@mui/material';
 import { loadGoogleMaps } from '../lib/google-maps';
 
@@ -24,6 +24,22 @@ export function AddressAutocomplete({ label, value, onChange, required }: Props)
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
+  // Strict mode (only with a Maps key): the value must come from the Places
+  // list, or be set by the parent (e.g. an already-saved address when editing).
+  // Anything the user typed by hand and did not pick is rejected.
+  const lastTyped = useRef<string | null>(null);
+  const trusted = useRef('');
+  const [touched, setTouched] = useState(false);
+  // Strictness only applies once the Places SDK is actually attached; if it
+  // fails to load, the field degrades to free text instead of blocking saves.
+  const [sdkReady, setSdkReady] = useState(false);
+  if (value !== lastTyped.current) trusted.current = value;
+  const invalid = sdkReady && value !== '' && value !== trusted.current;
+
+  useEffect(() => {
+    inputRef.current?.setCustomValidity(invalid ? 'Elegí una dirección de la lista' : '');
+  }, [invalid]);
+
   useEffect(() => {
     if (!MAPS_KEY || !inputRef.current) return;
     let cancelled = false;
@@ -36,6 +52,7 @@ export function AddressAutocomplete({ label, value, onChange, required }: Props)
           fields: ['formatted_address', 'name', 'geometry'],
           componentRestrictions: { country: 'ar' },
         });
+        setSdkReady(true);
         autocomplete.addListener('place_changed', () => {
           const place = autocomplete!.getPlace();
           const address = place.formatted_address ?? place.name ?? '';
@@ -60,12 +77,14 @@ export function AddressAutocomplete({ label, value, onChange, required }: Props)
       <TextField
         label={label}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => { lastTyped.current = e.target.value; onChange(e.target.value); }}
+        onBlur={() => setTouched(true)}
+        error={touched && invalid}
         inputRef={inputRef}
         required={required}
         fullWidth
         placeholder={MAPS_KEY ? 'Empezá a escribir una dirección…' : undefined}
-        helperText={MAPS_KEY ? 'Elegí una dirección de la lista' : 'Ingresá la dirección de destino'}
+        helperText={MAPS_KEY ? (touched && invalid ? 'Elegí una dirección de la lista, no alcanza con escribirla' : 'Elegí una dirección de la lista') : 'Ingresá la dirección de destino'}
       />
     </>
   );

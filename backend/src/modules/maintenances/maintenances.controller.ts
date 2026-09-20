@@ -75,7 +75,7 @@ export const maintenancesController = {
 
   async addAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.file) throw new BadRequestError('A file is required (field name: "file")');
+      if (!req.file) throw new BadRequestError('Se requiere un archivo (campo: "file")');
       const { id } = req.params as unknown as { id: number };
       const maintenance = await maintenancesService.addAttachment(id, req.file, req.user!.id);
       res.status(201).json({ data: maintenance });
@@ -94,7 +94,7 @@ export const maintenancesController = {
       res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
       res.sendFile(path.resolve(file.filePath), (err) => {
         // File recorded in DB but missing on disk (e.g. manual removal).
-        if (err && !res.headersSent) next(new NotFoundError('File is no longer available'));
+        if (err && !res.headersSent) next(new NotFoundError('El archivo ya no está disponible'));
       });
     } catch (err) {
       next(err);

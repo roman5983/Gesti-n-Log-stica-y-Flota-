@@ -4,7 +4,7 @@ import { utcStartOfToday } from '../../shared/utils/dates';
 
 /** RN: a trip's departure cannot be scheduled before today's calendar date. */
 const notBeforeToday = (date: Date) => date >= utcStartOfToday();
-const NOT_BEFORE_TODAY_MESSAGE = 'departureAt cannot be before today';
+const NOT_BEFORE_TODAY_MESSAGE = 'La fecha de salida no puede ser anterior a hoy';
 
 /**
  * Trip creation only generates the route (A-1). The origin is fixed (RN-21)
@@ -30,7 +30,7 @@ export const updateTripSchema = z
     estimatedDistanceKm: z.coerce.number().positive().max(99999).nullable().optional(),
     estimatedTimeMin: z.coerce.number().int().positive().max(100000).nullable().optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateTripDto = z.infer<typeof updateTripSchema>;
 
 /**
