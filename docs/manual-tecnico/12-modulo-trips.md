@@ -1333,7 +1333,7 @@ El pedido fue literal: **fecha**, no **instante**. Un operador que carga un viaj
 import { utcStartOfToday } from '../../shared/utils/dates';
 
 const notBeforeToday = (date: Date) => date >= utcStartOfToday();
-const NOT_BEFORE_TODAY_MESSAGE = 'departureAt cannot be before today';
+const NOT_BEFORE_TODAY_MESSAGE = 'La fecha de salida no puede ser anterior a hoy';
 
 export const createTripSchema = z.object({
   destination: z.string().min(2).max(120),
@@ -1370,7 +1370,7 @@ Verificación manual vía `curl` directo al backend (sin pasar por el frontend, 
 
 ```
 POST /api/v1/trips {"destination":"Rosario Centro","departureAt":"2020-01-01T10:00:00.000Z"}
-→ 400 VALIDATION_ERROR: "departureAt cannot be before today"
+→ 400 VALIDATION_ERROR: "La fecha de salida no puede ser anterior a hoy"
 
 POST /api/v1/trips {"destination":"Rosario Centro","departureAt":"2027-01-01T10:00:00.000Z"}
 → 201, viaje creado (borrado después de la prueba)
