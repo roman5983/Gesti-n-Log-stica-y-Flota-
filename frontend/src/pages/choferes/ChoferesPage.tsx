@@ -5,10 +5,15 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import KeyIcon from '@mui/icons-material/Key';
 import DescriptionIcon from '@mui/icons-material/Description';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { PageHeader } from '../../components/PageHeader';
 import { DataTable, type Column } from '../../components/DataTable';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { driversApi, type Driver } from '../../api/drivers.api';
+import { usersApi } from '../../api/users.api';
+import { apiErrorMessage } from '../../api/axios';
 import { useAuth } from '../../auth/use-auth';
 import { DriverFormDialog } from './DriverFormDialog';
 import { DriverCredentialsDialog } from './DriverCredentialsDialog';
@@ -41,6 +46,24 @@ export function ChoferesPage() {
   const [credentialsFor, setCredentialsFor] = useState<Driver | null>(null);
   const [documentsFor, setDocumentsFor] = useState<Driver | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [toToggle, setToToggle] = useState<Driver | null>(null);
+  const [toggling, setToggling] = useState(false);
+
+  async function confirmToggle() {
+    if (!toToggle) return;
+    setToggling(true);
+    setLinkError(null);
+    try {
+      await usersApi.setActive(toToggle.id, !toToggle.isActive);
+      setToToggle(null);
+      await reload();
+    } catch (err) {
+      setToToggle(null);
+      setLinkError(apiErrorMessage(err));
+    } finally {
+      setToggling(false);
+    }
+  }
 
   // Deep link from Alertas ("ir al origen"): open that chofer's documentation.
   const [searchParams] = useSearchParams();
@@ -55,7 +78,16 @@ export function ChoferesPage() {
 
   const columns = useMemo<Column<Driver>[]>(
     () => [
-      { key: 'name', label: 'Nombre', render: (d) => d.name },
+      {
+        key: 'name',
+        label: 'Nombre',
+        render: (d) => (
+          <Stack direction="row" spacing={1} alignItems="center">
+            <span>{d.name}</span>
+            {!d.isActive && <Chip size="small" label="Inactivo" color="warning" variant="outlined" />}
+          </Stack>
+        ),
+      },
       { key: 'dni', label: 'DNI', render: (d) => d.dni },
       { key: 'license', label: 'Licencia', render: (d) => `Cat. ${d.licenseCategory}` },
       {
@@ -97,6 +129,11 @@ export function ChoferesPage() {
                   <Tooltip title="Documentación">
                     <IconButton size="small" onClick={() => setDocumentsFor(d)}>
                       <DescriptionIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={d.isActive ? 'Dar de baja' : 'Reactivar'}>
+                    <IconButton size="small" color={d.isActive ? 'error' : 'success'} onClick={() => setToToggle(d)}>
+                      {d.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
                     </IconButton>
                   </Tooltip>
                 </Stack>
@@ -178,6 +215,21 @@ export function ChoferesPage() {
         driver={documentsFor}
         canManage={canManage}
         onClose={() => setDocumentsFor(null)}
+      />
+
+      <ConfirmDialog
+        open={toToggle !== null}
+        title={toToggle?.isActive ? 'Dar de baja al chofer' : 'Reactivar chofer'}
+        message={
+          toToggle?.isActive
+            ? `¿Dar de baja a ${toToggle.name}? No podrá iniciar sesión ni recibir viajes, y se cerrarán sus sesiones abiertas.`
+            : `¿Reactivar a ${toToggle?.name}?`
+        }
+        confirmLabel={toToggle?.isActive ? 'Dar de baja' : 'Reactivar'}
+        confirmColor={toToggle?.isActive ? 'error' : 'primary'}
+        loading={toggling}
+        onConfirm={confirmToggle}
+        onCancel={() => setToToggle(null)}
       />
     </Box>
   );
