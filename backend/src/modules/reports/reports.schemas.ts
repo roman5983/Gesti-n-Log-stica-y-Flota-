@@ -12,6 +12,6 @@ export const reportQuerySchema = z
   })
   .refine((data) => data.dateTo >= data.dateFrom, {
     path: ['dateTo'],
-    message: 'dateTo must be greater than or equal to dateFrom',
+    message: 'La fecha "hasta" debe ser igual o posterior a la fecha "desde"',
   });
 export type ReportQuery = z.infer<typeof reportQuerySchema>;

@@ -7,7 +7,7 @@ const licensePlateSchema = z
   .string()
   .min(6)
   .max(10)
-  .regex(/^[A-Z0-9 ]+$/i, 'License plate must contain only letters, numbers and spaces')
+  .regex(/^[A-Z0-9 ]+$/i, 'La patente solo puede tener letras, números y espacios')
   .transform((v) => v.toUpperCase().trim());
 
 export const createVehicleSchema = z.object({
@@ -29,7 +29,7 @@ export const updateVehicleSchema = z
     initialKm: z.coerce.number().int().min(0).optional(),
     insuranceExpiryDate: z.coerce.date().nullable().optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateVehicleDto = z.infer<typeof updateVehicleSchema>;
 
 export const listVehiclesQuerySchema = paginationSchema.extend({

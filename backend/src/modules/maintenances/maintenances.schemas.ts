@@ -24,7 +24,7 @@ function validateNextKm(
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['nextMaintenanceKm'],
-      message: 'nextMaintenanceKm must be greater than or equal to km',
+      message: 'El km del próximo mantenimiento debe ser mayor o igual al km actual',
     });
   }
 }
@@ -55,7 +55,7 @@ export const updateMaintenanceSchema = z
     notes: z.string().max(1000).nullable().optional(),
     nextMaintenanceKm: z.coerce.number().int().min(0).nullable().optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' })
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' })
   .superRefine(validateNextKm);
 export type UpdateMaintenanceDto = z.infer<typeof updateMaintenanceSchema>;
 

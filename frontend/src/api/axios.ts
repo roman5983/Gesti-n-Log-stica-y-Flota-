@@ -70,7 +70,16 @@ api.interceptors.response.use(
 export function apiErrorMessage(err: unknown, fallback = 'Ocurrió un error'): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as ApiError | undefined;
-    return data?.error?.message ?? fallback;
+    const message = data?.error?.message;
+    if (!message) return fallback;
+    const details = data?.error?.details;
+    if (data?.error?.code === 'VALIDATION_ERROR' && Array.isArray(details) && details.length > 0) {
+      const lines = (details as { path?: string; message?: string }[])
+        .map((d) => (d.path ? `${d.path}: ${d.message}` : d.message))
+        .join('; ');
+      return `${message} (${lines})`;
+    }
+    return message;
   }
   return fallback;
 }

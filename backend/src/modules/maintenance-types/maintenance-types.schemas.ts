@@ -25,7 +25,7 @@ function validateThresholds(data: {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['kmTarget'],
-      message: 'kmTarget must be greater than or equal to kmAlert',
+      message: 'El km objetivo debe ser mayor o igual al km de alerta',
     });
   }
   if (
@@ -36,7 +36,7 @@ function validateThresholds(data: {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['monthsTarget'],
-      message: 'monthsTarget must be greater than or equal to monthsAlert',
+      message: 'Los meses objetivo deben ser mayores o iguales a los meses de alerta',
     });
   }
 }

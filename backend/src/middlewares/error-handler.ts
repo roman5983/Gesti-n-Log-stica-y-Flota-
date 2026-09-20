@@ -27,7 +27,7 @@ export function errorHandler(
     res.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',
-        message: 'Invalid request data',
+        message: 'Datos de la solicitud inválidos',
         details: err.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
       },
     });
@@ -41,7 +41,7 @@ export function errorHandler(
       error: {
         code: tooLarge ? 'FILE_TOO_LARGE' : 'UPLOAD_ERROR',
         message: tooLarge
-          ? `File exceeds the maximum size of ${MAX_FILE_SIZE_BYTES / 1024} KB`
+          ? `El archivo supera el tamaño máximo de ${MAX_FILE_SIZE_BYTES / 1024} KB`
           : err.message,
       },
     });
@@ -53,7 +53,7 @@ export function errorHandler(
   // still fire — translate it to 409 instead of leaking a 500.
   if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
     res.status(409).json({
-      error: { code: 'CONFLICT', message: 'A record with this unique value already exists' },
+      error: { code: 'CONFLICT', message: 'Ya existe un registro con ese valor único' },
     });
     return;
   }
@@ -65,7 +65,7 @@ export function errorHandler(
     res.status(409).json({
       error: {
         code: 'CONFLICT',
-        message: 'This record is referenced by other records and cannot be deleted',
+        message: 'Este registro está referenciado por otros registros y no se puede eliminar',
       },
     });
     return;
@@ -76,7 +76,7 @@ export function errorHandler(
   res.status(500).json({
     error: {
       code: 'INTERNAL_ERROR',
-      message: isProduction ? 'Internal server error' : String(err),
+      message: isProduction ? 'Error interno del servidor' : String(err),
     },
   });
 }
@@ -84,6 +84,6 @@ export function errorHandler(
 /** 404 for unknown routes, with the same error shape. */
 export function notFoundHandler(req: Request, res: Response): void {
   res.status(404).json({
-    error: { code: 'NOT_FOUND', message: `Route ${req.method} ${req.path} not found` },
+    error: { code: 'NOT_FOUND', message: `Ruta ${req.method} ${req.path} no encontrada` },
   });
 }

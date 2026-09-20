@@ -20,7 +20,7 @@ export const updateDocumentSchema = z
     documentType: documentTypeSchema.optional(),
     expiryDate: z.coerce.date().optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateDocumentDto = z.infer<typeof updateDocumentSchema>;
 
 /** Params for /drivers/:driverId/documents/:documentId */

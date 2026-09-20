@@ -16,7 +16,7 @@ export const documentsController = {
 
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.file) throw new BadRequestError('A file is required (field name: "file")');
+      if (!req.file) throw new BadRequestError('Se requiere un archivo (campo: "file")');
       const { driverId } = req.params as unknown as { driverId: number };
       const doc = await documentsService.create(
         driverId,
@@ -71,7 +71,7 @@ export const documentsController = {
       res.type(file.mimeType);
       res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
       res.sendFile(path.resolve(file.filePath), (err) => {
-        if (err && !res.headersSent) next(new NotFoundError('File is no longer available'));
+        if (err && !res.headersSent) next(new NotFoundError('El archivo ya no está disponible'));
       });
     } catch (err) {
       next(err);

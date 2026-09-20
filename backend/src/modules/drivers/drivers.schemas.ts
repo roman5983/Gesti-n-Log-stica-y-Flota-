@@ -3,11 +3,11 @@ import { paginationSchema } from '../../shared/schemas';
 
 const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .regex(/[A-Za-z]/, 'Password must contain a letter')
-  .regex(/\d/, 'Password must contain a number');
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .regex(/[A-Za-z]/, 'La contraseña debe contener una letra')
+  .regex(/\d/, 'La contraseña debe contener un número');
 
-const dniSchema = z.string().regex(/^\d{7,10}$/, 'DNI must be 7 to 10 digits');
+const dniSchema = z.string().regex(/^\d{7,10}$/, 'El DNI debe tener entre 7 y 10 dígitos');
 
 const licenseCategorySchema = z.enum(['A', 'B', 'C', 'E']);
 
@@ -33,7 +33,7 @@ export const updateDriverSchema = z
     licenseCategory: licenseCategorySchema.optional(),
     licenseExpiryDate: z.coerce.date().optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field is required' });
+  .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateDriverDto = z.infer<typeof updateDriverSchema>;
 
 export const changeDriverPasswordSchema = z.object({
