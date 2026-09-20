@@ -73,24 +73,14 @@ export function AlertasPage() {
     }
   }
 
-  // Background polling (no job/websockets on the backend): while the page is
-  // visible, periodically re-evaluate (admins only — the endpoint is
-  // ADMIN-only) and refresh the list, so new alerts show up without a click.
-  // Errors (e.g. another tab's evaluation holding the DB advisory lock) are
-  // swallowed — this is a best-effort background refresh, not a user action.
+  // The server evaluates alerts on its own schedule (alerts.scheduler.ts); the
+  // page only re-reads the list while it is visible so new alerts show up.
   useEffect(() => {
-    const tick = async () => {
-      if (document.visibilityState !== 'visible') return;
-      try {
-        if (isAdmin) await alertsApi.evaluate();
-      } catch {
-        // ignore — next tick retries
-      }
-      await reload();
-    };
-    const id = setInterval(() => { void tick(); }, POLL_INTERVAL_MS);
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') void reload();
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [isAdmin, reload]);
+  }, [reload]);
 
   const [toResolve, setToResolve] = useState<Alert | null>(null);
   const [resolving, setResolving] = useState(false);
