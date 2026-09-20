@@ -1062,6 +1062,8 @@ El resultado se expone como `linkedDriverId?: number` en `AlertResponse`, presen
 
 ## 14.12. Actualización posterior — evaluación periódica desde el cliente (sin job de servidor)
 
+> ⚠️ **Superada el 2026-09-20 por §14.13:** el polling que evaluaba desde el navegador se reemplazó por un job en el servidor. Se conserva esta sección como registro de la decisión intermedia y de sus límites (la evaluación dependía de que un admin tuviera la pantalla abierta).
+
 > **Fecha:** 2026-09-18. **Motivación:** pendiente de producto arrastrado desde antes del capítulo 25 — *"alertas en tiempo real"*, hoy resuelto solo con el botón "Evaluar alertas" de §22C.4.2 (bajo demanda). Se resolvió **sin tocar el backend de este capítulo**: no se agregó ningún scheduler (`node-cron`, un worker, un job de base de datos). El cambio completo vive en `AlertasPage` (frontend) y se documenta en detalle en §22C — esta sección cubre únicamente lo que le concierne al motor de evaluación descrito aquí.
 
 **Qué cambia para `alertsService.evaluate()`:** nada en su código. Sigue siendo el mismo método idempotente-por-reconciliación de §14.3, protegido por el mismo `GET_LOCK` de §14.4.5. Lo que cambia es **quién lo llama y con qué frecuencia**: antes, solo un clic humano en el botón "Evaluar alertas"; ahora, además, un `setInterval` de 60 segundos en el cliente mientras la pestaña de Alertas está abierta y visible (`document.visibilityState === 'visible'`), que llama a `evaluate()` en silencio (sin `Snackbar`, con los errores descartados) para los usuarios ADMIN, y que simplemente recarga la lista (`GET /alerts`) para los demás roles — porque el endpoint de evaluación sigue siendo `authorize('ADMIN')` (§14.6, `alerts.routes.ts:23`), sin cambios.
@@ -1075,6 +1077,31 @@ El resultado se expone como `linkedDriverId?: number` en `AlertResponse`, presen
 **Verificación:** `tsc --noEmit` limpio en `frontend/`. Probado manualmente: la pantalla de Alertas carga con el mismo comportamiento visible que antes (el botón "Evaluar alertas" sigue funcionando igual), sin errores nuevos en la consola del navegador atribuibles al polling. No se instrumentó una prueba de carga para forzar la ventana de microsegundos del hallazgo 4 — sigue siendo, como allí se documentó, "improbable pero real".
 
 **Archivos tocados:** `frontend/src/pages/alertas/AlertasPage.tsx` (ningún archivo de este capítulo).
+
+---
+
+## 14.13. Actualización posterior — job de evaluación en el servidor
+
+> **Fecha:** 2026-09-20. **Motivación:** el polling de §14.12 solo evaluaba con un admin mirando la pantalla de Alertas; con el navegador cerrado no se evaluaba nada. Se descartó WebSockets (resuelven *avisar* al navegador, no *generar* alertas, y las condiciones son vencimientos/kilometrajes que cambian lentamente) y se implementó el job.
+
+**`alerts.scheduler.ts` (nuevo).** `startAlertsScheduler(intervalMin)` se arranca en `server.ts` dentro del callback de `listen` (nunca con `NODE_ENV=test`) y se detiene en `shutdown`. Decisiones de eficiencia y robustez:
+
+| Decisión | Por qué |
+|:--|:--|
+| `setTimeout` encadenado, no `setInterval` | Una pasada lenta nunca se solapa con la siguiente |
+| `timer.unref()` | El temporizador no mantiene vivo el proceso al apagar |
+| Primera pasada a los 15 s del arranque, luego cada `ALERTS_EVAL_INTERVAL_MIN` (10 por defecto, `0` = desactivado) | Alertas al día tras un reinicio, sin competir con el arranque |
+| Actor = primer ADMIN activo (`findFirst`, orden por `id`) | `audit_logs.user_id` es NOT NULL; evita migrar el esquema. Una consulta indexada (`idx_users_role_active`) por pasada; si no hay admin, no hace nada |
+| `ConflictError` (lock ocupado) se ignora en silencio | Otra instancia ya está evaluando (§14.4.5) |
+| Solo se loguea cuando hay cambios (`created`/`autoResolved` > 0) | Sin ruido en los logs; la auditoría ya era condicional (§14.5) |
+
+**Frontend.** `AlertasPage` deja de llamar a `evaluate()` en el polling: solo relee la lista cada 60 s mientras la pestaña está visible, para **todos** los roles. Menos carga (N pestañas ya no multiplican las evaluaciones) y el botón manual "Evaluar alertas" sigue igual.
+
+**Lo que no cambia.** La ventana de carrera del `GET_LOCK` (hallazgo 4, §14.4.5) sigue sin corregirse; el job la ejercita cada 10 minutos por instancia. Con varias instancias del backend todas corren el job y el lock las serializa. El hallazgo 5 (sin registro de la última evaluación) queda mitigado pero no resuelto: sigue sin persistirse *cuándo* se evaluó.
+
+**Verificación.** `tsc --noEmit` limpio en ambos proyectos. Backend levantado en el puerto 3100: se resolvió una alerta (9 → 8 pendientes) y a los 15 s el job la recreó (`[alerts-job] 1 new, 0 auto-resolved`, 9 pendientes).
+
+**Archivos tocados:** `backend/src/modules/alerts/alerts.scheduler.ts` (nuevo), `backend/src/server.ts`, `backend/src/config/env.ts`, `backend/.env.example`, `frontend/src/pages/alertas/AlertasPage.tsx`.
 
 ---
 

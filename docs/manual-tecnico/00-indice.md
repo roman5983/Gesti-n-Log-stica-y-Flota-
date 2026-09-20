@@ -108,7 +108,7 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 11 | [`11-modulo-drivers-documents.md`](11-modulo-drivers-documents.md) | Creación atómica en dos tablas. `assertCanAccess`. Contraseñas cifradas reversibles (A-9). Compensación al subir archivos | 1.332 |
 | 12 | [`12-modulo-trips.md`](12-modulo-trips.md) | El patrón bloquear-releer-validar-escribir. `FOR UPDATE SKIP LOCKED`. Las 7 validaciones de la asignación. Los efectos en cascada de finalizar | 1.385 |
 | 13 | [`13-modulo-maintenance.md`](13-modulo-maintenance.md) | `superRefine` y la validación cruzada. `PUT` con semántica de conjunto completo. Adjuntos de solo añadir | 1.028 |
-| 14 | [`14-modulo-alerts.md`](14-modulo-alerts.md) | El patrón de reconciliación. El cerrojo consultivo `GET_LOCK`. Los 8 tipos de alerta. El escáner | 1.081 |
+| 14 | [`14-modulo-alerts.md`](14-modulo-alerts.md) | El patrón de reconciliación. El cerrojo consultivo `GET_LOCK`. Los 8 tipos de alerta. El escáner | 1.108 |
 | 15 | [`15-modulo-audit-logs.md`](15-modulo-audit-logs.md) | Auditoría vs registro. Inmutabilidad por ausencia. `sanitize()` y su límite. Dónde vive el tipo `DbClient` | 815 |
 | 16 | [`16-modulo-dashboard-reports.md`](16-modulo-dashboard-reports.md) | Agregar donde están los datos. Series temporales presembradas. El período sin tope | 837 |
 | 17 | [`17-modulo-settings.md`](17-modulo-settings.md) | Configuración de despliegue vs de negocio. Fila única. `PUT` con semántica de `PATCH` | 609 |
@@ -123,7 +123,7 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 21 | [`21-frontend-componentes.md`](21-frontend-componentes.md) | Restricciones de reutilización. Componentes genéricos. `DataTable`. `usePaginatedList` y su trampa. `AppSidebarLayout`, `RouteMap` | 1.171 |
 | 22A | [`22a-frontend-pantallas-abm.md`](22a-frontend-pantallas-abm.md) | **El patrón de listado explicado una vez**, con `VehiculosPage` como caso canónico. El bug de las fechas. Usuarios, choferes y sus cuatro diálogos | 1.137 |
 | 22B | [`22b-frontend-viajes-mantenimiento.md`](22b-frontend-viajes-mantenimiento.md) | El diálogo como unidad de transacción. `datetime-local` bien resuelto. La máquina de estados dibujada con iconos. Los seis diálogos línea por línea | 2.363 |
-| 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.888 |
+| 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.890 |
 
 ### Parte V — Integración y cierre
 

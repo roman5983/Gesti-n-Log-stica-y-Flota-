@@ -1876,6 +1876,8 @@ useEffect(() => {
 
 **Por qué no se agregó un job de servidor.** Se discute con el detalle completo del motor de evaluación en §14.12 (actualización posterior del capítulo 14); esta sección se limita a la mitad que vive en `AlertasPage`.
 
+> ⚠️ **Actualización 2026-09-20 (§14.13):** el `useEffect` de arriba ya no llama a `alertsApi.evaluate()`. La evaluación pasó a un job en el servidor; el efecto solo hace `reload()` cada 60 s con la pestaña visible, para todos los roles. Las dependencias pasan a ser `[reload]`; el resto del razonamiento (por qué `reload` va en las dependencias) sigue igual.
+
 ### 22C.6.3. Verificación
 
 `tsc --noEmit` limpio en `frontend/`. `ReportesPage`: atajo "Últimos 30 días" seguido de "Generar informe" trae el resumen correcto (viajes finalizados, km totales, tablas por chofer/vehículo/destino) contra el entorno local. `AlertasPage`: la pantalla carga sin errores nuevos en la consola del navegador; el botón manual "Evaluar alertas" se probó y sigue funcionando exactamente igual que antes de este cambio.
