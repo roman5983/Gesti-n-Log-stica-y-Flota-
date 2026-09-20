@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
+import { Alert, Box, Card, CardContent, Chip, Stack, TablePagination, Typography } from '@mui/material';
 import { PageHeader } from '../../components/PageHeader';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { tripsApi, type Trip } from '../../api/trips.api';
@@ -10,7 +10,8 @@ export function MiHistorialPage() {
     (params: PageParams) => tripsApi.list({ ...params, status: 'COMPLETED' }),
     [],
   );
-  const { items, loading, error } = usePaginatedList<Trip>(fetchFn, 50);
+  const { items, total, page, setPage, limit, setLimit, loading, error } =
+    usePaginatedList<Trip>(fetchFn, 10);
 
   return (
     <Box>
@@ -37,6 +38,19 @@ export function MiHistorialPage() {
           </Card>
         ))}
       </Stack>
+      {total > 0 && (
+        <TablePagination
+          component="div"
+          count={total}
+          page={page - 1}
+          onPageChange={(_e, p) => setPage(p + 1)}
+          rowsPerPage={limit}
+          onRowsPerPageChange={(e) => { setLimit(parseInt(e.target.value, 10)); setPage(1); }}
+          rowsPerPageOptions={[10, 25, 50]}
+          labelRowsPerPage="Por página"
+          labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+        />
+      )}
     </Box>
   );
 }
