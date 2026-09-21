@@ -1222,7 +1222,7 @@ curl -X POST .../trips/12/finish -d '{"arrivalKm":45000}'   # mismo km que la sa
 
    | # | Hallazgo | Gravedad |
    |:-:|:--|:--|
-   | 1 | 🔴 **`pickAvailableVehicle` NO verifica el seguro.** Un vehículo con seguro vencido se asigna normalmente. El sistema lo detecta, lo alerta, lo expone en `insuranceValid` — **y no lo aplica**. Implicaciones legales. | **Alta** |
+   | 1 | ✅ *(resuelto 2026-09-21, §12.13)* ~~🔴 **`pickAvailableVehicle` NO verifica el seguro.** Un vehículo con seguro vencido se asigna normalmente. El sistema lo detecta, lo alerta, lo expone en `insuranceValid` — **y no lo aplica**. Implicaciones legales.~~ Ahora solo se asignan vehículos con seguro vigente. | ~~**Alta**~~ |
    | 2 | 🔴 **No existe cancelación de viaje.** Un camión averiado deja el viaje, el vehículo y el chofer **bloqueados permanentemente**, sin salida por la API. RN-5 (`arrivalKm > departureKm`) impide incluso cerrarlo con cero kilómetros. | **Alta** |
    | 3 | 🔴 **El promedio `avgKm` acumula error de redondeo.** Se lee un `DECIMAL(10,2)` ya redondeado, se recalcula y se vuelve a redondear, **usando el valor redondeado como entrada del siguiente cálculo**. Degradación silenciosa. La corrección es almacenar la suma, no el promedio. | Media |
    | 4 | 🔴 **`arrivalKm` sin cota superior.** Un valor absurdo corrompe el odómetro del vehículo permanentemente y rompe todos los cálculos de mantenimiento por kilometraje. | Media |
@@ -1379,6 +1379,30 @@ POST /api/v1/trips {"destination":"Rosario Centro","departureAt":"2027-01-01T10:
 El lado del cliente —`min` en el `<input type="datetime-local">` de `TripFormDialog` y la validación explícita antes del `submit`— se documenta en §22B.4.1 (actualización posterior), que además confirma que resuelve la advertencia *"Lo que falta: `inputProps={{ min: ... }}`"* señalada en ese mismo capítulo.
 
 **Archivos tocados:** `backend/src/modules/trips/trips.schemas.ts`, `backend/src/modules/trips/trips.schemas.test.ts`, `frontend/src/pages/viajes/TripFormDialog.tsx`.
+
+---
+
+## 12.13. Actualización posterior — solo se asignan vehículos con seguro vigente
+
+> **Fecha:** 2026-09-21. **Motivación:** el hallazgo 1 de §12.9: el sistema detectaba, alertaba y exponía el seguro vencido (`insuranceValid`) pero `pickAvailableVehicle` lo ignoraba, así que un viaje podía salir con un vehículo sin cobertura.
+
+**Cambio en `pickAvailableVehicle`** (`trips.repository.ts`): la consulta con `FOR UPDATE SKIP LOCKED` gana una condición más:
+
+```sql
+WHERE status = 'AVAILABLE' AND deleted_at IS NULL
+  AND insurance_expiry_date >= :utcStartOfToday
+ORDER BY accumulated_km ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+```
+
+- **Mismo criterio que `insuranceValid`** (§10): vigente hasta el día de vencimiento inclusive, comparando contra `utcStartOfToday()` (§6.6) y no contra `NOW()`, para no reintroducir el corrimiento de un día por huso horario.
+- **Un seguro `NULL` (sin fecha cargada) también excluye al vehículo**: la comparación con `NULL` es falsa. Es coherente con `insuranceValid = false` para ese caso, pero tiene un costo: un vehículo dado de alta sin fecha de seguro deja de ser asignable hasta que se la carguen.
+- La exclusión ocurre **dentro de la consulta bloqueante**, no después: el siguiente vehículo asegurado por kilometraje se elige y bloquea en el mismo paso, sin ventana entre "elegir" y "verificar".
+
+**Mensaje distinto según el motivo.** Si la selección devuelve `null`, `assign` consulta `hasAvailableVehicle` (¿hay algún vehículo `AVAILABLE`, asegurado o no?). Si lo hay, es un bloqueo de política y responde **422** `BusinessRuleError` con `rule: 'RN-SEGURO'`: *"Hay vehículos disponibles, pero ninguno tiene el seguro vigente"*. Si no hay ninguno, sigue siendo el **409** de siempre: *"No hay vehículos disponibles para asignar"*. Sin esa distinción, el operador vería "no hay vehículos" con la flota parada por el seguro. (`rule` sigue sin llegar al cliente: hallazgo 6, §12.9.)
+
+**Lo que no cambia.** Un vehículo cuyo seguro vence **durante** el viaje no se ve afectado (solo se valida al asignar). Y el hallazgo 1 de §14.9 sigue abierto: un vehículo **sin** fecha de seguro sigue sin generar alerta — ahora al menos no se le asignan viajes.
+
+**Verificación:** con el backend real y la base local (AAA111 con seguro vigente, BBB222 vencido): con ambos vencidos, `POST /trips/:id/assign` → 422 con el mensaje nuevo; con AAA111 vigente, el viaje pasa a `IN_PROGRESS` con AAA111. Los datos de prueba se restauraron. `tsc` limpio. **Archivos:** `backend/src/modules/trips/trips.repository.ts`, `backend/src/modules/trips/trips.service.ts`.
 
 ---
 

@@ -1168,7 +1168,7 @@ Es exactamente el hueco que este capítulo existía para llenar.
 | # | Gravedad | Hallazgo | Dónde |
 |--:|:--|:--|:--|
 | 1 | 🔴 Alta | **La rotación no detecta el robo de tokens**, aunque el comentario afirma que sí. `findValidByHash` filtra `revoked: false`, así que un token revocado sale por el mismo camino que uno inventado. El único `revokeAllForUser` cubre la baja de usuario, no el robo. **Un comentario incorrecto es peor que ninguno: quien audite dará el mecanismo por hecho.** | `auth.service.ts:73-92` |
-| 2 | 🔴 Alta | **Un vehículo sin seguro circula sin señal.** `pickAvailableVehicle` no filtra por seguro, `alerts.service.ts:149` no alerta si es `NULL`, `VehiculosPage:90` muestra "—" sin aviso, y `vehicles.service.ts:20` afirma que se *"surfaces as alertable"*. Los cuatro son defendibles por separado. | 4 archivos |
+| 2 | 🔴 Alta | **Un vehículo sin seguro circula sin señal.** *(Actualización 2026-09-21: `pickAvailableVehicle` ya filtra por seguro, §12.13; los otros tres puntos siguen abiertos.)* `pickAvailableVehicle` no filtraba por seguro, `alerts.service.ts:149` no alerta si es `NULL`, `VehiculosPage:90` muestra "—" sin aviso, y `vehicles.service.ts:20` afirma que se *"surfaces as alertable"*. Los cuatro son defendibles por separado. | 4 archivos |
 | 3 | ⚠️ Media | **El canal de tiempo delata las cuentas existentes.** Email inexistente ≈2 ms; email real ≈60 ms por `bcrypt.compare`. El comentario dice *"never reveal which credential failed"* y el reloj lo revela. Mitigación: comparar siempre contra un hash señuelo. | `auth.service.ts:58-68` |
 | 4 | ⚠️ Media | **`avgKm` deriva y nadie la reconcilia.** Media incremental sobre un `Decimal` convertido a flotante, sin proceso de recálculo. El error es despreciable pero **irrecuperable**. | `trips.service.ts:306-307` |
 | 5 | ⚠️ Media | **Los archivos huérfanos se acumulan.** `safeUnlink` compensa el `INSERT` fallido, pero si el proceso muere entre la escritura y la compensación, el archivo queda. No hay tarea de limpieza. | `documents.service` + `files.ts` |
@@ -1388,7 +1388,7 @@ usa un cerrojo **porque** no hay `UNIQUE` que respalde la regla.
 
 | Capa | Qué hace | Qué debería hacer |
 |:--|:--|:--|
-| `trips.repository` — `pickAvailableVehicle` | Filtra `status='AVAILABLE'` y `deleted_at IS NULL`. **Nada sobre el seguro.** | Excluirlo, o al menos advertir |
+| `trips.repository` — `pickAvailableVehicle` | Filtra `status='AVAILABLE'`, `deleted_at IS NULL` **y seguro vigente** *(desde 2026-09-21, §12.13; antes: nada sobre el seguro)* | ✅ Resuelto |
 | `alerts.service.ts:149` | **No genera alerta si `insuranceExpiryDate` es `NULL`.** Solo alerta sobre seguros que existen y están por vencer o vencidos. | Alertar sobre la ausencia |
 | `VehiculosPage:90` | Muestra `'—'` sin distintivo ni color | Marcarlo como incompleto |
 | `vehicles.service.ts:20` | El comentario afirma que el seguro se *"surfaces as alertable"* | Ser cierto |

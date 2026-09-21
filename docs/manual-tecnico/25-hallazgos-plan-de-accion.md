@@ -200,7 +200,7 @@ requiere entender bien cada regla — no es mecánico.
 
 | Capa | Qué hace |
 |:--|:--|
-| `pickAvailableVehicle` | **No filtra** por seguro (§12.9, §23.4.3) |
+| `pickAvailableVehicle` | ~~**No filtra** por seguro~~ **Filtra desde 2026-09-21** (§12.9, §12.13, §23.4.3) |
 | `alerts.service.ts:149` | **No alerta** si `insuranceExpiryDate` es `NULL` (§14.9) |
 | `VehiculosPage:90` | Muestra `—` sin distintivo (§22A) |
 | `vehicles.service.ts:20` | El comentario afirma que se *«surfaces as alertable»* |
