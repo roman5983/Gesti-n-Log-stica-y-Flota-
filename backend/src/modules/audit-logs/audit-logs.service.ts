@@ -38,17 +38,23 @@ interface RecordAuditParams {
 }
 
 /** Credentials must never reach the audit trail, even for Admin eyes. */
-const SENSITIVE_FIELDS = new Set(['passwordHash', 'encryptedPassword', 'tokenHash']);
+const SENSITIVE_FIELDS = new Set(['password', 'passwordHash', 'encryptedPassword', 'tokenHash']);
 
-function sanitize(data: unknown): Prisma.InputJsonValue | undefined {
+/** Redacts sensitive keys at any depth, including objects inside arrays. */
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact);
+  if (typeof value !== 'object' || value === null) return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+    result[key] = SENSITIVE_FIELDS.has(key) ? '[REDACTED]' : redact(inner);
+  }
+  return result;
+}
+
+export function sanitize(data: unknown): Prisma.InputJsonValue | undefined {
   if (data === undefined || data === null) return undefined;
   const plain = JSON.parse(JSON.stringify(data)) as unknown; // strips Dates/Decimals to JSON-safe values
-  if (typeof plain !== 'object' || plain === null) return plain as Prisma.InputJsonValue;
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(plain as Record<string, unknown>)) {
-    result[key] = SENSITIVE_FIELDS.has(key) ? '[REDACTED]' : value;
-  }
-  return result as Prisma.InputJsonValue;
+  return redact(plain) as Prisma.InputJsonValue;
 }
 
 /**
