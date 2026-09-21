@@ -212,6 +212,13 @@ export const tripsService = {
       // RN-12/RN-2/C-1: auto-select and lock an AVAILABLE vehicle.
       const vehicleId = await tripsRepository.pickAvailableVehicle(tx);
       if (vehicleId === null) {
+        // Available vehicles exist but none is insured: a policy block, not a shortage.
+        if (await tripsRepository.hasAvailableVehicle(tx)) {
+          throw new BusinessRuleError(
+            'Hay vehículos disponibles, pero ninguno tiene el seguro vigente',
+            'RN-SEGURO',
+          );
+        }
         throw new ConflictError('No hay vehículos disponibles para asignar');
       }
       const vehicle = await vehiclesRepository.findById(vehicleId, tx);
