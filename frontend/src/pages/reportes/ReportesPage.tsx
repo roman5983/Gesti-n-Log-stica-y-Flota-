@@ -21,6 +21,10 @@ import { KpiCard } from '../../components/KpiCard';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { reportsApi, type TripReport } from '../../api/reports.api';
 import { apiErrorMessage } from '../../api/axios';
+import dayjs from 'dayjs';
+
+/** Same cap as the backend (MAX_REPORT_DAYS): 366 days, both ends inclusive. */
+const MAX_REPORT_DAYS = 366;
 
 /** Trip report over a selectable period (A-11 / P-AD-5), Admin-only. */
 export function ReportesPage() {
@@ -30,8 +34,10 @@ export function ReportesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const tooLong = Boolean(dateFrom && dateTo) && dayjs(dateTo).diff(dayjs(dateFrom), 'day') >= MAX_REPORT_DAYS;
+
   async function generate() {
-    if (!dateFrom || !dateTo) return;
+    if (!dateFrom || !dateTo || tooLong) return;
     setLoading(true);
     setError(null);
     try {
@@ -51,13 +57,18 @@ export function ReportesPage() {
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }} justifyContent="space-between">
             <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-            <Button variant="contained" onClick={generate} disabled={loading || !dateFrom || !dateTo}>
+            <Button variant="contained" onClick={generate} disabled={loading || !dateFrom || !dateTo || tooLong}>
               Generar informe
             </Button>
           </Stack>
         </CardContent>
       </Card>
 
+      {tooLong && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          El período no puede superar {MAX_REPORT_DAYS} días. Acortalo para generar el informe.
+        </Alert>
+      )}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
