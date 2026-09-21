@@ -64,6 +64,15 @@ export const maintenancesController = {
     }
   },
 
+  async cancel(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params as unknown as { id: number };
+      res.json({ data: await maintenancesService.cancel(id, req.user!.id) });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async complete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params as unknown as { id: number };

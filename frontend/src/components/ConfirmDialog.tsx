@@ -14,6 +14,8 @@ interface ConfirmDialogProps {
   message: string;
   confirmLabel?: string;
   confirmColor?: 'primary' | 'error';
+  /** Label of the dismiss button; override when "Cancelar" would be ambiguous. */
+  cancelLabel?: string;
   loading?: boolean;
   /** Shown as an error Alert inside the dialog (e.g. a rejected business rule). */
   error?: string | null;
@@ -28,6 +30,7 @@ export function ConfirmDialog({
   message,
   confirmLabel = 'Confirmar',
   confirmColor = 'primary',
+  cancelLabel = 'Cancelar',
   loading = false,
   error = null,
   onConfirm,
@@ -46,7 +49,7 @@ export function ConfirmDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel} disabled={loading}>
-          Cancelar
+          {cancelLabel}
         </Button>
         <Button onClick={onConfirm} color={confirmColor} variant="contained" disabled={loading}>
           {confirmLabel}

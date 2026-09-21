@@ -832,6 +832,28 @@ curl ".../reports/trips?dateFrom=2026-06-01&dateTo=2026-06-30" -H "Authorization
 16. Agregar exportación a CSV del reporte, con las tres tablas del desglose. Decidir cómo manejar el límite de filas.
 17. Acotar `trips.completed` del dashboard a los últimos 30 días y evaluar si el KPI se vuelve más accionable.
 
+## 16.10. Actualización posterior — tope al período del informe
+
+> **Fecha:** 2026-09-21. **Motivación:** hallazgo de §16.4.1 / §22C.5.1: `reportQuerySchema` solo validaba `dateTo >= dateFrom`; `1900-01-01` a `2100-01-01` era un informe válido, y la consulta trae todas las filas del período a memoria (§16.8, respuesta 9).
+
+**Cambio.** `reports.schemas.ts` exporta `MAX_REPORT_DAYS = 366` y agrega un segundo `.refine` sobre `dateTo`:
+
+```ts
+.refine((d) => d.dateTo.getTime() - d.dateFrom.getTime() < MAX_REPORT_DAYS * DAY_MS, {
+  path: ['dateTo'],
+  message: `El período del informe no puede superar ${MAX_REPORT_DAYS} días`,
+});
+```
+
+- **366 días, ambos extremos incluidos**: cabe un año calendario completo, bisiesto incluido (`2024-01-01` a `2024-12-31` pasa; `2024-01-01` a `2025-01-01` no). Como las fechas llegan como `YYYY-MM-DD` (UTC medianoche, §22B.3.1), la resta en milisegundos es exacta y **no hay ambigüedad de huso horario**.
+- Es un **tope de rango, no de antigüedad**: se puede consultar cualquier año, de a uno.
+- La respuesta es el 400 de siempre (`VALIDATION_ERROR`) con el detalle en `details[0]`; el frontend lo muestra completo desde que `apiErrorMessage` agrega el detalle (§6, mensajes en español).
+
+**Lo que sigue abierto.** El tope acota el volumen pero **no agrega `LIMIT`** ni agregación en SQL: un año de una flota grande sigue cargándose entero en memoria (respuesta 9 de §16.8). Y no hay exportación.
+
+**Pruebas nuevas** (`reports.schemas.test.ts`, 3 casos): día único y año bisiesto aceptados; un año y un día y `1900-2100` rechazados con el límite en el mensaje; el orden invertido sigue rechazado. La pantalla lo refleja en §22C.12.
+
+
 ---
 
 **Anterior:** [Capítulo 15 — La auditoría](15-modulo-audit-logs.md) · **Siguiente:** Capítulo 17 — Configuración de empresa *(pendiente)*

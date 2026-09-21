@@ -19,7 +19,7 @@ export interface MaintenanceResponse {
   id: number;
   vehicle: { id: number; licensePlate: string; model: string };
   maintenanceType: { id: number; name: string };
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   scheduledAt: Date;
   completedAt: Date | null;
   km: number;
@@ -141,8 +141,8 @@ export const maintenancesService = {
   async update(id: number, dto: UpdateMaintenanceDto, actorId: number): Promise<MaintenanceResponse> {
     const existing = await getExistingOrFail(id);
     // RN-22: a completed maintenance is immutable (it belongs to history).
-    if (existing.status === 'COMPLETED') {
-      throw new BusinessRuleError('Un mantenimiento finalizado no se puede editar');
+    if (existing.status === 'COMPLETED' || existing.status === 'CANCELLED') {
+      throw new BusinessRuleError('Un mantenimiento finalizado o cancelado no se puede editar');
     }
     if (dto.maintenanceTypeId && dto.maintenanceTypeId !== existing.maintenanceTypeId) {
       const type = await prisma.maintenanceType.findUnique({
@@ -261,6 +261,41 @@ export const maintenancesService = {
           entityId: id,
           previousData: { status: 'IN_PROGRESS' },
           newData: { status: 'COMPLETED', vehicleStatus: 'AVAILABLE' },
+        },
+        tx,
+      );
+      return maintenance;
+    });
+    return toResponse(updated);
+  },
+
+  /**
+   * PENDING/IN_PROGRESS → CANCELLED (F-2). Cancelling one that is IN_PROGRESS
+   * releases the vehicle (IN_WORKSHOP → AVAILABLE) without touching
+   * lastMaintenanceDate: the work was not done. Re-read under the transaction
+   * so a concurrent start/complete cannot slip past the state check.
+   */
+  async cancel(id: number, actorId: number): Promise<MaintenanceResponse> {
+    await getExistingOrFail(id);
+    const updated = await prisma.$transaction(async (tx) => {
+      const existing = await maintenancesRepository.findById(id, tx);
+      if (!existing) throw new NotFoundError(`No se encontró el mantenimiento ${id}`);
+      if (existing.status !== 'PENDING' && existing.status !== 'IN_PROGRESS') {
+        throw new BusinessRuleError('Solo se pueden cancelar mantenimientos pendientes o en curso');
+      }
+      const maintenance = await maintenancesRepository.update(id, { status: 'CANCELLED' }, tx);
+      const releasesVehicle = existing.status === 'IN_PROGRESS';
+      if (releasesVehicle) {
+        await vehiclesRepository.update(existing.vehicleId, { status: 'AVAILABLE' }, tx);
+      }
+      await auditLogsService.record(
+        {
+          actorId,
+          action: 'CANCEL',
+          entity: 'MAINTENANCE',
+          entityId: id,
+          previousData: { status: existing.status },
+          newData: { status: 'CANCELLED', ...(releasesVehicle ? { vehicleStatus: 'AVAILABLE' } : {}) },
         },
         tx,
       );

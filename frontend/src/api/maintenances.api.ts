@@ -2,7 +2,7 @@ import { api } from './axios';
 import { openBlobInNewTab } from '../utils/blob';
 import type { ApiResponse, PaginationMeta } from './types';
 
-export type MaintenanceStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+export type MaintenanceStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface MaintenanceAttachment {
   id: number;
@@ -55,6 +55,12 @@ export const maintenancesApi = {
 
   async start(id: number): Promise<Maintenance> {
     const { data } = await api.post<ApiResponse<Maintenance>>(`/maintenances/${id}/start`);
+    return data.data;
+  },
+
+  /** Pending or in-progress only; an in-progress one releases its vehicle. */
+  async cancel(id: number): Promise<Maintenance> {
+    const { data } = await api.post<ApiResponse<Maintenance>>(`/maintenances/${id}/cancel`);
     return data.data;
   },
 

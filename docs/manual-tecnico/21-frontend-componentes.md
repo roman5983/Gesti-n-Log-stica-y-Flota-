@@ -1166,6 +1166,8 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 
 Con esta incorporación, el catálogo de §21.1 pasa de ocho a **nueve** componentes en `src/components/`. La cifra "8 de `src/components/` (514 líneas)" del encabezado de este capítulo (§21, línea 4) queda desactualizada por este cambio — y, de forma independiente, también podría estarlo por trabajo de una sesión anterior no documentado aquí (`ColorModeToggle`, `AppThemeProvider`): no se verificó ese recuento por estar fuera del alcance de esta actualización.
 
+**`ConfirmDialog` gana `cancelLabel`** (2026-09-21, por la cancelación de viajes y mantenimientos, §22B.11): el botón de descarte decía siempre *"Cancelar"*, que en un diálogo titulado *"Cancelar viaje"* significa lo contrario de lo esperado. La prop es opcional (por defecto `"Cancelar"`), así que los demás usos no cambian; las cancelaciones usan `"Volver"`.
+
 ---
 
 **Anterior:** [Capítulo 20 — Estado y autorización en el cliente](20-frontend-auth-estado.md) · **Siguiente:** Capítulo 22 — Las pantallas *(pendiente)*

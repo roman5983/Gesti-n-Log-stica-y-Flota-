@@ -7,6 +7,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import FlagIcon from '@mui/icons-material/Flag';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { PageHeader } from '../../components/PageHeader';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusChip } from '../../components/StatusChip';
@@ -24,6 +25,7 @@ const STATUS_OPTIONS: { value: TripStatus; label: string }[] = [
   { value: 'PENDING_ASSIGNMENT', label: 'Pendiente de asignación' },
   { value: 'IN_PROGRESS', label: 'En viaje' },
   { value: 'COMPLETED', label: 'Finalizado' },
+  { value: 'CANCELLED', label: 'Cancelado' },
 ];
 
 /** Reads an optional `?estado=` param so dashboard shortcuts can preset the filter. */
@@ -59,6 +61,7 @@ export function ViajesPage() {
   const [finishTrip, setFinishTrip] = useState<Trip | null>(null);
   const [detailTrip, setDetailTrip] = useState<Trip | null>(null);
   const [toDelete, setToDelete] = useState<Trip | null>(null);
+  const [toCancel, setToCancel] = useState<Trip | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -71,6 +74,22 @@ export function ViajesPage() {
       setToDelete(null);
       await reload();
     } catch (err) {
+      setActionError(apiErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmCancel() {
+    if (!toCancel) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      await tripsApi.cancel(toCancel.id);
+      setToCancel(null);
+      await reload();
+    } catch (err) {
+      setToCancel(null);
       setActionError(apiErrorMessage(err));
     } finally {
       setBusy(false);
@@ -108,6 +127,11 @@ export function ViajesPage() {
                     <AssignmentIndIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
+                <Tooltip title="Cancelar viaje">
+                  <IconButton size="small" onClick={() => setToCancel(t)}>
+                    <CancelIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Eliminar">
                   <IconButton size="small" color="error" onClick={() => setToDelete(t)}>
                     <DeleteIcon fontSize="small" />
@@ -116,11 +140,18 @@ export function ViajesPage() {
               </>
             )}
             {t.status === 'IN_PROGRESS' && (
-              <Tooltip title="Finalizar">
-                <IconButton size="small" color="error" onClick={() => setFinishTrip(t)}>
-                  <FlagIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <>
+                <Tooltip title="Cancelar viaje">
+                  <IconButton size="small" onClick={() => setToCancel(t)}>
+                    <CancelIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Finalizar">
+                  <IconButton size="small" color="error" onClick={() => setFinishTrip(t)}>
+                    <FlagIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </>
             )}
           </Stack>
         ),
@@ -184,6 +215,22 @@ export function ViajesPage() {
       <AssignTripDialog open={assignTrip !== null} trip={assignTrip} onClose={() => setAssignTrip(null)} onSaved={() => { setAssignTrip(null); void reload(); }} />
       <FinishTripDialog open={finishTrip !== null} trip={finishTrip} onClose={() => setFinishTrip(null)} onSaved={() => { setFinishTrip(null); void reload(); }} />
       <TripDetailDialog trip={detailTrip} onClose={() => setDetailTrip(null)} />
+
+      <ConfirmDialog
+        open={toCancel !== null}
+        title="Cancelar viaje"
+        message={
+          toCancel?.status === 'IN_PROGRESS'
+            ? `¿Cancelar el viaje a ${toCancel.destination}? Se libera el vehículo ${toCancel.vehicle?.licensePlate ?? ''} y el viaje queda como cancelado (no suma kilómetros ni viajes al chofer).`
+            : `¿Cancelar el viaje a ${toCancel?.destination}? Queda registrado como cancelado.`
+        }
+        confirmLabel="Cancelar viaje"
+        confirmColor="error"
+        cancelLabel="Volver"
+        loading={busy}
+        onConfirm={confirmCancel}
+        onCancel={() => setToCancel(null)}
+      />
 
       <ConfirmDialog
         open={toDelete !== null}

@@ -336,10 +336,47 @@ export const tripsService = {
   },
 
   /**
+   * Cancel a trip (F-2): from PENDING_ASSIGNMENT or IN_PROGRESS. Unlike delete,
+   * the trip is kept as CANCELLED so its history survives. Cancelling an
+   * in-progress trip releases its vehicle (ON_TRIP → AVAILABLE) — the way out
+   * for a breakdown. No odometer change and no driver stats: nothing was
+   * completed. Serialized with assign/finish through the trip row lock.
+   */
+  async cancel(id: number, actorId: number): Promise<TripResponse> {
+    await getExistingOrFail(id);
+    const cancelled = await prisma.$transaction(async (tx) => {
+      await tripsRepository.lockTrip(id, tx);
+      const existing = await tripsRepository.findById(id, tx);
+      if (!existing) throw new NotFoundError(`No se encontró el viaje ${id}`);
+      if (existing.status !== 'PENDING_ASSIGNMENT' && existing.status !== 'IN_PROGRESS') {
+        throw new BusinessRuleError('Solo se pueden cancelar viajes pendientes o en curso');
+      }
+      const trip = await tripsRepository.update(id, { status: 'CANCELLED' }, tx);
+      const releasesVehicle = existing.status === 'IN_PROGRESS' && existing.vehicleId !== null;
+      if (releasesVehicle) {
+        await vehiclesRepository.update(existing.vehicleId as number, { status: 'AVAILABLE' }, tx);
+      }
+      await auditLogsService.record(
+        {
+          actorId,
+          action: 'CANCEL',
+          entity: 'TRIP',
+          entityId: id,
+          previousData: { status: existing.status },
+          newData: { status: 'CANCELLED', ...(releasesVehicle ? { vehicleStatus: 'AVAILABLE' } : {}) },
+        },
+        tx,
+      );
+      return trip;
+    });
+    return toResponse(cancelled);
+  },
+
+  /**
    * Delete a trip: only while PENDING_ASSIGNMENT (RN-15). Such a trip has no
    * operational history (no vehicle/driver touched), so a hard delete is
    * correct; RN-20 (soft delete) targets entities with history. Trips are
-   * never cancellable (RN-14), so IN_PROGRESS/COMPLETED are never deletable.
+   * only cancellable (cancel), never deletable once IN_PROGRESS/COMPLETED.
    */
   async delete(id: number, actorId: number): Promise<void> {
     const existing = await getExistingOrFail(id);

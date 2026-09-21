@@ -92,7 +92,7 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 
 | Cap. | Archivo | Contenido | Líneas |
 |:-:|:--|:--|--:|
-| 3 | [`03-base-de-datos.md`](03-base-de-datos.md) | Modelos conceptual, lógico y físico. Diagrama ER. Tres máquinas de estados. Las **12 tablas** columna por columna: tipo, nulabilidad, defecto, por qué existe, qué pasa si desaparece. 12 FKs con sus políticas, 20 índices. `schema.prisma` línea por línea | 1.450 |
+| 3 | [`03-base-de-datos.md`](03-base-de-datos.md) | Modelos conceptual, lógico y físico. Diagrama ER. Tres máquinas de estados. Las **12 tablas** columna por columna: tipo, nulabilidad, defecto, por qué existe, qué pasa si desaparece. 12 FKs con sus políticas, 20 índices. `schema.prisma` línea por línea | 1.459 |
 | 4 | [`04-prisma-migraciones-seed.md`](04-prisma-migraciones-seed.md) | Qué es un ORM. Active Record vs Data Mapper. El problema N+1. Prisma 7 sin motor Rust. El cliente generado (22.748 líneas) analizado conceptualmente. `migration.sql` y `seed.ts` línea por línea | 1.807 |
 
 ### Parte III — Backend
@@ -106,11 +106,11 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 9 | [`09-modulo-users.md`](09-modulo-users.md) | El módulo CRUD de referencia. `assignableRoles`. Transacciones. La lápida del email. La carrera de los administradores | 1.503 |
 | 10 | [`10-modulo-vehicles.md`](10-modulo-vehicles.md) | Máquina de estados. Estado compartido entre tres módulos. Campos derivados. Inmutabilidad por acumulación | 1.178 |
 | 11 | [`11-modulo-drivers-documents.md`](11-modulo-drivers-documents.md) | Creación atómica en dos tablas. `assertCanAccess`. Contraseñas cifradas reversibles (A-9). Compensación al subir archivos | 1.332 |
-| 12 | [`12-modulo-trips.md`](12-modulo-trips.md) | El patrón bloquear-releer-validar-escribir. `FOR UPDATE SKIP LOCKED`. Las 7 validaciones de la asignación. Los efectos en cascada de finalizar | 1.409 |
-| 13 | [`13-modulo-maintenance.md`](13-modulo-maintenance.md) | `superRefine` y la validación cruzada. `PUT` con semántica de conjunto completo. Adjuntos de solo añadir | 1.028 |
+| 12 | [`12-modulo-trips.md`](12-modulo-trips.md) | El patrón bloquear-releer-validar-escribir. `FOR UPDATE SKIP LOCKED`. Las 7 validaciones de la asignación. Los efectos en cascada de finalizar | 1.434 |
+| 13 | [`13-modulo-maintenance.md`](13-modulo-maintenance.md) | `superRefine` y la validación cruzada. `PUT` con semántica de conjunto completo. Adjuntos de solo añadir | 1.047 |
 | 14 | [`14-modulo-alerts.md`](14-modulo-alerts.md) | El patrón de reconciliación. El cerrojo consultivo `GET_LOCK`. Los 8 tipos de alerta. El escáner | 1.108 |
 | 15 | [`15-modulo-audit-logs.md`](15-modulo-audit-logs.md) | Auditoría vs registro. Inmutabilidad por ausencia. `sanitize()` y su límite. Dónde vive el tipo `DbClient` | 854 |
-| 16 | [`16-modulo-dashboard-reports.md`](16-modulo-dashboard-reports.md) | Agregar donde están los datos. Series temporales presembradas. El período sin tope | 837 |
+| 16 | [`16-modulo-dashboard-reports.md`](16-modulo-dashboard-reports.md) | Agregar donde están los datos. Series temporales presembradas. El período sin tope | 859 |
 | 17 | [`17-modulo-settings.md`](17-modulo-settings.md) | Configuración de despliegue vs de negocio. Fila única. `PUT` con semántica de `PATCH` | 609 |
 
 ### Parte IV — Frontend
@@ -120,10 +120,10 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 18 | [`18-frontend-bootstrap.md`](18-frontend-bootstrap.md) | MPA vs SPA. Vite en desarrollo y en construcción. React desde cero: JSX, DOM virtual, reconciliación, claves, reglas de los hooks, `StrictMode`. `index.html`, `main.tsx`, `App.tsx`, `theme.ts` | 1.313 |
 | 19 | [`19-frontend-api.md`](19-frontend-api.md) | Por qué una capa de API. Interceptores. El refresco transparente y sus tres protecciones. El contrato duplicado. `blob.ts`, `datetime.ts` | 1.068 |
 | 20 | [`20-frontend-auth-estado.md`](20-frontend-auth-estado.md) | Zustand vs Redux vs Context. La doble interfaz del store. Los guards son ergonomía, no seguridad. `LoginPage` | 1.078 |
-| 21 | [`21-frontend-componentes.md`](21-frontend-componentes.md) | Restricciones de reutilización. Componentes genéricos. `DataTable`. `usePaginatedList` y su trampa. `AppSidebarLayout`, `RouteMap` | 1.171 |
+| 21 | [`21-frontend-componentes.md`](21-frontend-componentes.md) | Restricciones de reutilización. Componentes genéricos. `DataTable`. `usePaginatedList` y su trampa. `AppSidebarLayout`, `RouteMap` | 1.173 |
 | 22A | [`22a-frontend-pantallas-abm.md`](22a-frontend-pantallas-abm.md) | **El patrón de listado explicado una vez**, con `VehiculosPage` como caso canónico. El bug de las fechas. Usuarios, choferes y sus cuatro diálogos | 1.151 |
-| 22B | [`22b-frontend-viajes-mantenimiento.md`](22b-frontend-viajes-mantenimiento.md) | El diálogo como unidad de transacción. `datetime-local` bien resuelto. La máquina de estados dibujada con iconos. Los seis diálogos línea por línea | 2.384 |
-| 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.902 |
+| 22B | [`22b-frontend-viajes-mantenimiento.md`](22b-frontend-viajes-mantenimiento.md) | El diálogo como unidad de transacción. `datetime-local` bien resuelto. La máquina de estados dibujada con iconos. Los seis diálogos línea por línea | 2.407 |
+| 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.915 |
 
 ### Parte V — Integración y cierre
 
@@ -235,7 +235,8 @@ El manual no solo describe el código: lo audita. **Cada afirmación se verific�
 | 2 | **Un vehículo sin seguro circula sin señal** — hueco entre cuatro archivos (§12, §14, §22A, §23.4.3). *Desde el 2026-09-21 la asignación ya excluye vehículos sin seguro vigente (§12.13); siguen abiertos la alerta para seguro `NULL` y el aviso en la tabla.* | 1 jornada → menor |
 | 3 | **Tres cierres obsoletos** que la regla `exhaustive-deps` detecta — y **ESLint no está instalado** (§22A, §22B, §22C, §24) | 3 horas |
 | 4 | **Los vencimientos se muestran un día antes** en cuatro sitios (§22A.4, §24.5.3). `dayjs`/`@mui/x-date-pickers` ya se usan desde el 2026-09-18 (filtros de rango en Reportes/Viajes) pero no para estos cuatro sitios — el hallazgo sigue abierto, solo que ahora es un `dayjs.utc(...)` por sitio en vez de "instalar y conectar la librería". | Media jornada → ahora menor |
-| 5 | **Operaciones sin salida**: no se puede cancelar un viaje ni un mantenimiento. Un camión averiado bloquea vehículo y chofer permanentemente (§12, §13) | 2 jornadas |
+| 5 | **Operaciones sin salida**: no se puede cancelar un viaje ni un mantenimiento. Un camión averiado bloquea vehículo y chofer permanentemente (§12, §13). *Resuelto el 2026-09-21: existe la cancelación de ambos (§12.14, §13.10); RN-14 derogada.* | 2 jornadas → hecho |
+| — | *(Actualización 2026-09-21, segunda tanda: la cancelación de viajes y de mantenimientos —§12.14, §13.10, dos hallazgos altos más— y el tope de 366 días del informe —§16.10, §22C.12— también quedaron resueltos.)* | — |
 | — | *(Actualización 2026-09-21: dos hallazgos altos del censo quedaron resueltos — `sanitize` recursivo, §15.12, y la exclusión de vehículos sin seguro vigente en la asignación, §12.13. Siguen contando en el censo de 208 porque este es el registro de la auditoría original.)* | — |
 | — | *(Actualización 2026-09-18)* Además, tres pedidos de producto se resolvieron esta sesión y quedan documentados como actualizaciones posteriores en sus capítulos: selector de rango de fechas con atajos en Reportes/Viajes (§22B.9, §22C.6), evaluación de alertas con polling en segundo plano (§14.12, §22C.6), y viajes sin fecha de salida anterior a hoy (§12.12, §22B.9). Ninguno estaba en el censo de 208 hallazgos — eran pendientes de producto, no bugs encontrados por la auditoría. | — |
 

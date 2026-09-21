@@ -24,6 +24,7 @@ export const AUDIT_ACTIONS = [
   'DEACTIVATE',
   'ASSIGN',
   'FINISH',
+  'CANCEL',
   'RESOLVE',
   'VIEW_CREDENTIALS',
 ] as const;
@@ -36,6 +37,7 @@ const ACTION_LABELS: Record<string, string> = {
   DEACTIVATE: 'Desactivación',
   ASSIGN: 'Asignación',
   FINISH: 'Finalización',
+  CANCEL: 'Cancelación',
   RESOLVE: 'Resolución',
   VIEW_CREDENTIALS: 'Consulta de credenciales',
 };
@@ -50,6 +52,7 @@ const ACTION_COLORS: Record<string, AuditChipColor> = {
   DEACTIVATE: 'warning',
   ASSIGN: 'info',
   FINISH: 'success',
+  CANCEL: 'warning',
   RESOLVE: 'success',
   VIEW_CREDENTIALS: 'warning',
 };
@@ -199,8 +202,8 @@ const SHARED_VALUE_LABELS: Record<string, string> = {
  * entity as context instead of a single global map.
  */
 const STATUS_BY_ENTITY: Record<string, Record<string, string>> = {
-  TRIP: { IN_PROGRESS: 'En viaje', COMPLETED: 'Finalizado', PENDING: 'Pendiente' },
-  MAINTENANCE: { IN_PROGRESS: 'En curso', COMPLETED: 'Completado', PENDING: 'Pendiente' },
+  TRIP: { IN_PROGRESS: 'En viaje', COMPLETED: 'Finalizado', PENDING: 'Pendiente', CANCELLED: 'Cancelado' },
+  MAINTENANCE: { IN_PROGRESS: 'En curso', COMPLETED: 'Completado', PENDING: 'Pendiente', CANCELLED: 'Cancelado' },
   ALERT: { PENDING: 'Pendiente', RESOLVED: 'Resuelta' },
 };
 
@@ -208,6 +211,7 @@ const FALLBACK_STATUS: Record<string, string> = {
   IN_PROGRESS: 'En curso',
   COMPLETED: 'Completado',
   PENDING: 'Pendiente',
+  CANCELLED: 'Cancelado',
 };
 
 /** Date-only columns (`@db.Date`): must be read back in UTC, see formatDateOnly. */

@@ -885,6 +885,8 @@ Cualquier elección sería arbitraria y costaría una consulta que quizás nadie
 `setReport(await ...)` — el `await` se evalúa **antes** de que `setReport` se llame, así
 que es equivalente a guardar en una variable. Compacto y correcto.
 
+> ✅ **Actualización 2026-09-21 (§22C.12, §16.10):** el período ahora tiene tope de **366 días**, en el servidor (`reportQuerySchema`) y en esta pantalla (aviso + botón deshabilitado). El texto de abajo describe la situación previa.
+
 **⚠️ El período no tiene tope, ni aquí ni en el servidor.**
 
 > ✅ **Actualización 2026-09-18 (§22C.6):** los dos `<input type="date">` de las líneas 53-54 se reemplazaron por `<DateRangeFilter>` (calendario + atajos, documentado en §22B.9.1). **Esto no resuelve el hallazgo de esta sección** — el componente nuevo tampoco impone `min`/`max`: sigue siendo posible elegir "1900" a "2100" a mano en el calendario. El cambio fue de *control de entrada*, no de *validación de rango*; ambos siguen faltando, tanto en el cliente como en `reportQuerySchema`.
@@ -1396,7 +1398,7 @@ sequenceDiagram
 | 5 | ⚠️ Media | **El operador recibe `users.total` aunque no lo vea.** El servicio no consulta el rol: calcula y envía las ocho métricas siempre. Visible en las herramientas de desarrollo. Inofensivo hoy; el patrón es el problema. | `DashboardPage:78` vs `dashboard.service.ts:43-87` |
 | 6 | ⚠️ Media | **El chofer no se entera de que le asignaron un viaje.** Sin sondeo, sin sockets, sin notificaciones. Debe recargar. Para un usuario en la calle, la carencia funcional más grande del sistema. | `MiViajePage:41-43` |
 | 7 | ⚠️ Media | **"Resolver" no advierte que la alerta volverá.** El motor es un reconciliador (§14.3): si la condición persiste, la alerta se regenera. Correcto por diseño, no comunicado. Doce alertas resueltas que reaparecen parecen un sistema roto. | `AlertasPage:55-63` |
-| 8 | ⚠️ Media | **El período del informe no tiene tope.** Ni `min`/`max` en el cliente ni límite en `reportQuerySchema` (solo valida el orden). `1900-2100` es un informe válido. Confirma §16.4.1. | `ReportesPage:53-54`, `reports.schemas.ts:8-16` |
+| 8 | ✅ *(resuelto 2026-09-21, §22C.12)* ⚠️ Media | ~~**El período del informe no tiene tope.** Ni `min`/`max` en el cliente ni límite en `reportQuerySchema` (solo valida el orden). `1900-2100` es un informe válido. Confirma §16.4.1.~~ Tope de 366 días en cliente y servidor. | `ReportesPage:53-54`, `reports.schemas.ts:8-16` |
 | 9 | ⚠️ Media | **El mismo viaje tiene dos códigos.** `padStart(6)` para el chofer, `padStart(5)` para el operador. `VJ-000042` y `VJ-00042`. Invisible en revisión: los dos archivos son correctos por separado. | `MiViajePage:77` vs `ViajesPage:72` |
 | 10 | ⚠️ Baja | **Las alertas muestran `VEHICLE #7`** en vez de la patente. Consecuencia directa de la relación polimórfica sin FK (§3.7.2): el backend no puede hacer `include`. Duele en la pantalla cuyo fin es que alguien actúe. | `AlertasPage:69` |
 | 11 | ⚠️ Baja | **La auditoría no traduce nada.** `VIEW_CREDENTIALS`, `MAINTENANCE_TYPE` en crudo, en la pantalla que debería contar una historia legible. `AlertasPage` sí traduce sus tipos. | `AuditoriaPage:10-11, 40-41` |
@@ -1895,6 +1897,17 @@ useEffect(() => {
 `fetchFn` conserva dependencias `[]` (no hay filtros), así que el hook solo recarga al cambiar `page` o `limit`; cambiar de tamaño de página vuelve a la 1, igual que en el resto de las pantallas.
 
 **Verificación:** con 14 viajes finalizados de un chofer (2 reales + 12 de prueba, luego borrados): página 1 → 10 tarjetas "1–10 de 14"; siguiente → 4 tarjetas "11–14 de 14"; anterior → vuelve a 10. **Archivo:** `frontend/src/pages/chofer/MiHistorialPage.tsx`. El diagrama de §22C.7.1 (*"50 viajes máx."*) y el hallazgo original quedan como registro de la situación previa.
+
+## 22C.12. Actualización posterior — tope de 366 días en `ReportesPage`
+
+> **Fecha:** 2026-09-21. Resuelve el hallazgo 8 de §22C.8.1 (*"el período del informe no tiene tope"*). El servidor es la barrera real (§16.10); esta pantalla solo evita el viaje de ida y vuelta.
+
+`ReportesPage` declara `MAX_REPORT_DAYS = 366` (espejo del backend) y deriva, en cada render, `tooLong = dayjs(dateTo).diff(dayjs(dateFrom), 'day') >= MAX_REPORT_DAYS`. Si es verdadero: aparece un `Alert` de advertencia (*"El período no puede superar 366 días. Acortalo para generar el informe."*), el botón *Generar informe* se deshabilita y `generate()` retorna sin llamar a la API. Es un **valor derivado**, no estado (§22B.4.1: no duplicar la fuente de verdad).
+
+**Dos límites.** (1) La constante está duplicada en cliente y servidor: si uno cambia y el otro no, el servidor gana (devuelve 400 con el mensaje). (2) El calendario de `DateRangeFilter` (§22B.9.1) sigue sin `minDate`/`maxDate`: se puede elegir cualquier fecha, pero el rango no puede abarcar más de un año.
+
+**Verificación:** `tsc` limpio. La regla del servidor está probada con backend real y con tests (§16.10). **No** pude ejercitar el aviso en el navegador: los campos de fecha de MUI no aceptan tecleo sintético en el navegador de pruebas, así que la condición se verificó solo por lectura. **Archivo:** `frontend/src/pages/reportes/ReportesPage.tsx`.
+
 
 ---
 

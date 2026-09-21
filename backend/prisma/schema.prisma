@@ -47,12 +47,14 @@ enum TripStatus {
   PENDING_ASSIGNMENT
   IN_PROGRESS
   COMPLETED
+  CANCELLED
 }
 
 enum MaintenanceStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
+  CANCELLED
 }
 
 enum AlertStatus {

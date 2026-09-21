@@ -276,6 +276,8 @@ Todos los endpoints comparten el mismo permiso, así que se aplica una vez. **Es
 
 🔴 **Lo que NO existe: `DELETE /maintenances/:id`.**
 
+> ✅ **Actualización 2026-09-21 (§13.10):** ahora un mantenimiento pendiente o en curso **sí se puede cancelar** (`POST /maintenances/:id/cancel`, estado `CANCELLED`). Borrarlo sigue sin ser posible. El análisis de abajo describe la situación previa.
+
 **Un mantenimiento no se puede cancelar ni borrar.** Y eso tiene una consecuencia en cadena que conviene desarrollar:
 
 ```mermaid
@@ -934,7 +936,7 @@ curl -X PATCH .../maintenances/1 -H "Authorization: Bearer $OPERADOR" \
    |:-:|:--|:--|
    | 1 | 🔴 **`start` no bloquea el vehículo**, aunque el módulo **tiene `lockVehicle` y lo usa en `create`**. Un vehículo puede quedar simultáneamente `IN_WORKSHOP` y con un viaje `IN_PROGRESS`. | **Alta** |
    | 2 | 🔴 **`complete` escribe `AVAILABLE` sin leer el estado actual.** Es la causa de que `vehicles.deactivate` tenga que prohibir desactivar un vehículo en el taller — un parche en otro módulo para un problema de este. Y no cubre la carrera de `start`. | **Alta** |
-   | 3 | 🔴 **No existe cancelar/borrar un mantenimiento.** Uno programado por error **bloquea el vehículo indefinidamente** (no se puede crear otro, no se puede borrar el vehículo), y la única salida por la API es **falsificar el registro** iniciándolo y completándolo. | **Alta** |
+   | 3 | ✅ *(resuelto 2026-09-21, §13.10)* ~~🔴 **No existe cancelar/borrar un mantenimiento.** Uno programado por error **bloquea el vehículo indefinidamente** (no se puede crear otro, no se puede borrar el vehículo), y la única salida por la API es **falsificar el registro** iniciándolo y completándolo.~~ Ahora se puede cancelar (no borrar). | ~~**Alta**~~ |
    | 4 | 🔴 **`kmTarget` y `nextMaintenanceKm` no los lee NADIE.** Se validan con `superRefine`, se exponen, se configuran — y no afectan a nada. El mantenimiento preventivo funciona con una heurística global (`min(kmAlert)`) en vez de con la configuración por tipo. | Media |
    | 5 | 🔴 **Violación de capas:** `create` (línea 100) y `update` (línea 148) consultan `prisma.maintenanceType` directamente, existiendo `maintenanceTypesRepository`. Segunda aparición del antipatrón (§9.6.4). | Media |
    | 6 | ⚠️ **No se puede retirar un tipo del catálogo** sin borrarlo. Un tipo con historia queda en el selector para siempre. Falta `isActive`. | Media |
@@ -1022,6 +1024,23 @@ curl -X PATCH .../maintenances/1 -H "Authorization: Bearer $OPERADOR" \
 14. Reemplazar las dos consultas directas a `prisma.maintenanceType` por `maintenanceTypesRepository.findById`.
 15. Agregar `isActive` al catálogo de tipos, filtrar el listado por defecto, y verificar que un tipo retirado desaparece del selector sin romper el historial.
 16. Agregar la validación de que `monthsAlert` y `monthsTarget` estén ambos o ninguno, con un mensaje claro.
+
+## 13.10. Actualización posterior — cancelación de mantenimientos
+
+> **Fecha:** 2026-09-21. **Motivación:** hallazgo 3 de §13.9. Un mantenimiento programado por error bloqueaba el vehículo (no se podía crear otro ni borrar el vehículo) y la única salida era **falsificar el registro** iniciándolo y completándolo. Es el gemelo de la cancelación de viajes (§12.14).
+
+**Modelo:** `MaintenanceStatus` gana `CANCELLED` (misma migración que `TripStatus`, §12.14).
+
+**`POST /maintenances/:id/cancel`** (mismos roles que el resto del módulo). `maintenancesService.cancel`: transacción que **relee el mantenimiento con el cliente de la transacción** (a diferencia de `start`/`complete`, que validan fuera y escriben dentro: hallazgos 1 y 2 de §13.9, que siguen abiertos) y solo admite `PENDING` e `IN_PROGRESS` (422 *"Solo se pueden cancelar mantenimientos pendientes o en curso"* en cualquier otro caso). Si estaba `IN_PROGRESS`, el vehículo vuelve de `IN_WORKSHOP` a `AVAILABLE`. Se audita como `CANCEL`.
+
+**Decisión clave: `lastMaintenanceDate` NO se toca.** `complete` lo actualiza (RN-9) porque el trabajo se hizo; cancelar no. Tampoco entra en la línea base de km de las alertas, que solo mira mantenimientos `COMPLETED` (§14.2): cancelar un mantenimiento no "reinicia" el contador de `MAINTENANCE_KM_EXCEEDED`.
+
+**El riesgo que §13.4.3 anticipó se cumplió y se cerró.** Esa sección advertía que *"un estado nuevo (por ejemplo `CANCELLED`) sería editable por omisión"* porque la guarda de `update` era una lista negra (`status === 'COMPLETED'`). Se amplió a `COMPLETED || CANCELLED` y el mensaje pasó a *"Un mantenimiento finalizado o cancelado no se puede editar"*. `start` y `complete` ya rechazaban lo que no fuera `PENDING`/`IN_PROGRESS`. Sigue siendo una lista negra: el próximo estado que se agregue vuelve a tener el mismo problema.
+
+**Otros efectos.** La vista `history` del listado (`buildWhere` del repositorio) pasó de `COMPLETED` a `COMPLETED + CANCELLED`, así que los cancelados aparecen en "Historial". Los adjuntos siguen permitidos en un mantenimiento cancelado (evidencia aditiva, misma lógica que en uno finalizado). El borrado de vehículos con mantenimiento abierto (`PENDING`/`IN_PROGRESS`) deja de bloquearse cuando ese mantenimiento se cancela.
+
+**Verificación:** contra el backend real, con registros temporales sobre AAA111: cancelar uno `PENDING` → `CANCELLED`; iniciar otro (vehículo `IN_WORKSHOP`) y cancelarlo → vehículo `AVAILABLE` y `last_maintenance_date` **sin cambios**; cancelar de nuevo, iniciar o editar uno cancelado → 422; `view=history` los incluye. Los registros de prueba se eliminaron. **Archivos:** `maintenances.{service,controller,routes,schemas,repository}.ts`. Interfaz: §22B.11.
+
 
 ---
 

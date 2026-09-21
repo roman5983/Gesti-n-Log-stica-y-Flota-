@@ -62,6 +62,14 @@ tripsRoutes.post(
   tripsController.finish,
 );
 
+// Cancel: pending or in-progress trips, operator/admin (F-2).
+tripsRoutes.post(
+  '/:id/cancel',
+  authorize('ADMIN', 'OPERATOR'),
+  validate(idParamSchema, 'params'),
+  tripsController.cancel,
+);
+
 // Delete: only while pending assignment (RN-15), operator/admin.
 tripsRoutes.delete(
   '/:id',
