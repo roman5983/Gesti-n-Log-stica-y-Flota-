@@ -41,6 +41,7 @@ maintenancesRoutes.post(
   validate(idParamSchema, 'params'),
   maintenancesController.complete,
 );
+maintenancesRoutes.post('/:id/cancel', validate(idParamSchema, 'params'), maintenancesController.cancel);
 maintenancesRoutes.post(
   '/:id/attachments',
   validate(idParamSchema, 'params'),

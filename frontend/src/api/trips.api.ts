@@ -1,7 +1,7 @@
 import { api } from './axios';
 import type { ApiResponse, PaginationMeta } from './types';
 
-export type TripStatus = 'PENDING_ASSIGNMENT' | 'IN_PROGRESS' | 'COMPLETED';
+export type TripStatus = 'PENDING_ASSIGNMENT' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface Trip {
   id: number;
@@ -64,6 +64,12 @@ export const tripsApi = {
   /** Operator picks the driver; the system auto-assigns the vehicle (RN-12). */
   async assign(id: number, driverId: number): Promise<Trip> {
     const { data } = await api.post<ApiResponse<Trip>>(`/trips/${id}/assign`, { driverId });
+    return data.data;
+  },
+
+  /** Pending or in-progress trips only; an in-progress one releases its vehicle. */
+  async cancel(id: number): Promise<Trip> {
+    const { data } = await api.post<ApiResponse<Trip>>(`/trips/${id}/cancel`);
     return data.data;
   },
 

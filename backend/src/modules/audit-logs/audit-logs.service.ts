@@ -12,6 +12,7 @@ export type AuditAction =
   | 'DEACTIVATE'
   | 'ASSIGN'
   | 'FINISH'
+  | 'CANCEL'
   | 'RESOLVE'
   /** Security-sensitive read: an Admin viewed a driver's password (A-9). */
   | 'VIEW_CREDENTIALS';

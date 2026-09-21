@@ -4,15 +4,17 @@ import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusChip } from '../../components/StatusChip';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { maintenancesApi, type Maintenance } from '../../api/maintenances.api';
 import { apiErrorMessage } from '../../api/axios';
 import { CreateMaintenanceDialog } from './CreateMaintenanceDialog';
 import { MaintenanceDetailDialog } from './MaintenanceDetailDialog';
 
-/** Scheduled (PENDING+IN_PROGRESS) or history (COMPLETED) list of maintenances. */
+/** Scheduled (PENDING+IN_PROGRESS) or history (COMPLETED+CANCELLED) list of maintenances. */
 export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) {
   const fetchFn = useCallback(
     (params: PageParams) => maintenancesApi.list({ ...params, view }),
@@ -24,6 +26,24 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
   const [createOpen, setCreateOpen] = useState(false);
   const [detail, setDetail] = useState<Maintenance | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [toCancel, setToCancel] = useState<Maintenance | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function confirmCancel() {
+    if (!toCancel) return;
+    setCancelling(true);
+    setActionError(null);
+    try {
+      await maintenancesApi.cancel(toCancel.id);
+      setToCancel(null);
+      await reload();
+    } catch (err) {
+      setToCancel(null);
+      setActionError(apiErrorMessage(err));
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   const transition = useCallback(
     async (m: Maintenance, action: 'start' | 'complete') => {
@@ -70,6 +90,13 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
                 </IconButton>
               </Tooltip>
             )}
+            {(m.status === 'PENDING' || m.status === 'IN_PROGRESS') && (
+              <Tooltip title="Cancelar mantenimiento">
+                <IconButton size="small" onClick={() => setToCancel(m)}>
+                  <CancelIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
           </Stack>
         ),
       },
@@ -107,7 +134,23 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
         total={total}
         onPageChange={setPage}
         onLimitChange={(l) => { setLimit(l); setPage(1); }}
-        emptyMessage={view === 'scheduled' ? 'No hay mantenimientos programados' : 'No hay mantenimientos finalizados'}
+        emptyMessage={view === 'scheduled' ? 'No hay mantenimientos programados' : 'No hay mantenimientos finalizados ni cancelados'}
+      />
+
+      <ConfirmDialog
+        open={toCancel !== null}
+        title="Cancelar mantenimiento"
+        message={
+          toCancel?.status === 'IN_PROGRESS'
+            ? `¿Cancelar el mantenimiento de ${toCancel.vehicle.licensePlate}? El vehículo vuelve a estar disponible y no se registra como realizado.`
+            : `¿Cancelar el mantenimiento programado de ${toCancel?.vehicle.licensePlate}?`
+        }
+        confirmLabel="Cancelar mantenimiento"
+        confirmColor="error"
+        cancelLabel="Volver"
+        loading={cancelling}
+        onConfirm={confirmCancel}
+        onCancel={() => setToCancel(null)}
       />
 
       <CreateMaintenanceDialog open={createOpen} onClose={() => setCreateOpen(false)} onSaved={() => { setCreateOpen(false); void reload(); }} />

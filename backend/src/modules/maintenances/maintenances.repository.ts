@@ -15,7 +15,7 @@ export type MaintenanceWithRelations = Prisma.MaintenanceGetPayload<{
 export interface MaintenanceFilters {
   vehicleId?: number;
   status?: MaintenanceStatus;
-  /** C-6: 'scheduled' → PENDING+IN_PROGRESS, 'history' → COMPLETED. */
+  /** C-6: 'scheduled' → PENDING+IN_PROGRESS, 'history' → COMPLETED+CANCELLED. */
   view?: 'scheduled' | 'history';
 }
 
@@ -31,7 +31,7 @@ function buildWhere(filters: MaintenanceFilters): Prisma.MaintenanceWhereInput {
   } else if (filters.view === 'scheduled') {
     where.status = { in: ['PENDING', 'IN_PROGRESS'] };
   } else if (filters.view === 'history') {
-    where.status = 'COMPLETED';
+    where.status = { in: ['COMPLETED', 'CANCELLED'] };
   }
   return where;
 }

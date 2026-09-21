@@ -68,8 +68,8 @@ export type AttachmentParams = z.infer<typeof attachmentParamsSchema>;
 
 export const listMaintenancesQuerySchema = paginationSchema.extend({
   vehicleId: z.coerce.number().int().positive().optional(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
-  /** C-6 views: "scheduled" = PENDING + IN_PROGRESS, "history" = COMPLETED. */
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
+  /** C-6 views: "scheduled" = PENDING + IN_PROGRESS, "history" = COMPLETED + CANCELLED. */
   view: z.enum(['scheduled', 'history']).optional(),
 });
 export type ListMaintenancesQuery = z.infer<typeof listMaintenancesQuerySchema>;

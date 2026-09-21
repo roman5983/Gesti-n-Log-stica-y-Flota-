@@ -13,6 +13,7 @@ const STATUS_MAP: Record<string, { label: string; color: ChipColor }> = {
   PENDING_ASSIGNMENT: { label: 'Pendiente de asignación', color: 'warning' },
   IN_PROGRESS: { label: 'En viaje', color: 'info' },
   COMPLETED: { label: 'Finalizado', color: 'success' },
+  CANCELLED: { label: 'Cancelado', color: 'default' },
   // Maintenance
   PENDING: { label: 'Pendiente', color: 'warning' },
   // Alerts

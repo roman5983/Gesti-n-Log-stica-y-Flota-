@@ -29,6 +29,15 @@ export const tripsController = {
     }
   },
 
+  async cancel(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params as unknown as { id: number };
+      res.json({ data: await tripsService.cancel(id, req.user!.id) });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const trip = await tripsService.create(req.body as CreateTripDto, req.user!.id);
