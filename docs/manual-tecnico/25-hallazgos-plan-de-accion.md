@@ -219,9 +219,9 @@ las capas elegidas. **Una jornada.**
 
 | Hallazgo | Consecuencia |
 |:--|:--|
-| No existe cancelar un viaje (§12.9) | Un camión averiado deja viaje, vehículo y chofer **bloqueados permanentemente** |
-| No existe cancelar un mantenimiento (§13.9) | Uno programado por error bloquea el vehículo indefinidamente |
-| No hay forma de dar de baja a un chofer desde la interfaz (§22A) | El endpoint existe; ninguna pantalla lo expone |
+| ~~No existe cancelar un viaje (§12.9)~~ ✅ *resuelto 2026-09-21, §12.14* | ~~Un camión averiado deja viaje, vehículo y chofer **bloqueados permanentemente**~~ |
+| ~~No existe cancelar un mantenimiento (§13.9)~~ ✅ *resuelto 2026-09-21, §13.10* | ~~Uno programado por error bloquea el vehículo indefinidamente~~ |
+| ~~No hay forma de dar de baja a un chofer desde la interfaz (§22A)~~ ✅ *resuelto 2026-09-20, §22A* | ~~El endpoint existe; ninguna pantalla lo expone~~ |
 
 Los tres son el mismo error de diseño: **modelar el camino feliz y no la corrección**.
 

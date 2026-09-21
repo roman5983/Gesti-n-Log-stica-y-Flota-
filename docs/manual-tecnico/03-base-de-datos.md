@@ -1445,6 +1445,15 @@ graph TD
 9. Escribir la consulta que **verifica** la coherencia de `drivers.completed_trips` contra la realidad de `trips`, y ejecutarla contra la base sembrada. ¿Coincide?
 10. Diseñar la migración que convertiría `alerts.entity_id` en una relación con integridad referencial, usando la alternativa de tres columnas nulables. Escribir el `ALTER TABLE`, el `CHECK` que garantiza que solo una esté poblada, y el script de migración de los datos existentes. Evaluar: ¿vale la pena?
 
+## Actualización posterior — estado `CANCELLED` en viajes y mantenimientos
+
+> **Fecha:** 2026-09-21. Segunda migración del proyecto: `20260921120000_add_cancelled_status`.
+
+Los enums `TripStatus` y `MaintenanceStatus` ganan el valor `CANCELLED`. En MySQL un enum de Prisma es un `ENUM` **de columna**, así que la migración es un `ALTER TABLE ... MODIFY status ENUM(..., 'CANCELLED') NOT NULL DEFAULT ...` en `trips` y en `maintenances`. Agregar un valor **al final** de un `ENUM` es una operación barata (no reescribe la tabla); insertarlo en medio, o quitar uno, sí. `VehicleStatus` no cambia.
+
+**Consecuencias:** las máquinas de estado del viaje y del mantenimiento (§3.3.2) pasan de 3 a 4 estados (`PENDING_ASSIGNMENT → IN_PROGRESS → COMPLETED`, más `CANCELLED` alcanzable desde los dos primeros) y la del mantenimiento igual (`PENDING → IN_PROGRESS → COMPLETED`, más `CANCELLED` desde los dos primeros). El DER definitivo (`docs/etapa-2-der-definitivo.md`) se actualizó. Detalle de reglas en §12.14 y §13.10.
+
+
 ---
 
 **Anterior:** [Capítulo 2 — Arquitectura general](02-arquitectura.md) · **Siguiente:** Capítulo 4 — Prisma, migraciones y seed *(pendiente)*

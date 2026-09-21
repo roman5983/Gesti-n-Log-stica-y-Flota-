@@ -233,7 +233,7 @@ Tabla propia porque un mantenimiento admite **múltiples** comprobantes (mockup 
 | origen | VARCHAR(120) | NOT NULL, DEFAULT 'Ciudad Industria, Autopista Córdoba - Rosario, Rosario, Santa Fe' | RN-21: fijo hoy; columna con DEFAULT para no romper el modelo si mañana se flexibiliza |
 | destino | VARCHAR(120) | NOT NULL | — |
 | fecha_hora_salida | DATETIME | NOT NULL | — |
-| estado | ENUM('PENDIENTE_DE_ASIGNACION','EN_VIAJE','FINALIZADO') | NOT NULL, DEFAULT 'PENDIENTE_DE_ASIGNACION' | A-2; sin CANCELADO (RN-14) |
+| estado | ENUM('PENDIENTE_DE_ASIGNACION','EN_VIAJE','FINALIZADO') | NOT NULL, DEFAULT 'PENDIENTE_DE_ASIGNACION' | A-2; CANCELADO agregado el 2026-09-21 (RN-14 derogada, ver manual §12.14) |
 | distancia_estimada_km | DECIMAL(8,2) | NULL | De la ruta generada (Google Maps) |
 | tiempo_estimado_min | INT UNSIGNED | NULL | Ídem |
 | observaciones | TEXT | NULL | — |

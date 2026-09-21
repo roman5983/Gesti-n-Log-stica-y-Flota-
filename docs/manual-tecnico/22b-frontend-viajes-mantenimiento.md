@@ -402,7 +402,7 @@ Y "Ver detalle" fuera de los condicionales: disponible siempre.
 
 | Estado | Acciones ofrecidas | Regla del backend |
 |:--|:--|:--|
-| `PENDING_ASSIGNMENT` | Ver · Editar · Asignar · Eliminar | A-4 (editable solo pendiente), RN-14 (no hay cancelación una vez en curso) |
+| `PENDING_ASSIGNMENT` | Ver · Editar · Asignar · **Cancelar** · Eliminar | A-4 (editable solo pendiente). *(2026-09-21: "Cancelar" agregado; RN-14 derogada, §12.14, §22B.11)* |
 | `IN_PROGRESS` | Ver · Finalizar | RN-22 (inmutable en curso) |
 | `COMPLETED` | Ver | RN-22 (el historial no se toca) |
 
@@ -1847,7 +1847,7 @@ stateDiagram-v2
     COMPLETED --> COMPLETED: (inmutable, RN-22)
 
     note right of IN_PROGRESS
-        No hay cancelación (RN-14).
+        No hay cancelación (RN-14). ← 2026-09-21: obsoleto, ver §22B.11
         Un viaje en curso solo
         puede finalizarse.
     end note
@@ -2377,6 +2377,29 @@ if (departureAt < todayLocalInputMin()) {
 **Límite:** es una regla **del cliente**. El backend sigue aceptando cualquier `destination` de 2 a 120 caracteres; quien llame a la API directamente puede saltarse la validación (no hay forma de validarla en el servidor sin una segunda consulta a Google).
 
 **Verificación:** sin clave real no se puede usar el SDK, así que se simuló `google.maps.places.Autocomplete` en la página con una clave falsa: dirección elegida → válida; la misma editada a mano (`… XYZ`) → inválida con "Elegí una dirección de la lista" y ayuda en rojo; al elegir de nuevo → válida. `tsc` limpio. **Archivo:** `frontend/src/components/AddressAutocomplete.tsx`.
+
+## 22B.11. Actualización posterior — cancelar viajes y mantenimientos desde la interfaz
+
+> **Fecha:** 2026-09-21. La regla y sus efectos están en §12.14 (viajes) y §13.10 (mantenimientos); esta sección cubre la pantalla. **La tabla de §22B.3.2 y el diagrama de §22B.7.1, que decían "no hay cancelación (RN-14)", quedan como registro de la situación previa.**
+
+**`ViajesPage`.** La columna de acciones (§22B.3.2) es ahora:
+
+| Estado | Acciones |
+|:--|:--|
+| `PENDING_ASSIGNMENT` | Ver · Editar · Asignar · **Cancelar viaje** · Eliminar |
+| `IN_PROGRESS` | Ver · **Cancelar viaje** · Finalizar |
+| `COMPLETED` / `CANCELLED` | Ver |
+
+El ícono abre un `ConfirmDialog` cuyo texto depende del estado: para uno en curso avisa que **se libera el vehículo** y que el viaje *no suma kilómetros ni viajes al chofer*; para uno pendiente, que queda registrado como cancelado. Los botones son *"Volver"* / *"Cancelar viaje"* (por eso `ConfirmDialog` ganó `cancelLabel`, §21.10). El filtro de estado incluye *"Cancelado"*. Cancelar y **Eliminar** conviven en los pendientes a propósito: eliminar borra la fila, cancelar conserva la historia.
+
+**Regla de §22B.3.1 respetada.** El `useMemo` de columnas sigue con `[]`: el ícono solo llama a `setToCancel` (setter estable); la llamada a la API y el `reload` están en `confirmCancel`, fuera del memo. No reproduce el cierre obsoleto.
+
+**`MaintenanceListTab`.** Los mantenimientos `PENDING` e `IN_PROGRESS` muestran **Cancelar mantenimiento** (con el mismo patrón de estado + `ConfirmDialog`); la pestaña *Historial* ahora lista finalizados **y cancelados** (`view=history`, §13.10) y su mensaje vacío lo dice. El listado conserva el defecto ya documentado de §22B.5.2: el chip de un mantenimiento `IN_PROGRESS` dice *"En viaje"* (`StatusChip` usa un solo mapa para viajes y mantenimientos, §21.5.1) — **sin cambios**.
+
+**Piezas compartidas.** `StatusChip`: `CANCELLED` → *"Cancelado"* (gris). `audit-labels.ts`: acción `CANCEL` → *"Cancelación"* (ámbar) y el estado *"Cancelado"* para viajes y mantenimientos, para que la pantalla de Auditoría (§22C.5.2) lo muestre traducido. `trips.api.ts` y `maintenances.api.ts`: tipo `CANCELLED` y método `cancel(id)`.
+
+**Verificación:** `tsc` limpio y 23/23 tests del frontend. En el navegador: los íconos aparecen según el estado en Viajes y Mantenimiento, y el diálogo de un viaje en curso muestra el texto correcto y se cierra con *"Volver"* sin cancelar. La cancelación en sí (con efectos en la base) se probó contra la API (§12.14, §13.10). **Archivos:** `ViajesPage.tsx`, `MaintenanceListTab.tsx`, `ConfirmDialog.tsx`, `StatusChip.tsx`, `audit-labels.ts`, `trips.api.ts`, `maintenances.api.ts`.
+
 
 ---
 

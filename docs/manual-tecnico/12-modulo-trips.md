@@ -161,6 +161,8 @@ El comentario cita **A-3**: el chofer finaliza idealmente, pero un operador pued
 
 ⚠️ **Falta un endpoint que el modelo sugiere: cancelar un viaje.** El comentario de la línea 335 lo explica: *"Trips are never cancellable (RN-14)"*. Un viaje `IN_PROGRESS` **debe** terminar en `COMPLETED`; no hay forma de abortarlo.
 
+> ✅ **Actualización 2026-09-21 (§12.14):** ahora existe `POST /trips/:id/cancel` y un estado `CANCELLED`. **RN-14 ("los viajes no se cancelan") queda derogada** por decisión de producto; el comentario citado arriba se reescribió.
+
 🔴 **Y eso deja un caso operativo sin resolver:** ¿qué pasa si un camión se rompe a mitad de camino y el viaje no se completa? El sistema **no tiene respuesta**. El viaje queda `IN_PROGRESS` para siempre, el vehículo queda `ON_TRIP` para siempre (no asignable, no reparable — no se le puede abrir un mantenimiento porque `IN_WORKSHOP` requiere pasar por `AVAILABLE`), y el chofer queda ocupado para siempre (RN-19 lo bloquea).
 
 **Es un bloqueo permanente que solo se resuelve con SQL manual.** El capítulo 25 lo registra como la funcionalidad faltante de mayor impacto operativo.
@@ -1223,7 +1225,7 @@ curl -X POST .../trips/12/finish -d '{"arrivalKm":45000}'   # mismo km que la sa
    | # | Hallazgo | Gravedad |
    |:-:|:--|:--|
    | 1 | ✅ *(resuelto 2026-09-21, §12.13)* ~~🔴 **`pickAvailableVehicle` NO verifica el seguro.** Un vehículo con seguro vencido se asigna normalmente. El sistema lo detecta, lo alerta, lo expone en `insuranceValid` — **y no lo aplica**. Implicaciones legales.~~ Ahora solo se asignan vehículos con seguro vigente. | ~~**Alta**~~ |
-   | 2 | 🔴 **No existe cancelación de viaje.** Un camión averiado deja el viaje, el vehículo y el chofer **bloqueados permanentemente**, sin salida por la API. RN-5 (`arrivalKm > departureKm`) impide incluso cerrarlo con cero kilómetros. | **Alta** |
+   | 2 | ✅ *(resuelto 2026-09-21, §12.14)* ~~🔴 **No existe cancelación de viaje.** Un camión averiado deja el viaje, el vehículo y el chofer **bloqueados permanentemente**, sin salida por la API. RN-5 (`arrivalKm > departureKm`) impide incluso cerrarlo con cero kilómetros.~~ Ahora se puede cancelar un viaje pendiente o en curso y el vehículo vuelve a `AVAILABLE`. | ~~**Alta**~~ |
    | 3 | 🔴 **El promedio `avgKm` acumula error de redondeo.** Se lee un `DECIMAL(10,2)` ya redondeado, se recalcula y se vuelve a redondear, **usando el valor redondeado como entrada del siguiente cálculo**. Degradación silenciosa. La corrección es almacenar la suma, no el promedio. | Media |
    | 4 | 🔴 **`arrivalKm` sin cota superior.** Un valor absurdo corrompe el odómetro del vehículo permanentemente y rompe todos los cálculos de mantenimiento por kilometraje. | Media |
    | 5 | ⚠️ **No se valida el mantenimiento vencido al asignar**, aunque `vehicles.service.ts:181` sugiere que RN-3 debería hacerlo. | Media |
@@ -1403,6 +1405,29 @@ ORDER BY accumulated_km ASC LIMIT 1 FOR UPDATE SKIP LOCKED
 **Lo que no cambia.** Un vehículo cuyo seguro vence **durante** el viaje no se ve afectado (solo se valida al asignar). Y el hallazgo 1 de §14.9 sigue abierto: un vehículo **sin** fecha de seguro sigue sin generar alerta — ahora al menos no se le asignan viajes.
 
 **Verificación:** con el backend real y la base local (AAA111 con seguro vigente, BBB222 vencido): con ambos vencidos, `POST /trips/:id/assign` → 422 con el mensaje nuevo; con AAA111 vigente, el viaje pasa a `IN_PROGRESS` con AAA111. Los datos de prueba se restauraron. `tsc` limpio. **Archivos:** `backend/src/modules/trips/trips.repository.ts`, `backend/src/modules/trips/trips.service.ts`.
+
+## 12.14. Actualización posterior — cancelación de viajes
+
+> **Fecha:** 2026-09-21. **Motivación:** pendiente de producto (F-2 del análisis funcional) y hallazgo 2 de §12.9: un camión averiado dejaba el viaje `IN_PROGRESS`, el vehículo `ON_TRIP` y al chofer ocupado **para siempre**, sin salida por la API. Este cambio **deroga RN-14** (*"los viajes no se cancelan"*, que el DER definitivo daba por buena con la frase *"sin CANCELADO"*).
+
+**Modelo de datos.** `TripStatus` gana el valor `CANCELLED`. Es una migración real (`20260921120000_add_cancelled_status`): en MySQL el enum es un `ENUM(...)` de columna, así que el cambio es un `ALTER TABLE trips MODIFY status ENUM('PENDING_ASSIGNMENT','IN_PROGRESS','COMPLETED','CANCELLED') ...`. Quien actualice el código debe correr `prisma migrate deploy` (o `migrate dev`) y `prisma generate`: el cliente generado está en `.gitignore` y `postinstall` ya lo regenera con `npm install`.
+
+**`POST /trips/:id/cancel`** (ADMIN u OPERATOR; el chofer **no** puede cancelar). `tripsService.cancel`:
+
+1. **404** si el viaje no existe.
+2. Abre una transacción, **bloquea la fila del viaje** (`lockTrip`, la misma técnica de `finish`, §12.6) y **relee bajo el bloqueo**. Un `cancel` concurrente con un `finish` o un `assign` se serializa: el perdedor ve el estado ya cambiado.
+3. Solo admite `PENDING_ASSIGNMENT` e `IN_PROGRESS`; cualquier otro estado → **422** *"Solo se pueden cancelar viajes pendientes o en curso"* (también al cancelar dos veces).
+4. Pasa el viaje a `CANCELLED`. Si estaba `IN_PROGRESS` y tenía vehículo, **el vehículo vuelve de `ON_TRIP` a `AVAILABLE`** — es la salida para el camión averiado.
+5. Registra `action: 'CANCEL'` (nuevo valor del vocabulario de auditoría, §15) con `previousData.status` y, si liberó un vehículo, `vehicleStatus: 'AVAILABLE'`.
+
+**Qué NO hace, a propósito.** No toca el odómetro del vehículo (`accumulatedKm` no cambia aunque el camión haya avanzado: no hay dato confiable), no incrementa `completedTrips` ni `avgKm` del chofer, y no pone `finishedAt`/`arrivalKm`. Un viaje cancelado **no cuenta** en informes ni en el tablero (que solo miran `COMPLETED`). El chofer queda libre sin código adicional porque su disponibilidad se deriva de "no tiene un viaje `IN_PROGRESS`" (`hasActiveTrip`, §12.6).
+
+**Convivencia con las reglas existentes.** `update`, `assign` y `finish` ya rechazaban todo lo que no fuera su estado de origen, así que un viaje cancelado **no es editable, asignable ni finalizable** sin tocar esos métodos. `delete` (físico) sigue siendo solo para `PENDING_ASSIGNMENT`: eliminar borra la fila; cancelar **conserva la historia**. `listTripsQuerySchema` acepta `status=CANCELLED`.
+
+**Lo que sigue abierto.** No se pide motivo de cancelación (la auditoría dice quién y cuándo, no por qué). Y el hallazgo 4 de §12.9 (`arrivalKm` sin cota superior) no se relaciona con esto y sigue igual.
+
+**Verificación:** `tsc` limpio. Contra el backend real y la base local: cancelar el viaje en curso de María Gómez → `CANCELLED`, vehículo DDD444 `AVAILABLE`, `completedTrips`/`avgKm` sin cambios, entrada `CANCEL` en auditoría; cancelar de nuevo o cancelar uno `COMPLETED` → 422; un viaje pendiente cancelado ya no se puede editar ni eliminar; `?status=CANCELLED` lo lista. Los datos de prueba se restauraron. **Archivos:** `backend/prisma/schema.prisma`, `backend/prisma/migrations/20260921120000_add_cancelled_status/`, `backend/src/modules/trips/trips.{service,controller,routes,schemas}.ts`, `backend/src/modules/audit-logs/audit-logs.service.ts`. La interfaz está en §22B.11.
+
 
 ---
 
