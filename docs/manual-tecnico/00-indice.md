@@ -106,10 +106,10 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 9 | [`09-modulo-users.md`](09-modulo-users.md) | El módulo CRUD de referencia. `assignableRoles`. Transacciones. La lápida del email. La carrera de los administradores | 1.503 |
 | 10 | [`10-modulo-vehicles.md`](10-modulo-vehicles.md) | Máquina de estados. Estado compartido entre tres módulos. Campos derivados. Inmutabilidad por acumulación | 1.178 |
 | 11 | [`11-modulo-drivers-documents.md`](11-modulo-drivers-documents.md) | Creación atómica en dos tablas. `assertCanAccess`. Contraseñas cifradas reversibles (A-9). Compensación al subir archivos | 1.332 |
-| 12 | [`12-modulo-trips.md`](12-modulo-trips.md) | El patrón bloquear-releer-validar-escribir. `FOR UPDATE SKIP LOCKED`. Las 7 validaciones de la asignación. Los efectos en cascada de finalizar | 1.385 |
+| 12 | [`12-modulo-trips.md`](12-modulo-trips.md) | El patrón bloquear-releer-validar-escribir. `FOR UPDATE SKIP LOCKED`. Las 7 validaciones de la asignación. Los efectos en cascada de finalizar | 1.409 |
 | 13 | [`13-modulo-maintenance.md`](13-modulo-maintenance.md) | `superRefine` y la validación cruzada. `PUT` con semántica de conjunto completo. Adjuntos de solo añadir | 1.028 |
 | 14 | [`14-modulo-alerts.md`](14-modulo-alerts.md) | El patrón de reconciliación. El cerrojo consultivo `GET_LOCK`. Los 8 tipos de alerta. El escáner | 1.108 |
-| 15 | [`15-modulo-audit-logs.md`](15-modulo-audit-logs.md) | Auditoría vs registro. Inmutabilidad por ausencia. `sanitize()` y su límite. Dónde vive el tipo `DbClient` | 815 |
+| 15 | [`15-modulo-audit-logs.md`](15-modulo-audit-logs.md) | Auditoría vs registro. Inmutabilidad por ausencia. `sanitize()` y su límite. Dónde vive el tipo `DbClient` | 854 |
 | 16 | [`16-modulo-dashboard-reports.md`](16-modulo-dashboard-reports.md) | Agregar donde están los datos. Series temporales presembradas. El período sin tope | 837 |
 | 17 | [`17-modulo-settings.md`](17-modulo-settings.md) | Configuración de despliegue vs de negocio. Fila única. `PUT` con semántica de `PATCH` | 609 |
 
@@ -232,10 +232,11 @@ El manual no solo describe el código: lo audita. **Cada afirmación se verific�
 | | Hallazgo | Coste de arreglarlo |
 |:-:|:--|:--|
 | 1 | **La rotación de tokens no detecta el robo**, aunque el comentario afirma que sí (§8, §23.3.2) | 6 líneas |
-| 2 | **Un vehículo sin seguro circula sin señal** — hueco entre cuatro archivos (§12, §14, §22A, §23.4.3) | 1 jornada |
+| 2 | **Un vehículo sin seguro circula sin señal** — hueco entre cuatro archivos (§12, §14, §22A, §23.4.3). *Desde el 2026-09-21 la asignación ya excluye vehículos sin seguro vigente (§12.13); siguen abiertos la alerta para seguro `NULL` y el aviso en la tabla.* | 1 jornada → menor |
 | 3 | **Tres cierres obsoletos** que la regla `exhaustive-deps` detecta — y **ESLint no está instalado** (§22A, §22B, §22C, §24) | 3 horas |
 | 4 | **Los vencimientos se muestran un día antes** en cuatro sitios (§22A.4, §24.5.3). `dayjs`/`@mui/x-date-pickers` ya se usan desde el 2026-09-18 (filtros de rango en Reportes/Viajes) pero no para estos cuatro sitios — el hallazgo sigue abierto, solo que ahora es un `dayjs.utc(...)` por sitio en vez de "instalar y conectar la librería". | Media jornada → ahora menor |
 | 5 | **Operaciones sin salida**: no se puede cancelar un viaje ni un mantenimiento. Un camión averiado bloquea vehículo y chofer permanentemente (§12, §13) | 2 jornadas |
+| — | *(Actualización 2026-09-21: dos hallazgos altos del censo quedaron resueltos — `sanitize` recursivo, §15.12, y la exclusión de vehículos sin seguro vigente en la asignación, §12.13. Siguen contando en el censo de 208 porque este es el registro de la auditoría original.)* | — |
 | — | *(Actualización 2026-09-18)* Además, tres pedidos de producto se resolvieron esta sesión y quedan documentados como actualizaciones posteriores en sus capítulos: selector de rango de fechas con atajos en Reportes/Viajes (§22B.9, §22C.6), evaluación de alertas con polling en segundo plano (§14.12, §22C.6), y viajes sin fecha de salida anterior a hoy (§12.12, §22B.9). Ninguno estaba en el censo de 208 hallazgos — eran pendientes de producto, no bugs encontrados por la auditoría. | — |
 
 ### Las diez causas raíz

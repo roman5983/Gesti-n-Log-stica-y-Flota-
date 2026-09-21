@@ -912,7 +912,7 @@ SELECT COUNT(*) FROM alerts
 
 🔴 **Resultado: 0.** El comentario de `vehicles.service.ts:20` dice *"surfaced as alertable"* y **el motor no lo alerta**.
 
-**Y como `pickAvailableVehicle` tampoco filtra el seguro** (§12.5.3), **ese vehículo es perfectamente asignable, sin cobertura registrada y sin ninguna señal en el sistema.**
+**Y como `pickAvailableVehicle` tampoco filtra el seguro** *(actualización 2026-09-21: ya lo filtra, §12.13; el vehículo sin fecha de seguro sigue sin generar alerta, pero ya no se le asignan viajes)* (§12.5.3), **ese vehículo es perfectamente asignable, sin cobertura registrada y sin ninguna señal en el sistema.**
 
 ---
 

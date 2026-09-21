@@ -1,6 +1,6 @@
 import { prisma } from '../../database/prisma-client';
 import type { Prisma, TripStatus } from '../../generated/prisma/client';
-import { utcEndOfDay } from '../../shared/utils/dates';
+import { utcEndOfDay, utcStartOfToday } from '../../shared/utils/dates';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
 const tripInclude = {
@@ -86,7 +86,9 @@ export const tripsRepository = {
    * vehicle with the lowest accumulated km (efficiency criterion — spreads
    * usage across the fleet). FOR UPDATE SKIP LOCKED lets concurrent
    * assignments each grab a different vehicle instead of racing for one.
-   * Returns the chosen vehicle id, or null if the fleet has none available.
+   * Only vehicles with a current insurance (expiry date today or later; NULL
+   * means none on record) are eligible — same criterion as `insuranceValid`.
+   * Returns the chosen vehicle id, or null if none is eligible.
    */
   async pickAvailableVehicle(tx: Prisma.TransactionClient): Promise<number | null> {
     // $queryRaw returns the id as a JS BigInt (e.g. 1n); typing it as bigint
@@ -95,11 +97,21 @@ export const tripsRepository = {
     const rows = await tx.$queryRaw<{ id: bigint }[]>`
       SELECT id FROM vehicles
       WHERE status = 'AVAILABLE' AND deleted_at IS NULL
+        AND insurance_expiry_date >= ${utcStartOfToday()}
       ORDER BY accumulated_km ASC
       LIMIT 1
       FOR UPDATE SKIP LOCKED
     `;
     return rows[0] ? Number(rows[0].id) : null;
+  },
+
+  /** Whether any AVAILABLE vehicle exists, insured or not (to explain a failed pick). */
+  async hasAvailableVehicle(tx: Prisma.TransactionClient): Promise<boolean> {
+    const found = await tx.vehicle.findFirst({
+      where: { status: 'AVAILABLE', deletedAt: null },
+      select: { id: true },
+    });
+    return found !== null;
   },
 
   /** Row-lock the driver inside a transaction to serialize assignment. */

@@ -310,6 +310,8 @@ Si el dato es un string, un número o un booleano, se devuelve tal cual. **Ning�
 
 ⚠️ **`typeof [] === 'object'`**, así que un **arreglo** entra en el bucle de la línea 48 y `Object.entries` lo convierte en un objeto con claves `"0"`, `"1"`… **Un arreglo pasado a `sanitize` se convierte en un objeto.** Ningún módulo lo hace hoy, pero es un comportamiento sorprendente que no está documentado.
 
+> ✅ **Resuelto el 2026-09-21 (§15.12):** `sanitize` ahora redacta a cualquier profundidad. Esta sección se conserva como registro del defecto original.
+
 #### 🔴 El agujero: `sanitize` solo recorre el PRIMER NIVEL
 
 ```ts
@@ -721,7 +723,7 @@ SELECT DISTINCT action FROM audit_logs ORDER BY action;
 
    | # | Hallazgo | Gravedad |
    |:-:|:--|:--|
-   | 1 | 🔴 **`sanitize` solo recorre el PRIMER NIVEL.** Un `passwordHash` dentro de un objeto anidado llega **sin redactar** a una tabla que el administrador consulta por pantalla. La protección real hoy viene de las listas blancas de cada módulo, no de esta red. | **Alta** |
+   | 1 | ✅ *(resuelto 2026-09-21, §15.12)* ~~🔴 **`sanitize` solo recorre el PRIMER NIVEL.** Un `passwordHash` dentro de un objeto anidado llega **sin redactar** a una tabla que el administrador consulta por pantalla. La protección real hoy viene de las listas blancas de cada módulo, no de esta red.~~ Ahora es recursiva. | ~~**Alta**~~ |
    | 2 | 🔴 **`auth` no audita NADA.** Ni login, ni logout, ni intentos fallidos. El sistema sabe exhaustivamente qué se cambió y es **ciego a quién entró y cuándo**. (Ya señalado en §8.6.4; aquí se confirma con el inventario completo.) | **Alta** |
    | 3 | 🔴 **`JSON.stringify` LANZA ante un `BigInt`**, y `sanitize` corre **dentro** de las transacciones de negocio: un valor `BigInt` en un snapshot **revertiría la operación completa** con un error sin relación aparente. | Media |
    | 4 | 🔴 **La auditoría está fragmentada por operación, no por entidad.** *"¿Qué le pasó al vehículo 3?"* no se puede responder con un filtro simple: la mayoría de sus cambios de estado están bajo `TRIP` y `MAINTENANCE`, y recuperarlos exige `JSON_EXTRACT` sin índices. | Media |
@@ -809,6 +811,43 @@ SELECT DISTINCT action FROM audit_logs ORDER BY action;
 14. Implementar la auditoría de `auth`: `LOGIN`, `LOGOUT` y `LOGIN_FAILED`. Resolver el problema de que `audit_logs.user_id` es `NOT NULL` cuando el email no existe.
 15. Agregar los triggers de inmutabilidad y evaluar cómo convivir con una política de retención.
 16. Registrar **una entrada por entidad afectada** en `trips.assign` (una para `TRIP` y otra para `VEHICLE`). Medir el impacto en el volumen de la tabla y comparar la usabilidad de las consultas.
+
+---
+
+## 15.12. Actualización posterior — `sanitize` recursivo
+
+> **Fecha:** 2026-09-21. **Motivación:** hallazgo 1 de §15.9 (`sanitize` solo recorría el primer nivel: un `passwordHash` anidado llegaba sin redactar a una tabla que el administrador consulta por pantalla).
+
+`sanitize` se divide en dos funciones:
+
+```ts
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact);
+  if (typeof value !== 'object' || value === null) return value;
+  const result: Record<string, unknown> = {};
+  for (const [key, inner] of Object.entries(value)) {
+    result[key] = SENSITIVE_FIELDS.has(key) ? '[REDACTED]' : redact(inner);
+  }
+  return result;
+}
+
+export function sanitize(data: unknown) {
+  if (data === undefined || data === null) return undefined;
+  const plain = JSON.parse(JSON.stringify(data)); // sigue quitando Dates/Decimals
+  return redact(plain);
+}
+```
+
+- **Recursión sobre JSON ya "plano".** `redact` corre *después* del `JSON.parse(JSON.stringify(...))`, así que solo ve objetos, arreglos y primitivos: no hay que manejar `Date`, `Decimal`, ciclos ni clases. Los ciclos, de existir, fallan antes en el `stringify` (hallazgo 3, sin cambios).
+- **Arreglos:** antes un arreglo entraba al bucle de primer nivel y `Object.entries` lo convertía en un objeto con claves `"0"`, `"1"`… (§15.4.2). Ahora se recorre elemento por elemento y **sigue siendo un arreglo**.
+- **La lista negra ganó `password`** (además de `passwordHash`, `encryptedPassword`, `tokenHash`): con la recursión, un DTO anidado que aún lleve la contraseña en claro queda redactado. Sigue siendo una lista negra (§15.4.2): la lista blanca de cada módulo (`toAuditSnapshot`) sigue siendo la protección principal.
+- `sanitize` pasó a exportarse para poder probarla.
+
+**Pruebas nuevas** (`audit-logs.service.test.ts`, 4 casos): redacción en primer nivel; anidada en objetos y arreglos (`user.profile.tokenHash`, `sessions[0].tokenHash`); fechas y primitivos intactos, con arreglos que siguen siendo arreglos; `null`/`undefined` → `undefined`. `vitest`: 28/28.
+
+**No resuelve:** el hallazgo 3 (`JSON.stringify` lanza ante un `BigInt` dentro de la transacción de negocio) ni la redacción de variantes del nombre de clave (`Password`, `passwd`).
+
+**Archivos:** `backend/src/modules/audit-logs/audit-logs.service.ts`, `backend/src/modules/audit-logs/audit-logs.service.test.ts` (nuevo).
 
 ---
 
