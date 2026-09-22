@@ -74,9 +74,7 @@ export function apiErrorMessage(err: unknown, fallback = 'Ocurrió un error'): s
     if (!message) return fallback;
     const details = data?.error?.details;
     if (data?.error?.code === 'VALIDATION_ERROR' && Array.isArray(details) && details.length > 0) {
-      const lines = (details as { path?: string; message?: string }[])
-        .map((d) => (d.path ? `${d.path}: ${d.message}` : d.message))
-        .join('; ');
+      const lines = (details as { message?: string }[]).map((d) => d.message).join('; ');
       return `${message} (${lines})`;
     }
     return message;

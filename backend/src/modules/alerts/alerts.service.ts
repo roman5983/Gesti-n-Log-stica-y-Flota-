@@ -17,6 +17,18 @@ function conditionKey(c: { alertType: string; entityType: string; entityId: numb
   return `${c.alertType}::${c.entityType}::${c.entityId}`;
 }
 
+/** Spanish labels for driver document types, for alert descriptions. */
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  DNI: 'DNI',
+  LICENSE: 'Licencia de conducir',
+  ART: 'ART',
+  PSYCHOPHYSICAL: 'Psicofísico',
+};
+
+function documentTypeLabel(type: string): string {
+  return DOCUMENT_TYPE_LABELS[type] ?? type;
+}
+
 export interface AlertResponse {
   id: number;
   alertType: string;
@@ -107,14 +119,14 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
         alertType: 'DOCUMENT_EXPIRED',
         entityType: 'DRIVER_DOCUMENT',
         entityId: doc.id,
-        description: `El documento ${doc.documentType} está vencido`,
+        description: `El documento ${documentTypeLabel(doc.documentType)} está vencido`,
       });
     } else if (doc.expiryDate <= soon) {
       candidates.push({
         alertType: 'DOCUMENT_EXPIRING',
         entityType: 'DRIVER_DOCUMENT',
         entityId: doc.id,
-        description: `El documento ${doc.documentType} vence en los próximos ${EXPIRY_ALERT_LEAD_DAYS} días`,
+        description: `El documento ${documentTypeLabel(doc.documentType)} vence en los próximos ${EXPIRY_ALERT_LEAD_DAYS} días`,
       });
     }
   }
@@ -224,7 +236,12 @@ export const alertsService = {
     }
 
     return {
-      items: alerts.map((a) => toResponse(a, driverByDocumentId.get(a.entityId))),
+      items: alerts.map((a) =>
+        toResponse(
+          a,
+          a.entityType === 'DRIVER_DOCUMENT' ? driverByDocumentId.get(a.entityId) : undefined,
+        ),
+      ),
       total,
     };
   },
