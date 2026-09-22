@@ -425,3 +425,28 @@ datos del seed que disparan cada caso.
 automatización futura opcional; el plan manual cubre esos flujos por ahora.
 
 ---
+
+# Seed ampliado — una empresa con historia
+
+**Qué cambió.** El seed pasó de 5 viajes y ninguna auditoría a ~200 días de operación: más de 400 viajes
+finalizados (el gráfico de 6 meses del dashboard aparece completo), cancelaciones en ruta y antes de
+asignar, 19 mantenimientos (según la política de km, más uno en curso, uno programado y dos
+cancelados), 26 documentos (algunos reemplazados), 11 alertas resueltas con su historia (renovaciones
+de licencias y seguros, un seguro que se venció tres días, un chofer dado de baja) y ~1.500 registros de
+auditoría. Se sumaron una segunda operadora, tres choferes (uno dado de baja) y tres vehículos.
+
+**Diseño.** La generación es una función pura (`prisma/seed-history.ts`) con PRNG de semilla fija:
+determinística y testeable sin MySQL. `seed-history.test.ts` comprueba las reglas de negocio sobre los
+datos generados. Cada día consume la misma cantidad de números aleatorios, así la historia no depende
+del día de la semana en que se corre. `seed.ts` quedó como orquestación.
+
+**Coherencia con el estado final.** Las alertas pendientes no se siembran: las levanta el job
+automático sobre el estado final. El test replica la lógica del evaluador y fija las 10 esperadas
+(Carlos y Lucía, documentos por vencer y vencidos, BBB222 con km superado y seguro por vencer, CCC333
+inactivo y con seguro vencido). BBB222 queda con el service vencido porque el generador ubica su
+último mantenimiento antes del tramo final de viajes que suma más de 10.000 km.
+
+**Arreglos de paso.** Re-correr el seed ahora devuelve los vehículos a su estado (antes el viaje en
+curso de María se recreaba aunque DDD444 hubiera quedado disponible) y resetea las contraseñas de demo.
+El ART de María pasó de vencido a por vencer: con un documento vencido, la regla RN-4 no le habría
+permitido tener el viaje en curso que le asigna el propio seed.

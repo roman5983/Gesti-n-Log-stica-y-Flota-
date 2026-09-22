@@ -98,6 +98,8 @@ npm run dev                   # http://localhost:5173
 | Operador | `operador@empresa.com` | `Operator1234!` |
 | Chofer | `chofer@empresa.com` | `Driver1234!` |
 
+El seed carga una empresa con ~200 días de operación (más de 400 viajes, mantenimientos, alertas resueltas y auditoría). El resto de los usuarios de demostración —otra operadora y seis choferes más, cada uno en un estado distinto— está en `GUIA-PRUEBAS-E2E.md`.
+
 ---
 
 ## Pruebas
@@ -105,8 +107,8 @@ npm run dev                   # http://localhost:5173
 **Automatizadas (sin base de datos):**
 
 ```bash
-cd backend  && npm test      # 23 tests: crypto, fechas UTC, schemas de validación
-cd frontend && npm test      # 5 tests: fechas datetime-local, rutas por rol
+cd backend  && npm test      # 56 tests: crypto, fechas UTC, schemas, concurrencia de servicios, job de alertas, reglas del seed
+cd frontend && npm test      # 25 tests: fechas, rutas por rol, auditoría (incluye un test de componente)
 ```
 
 **Manuales (end-to-end):** ver `GUIA-PRUEBAS-E2E.md` — guion paso a paso por rol contra la app corriendo.

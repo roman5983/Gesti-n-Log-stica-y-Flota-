@@ -23,9 +23,11 @@ Esperá el mensaje de Vite y abrí **http://localhost:5173** en el navegador.
 
 **Base de datos limpia (recomendado antes de empezar):** para partir de datos coherentes de demostración, reseteá y resembrá:
 ```bash
-cd ~/DSWTP/backend && npx prisma migrate reset
+cd ~/DSWTP/backend && npx prisma migrate reset && npx prisma db seed
 ```
-(Confirmá con `y`. Esto borra todo y aplica el seed.)
+(Confirmá con `y`. El reset borra todo; el seed carga la empresa de demostración. Volver a correr solo `npx prisma db seed` también deja todo como al principio.)
+
+**Qué trae el seed:** una empresa que opera hace ~200 días — más de 400 viajes finalizados (el gráfico del dashboard muestra 6 meses), cancelaciones, historial de mantenimientos, documentos con vencimientos variados, alertas ya resueltas y más de 1.500 registros de auditoría. Las **alertas pendientes** las genera el job automático unos 15 segundos después de levantar el backend.
 
 > Si el login se cuelga o da `pool timeout`, MySQL no está respondiendo: `brew services restart mysql`, esperá 5 segundos, y reiniciá el backend.
 
@@ -37,10 +39,14 @@ cd ~/DSWTP/backend && npx prisma migrate reset
 |-----|-------|-----------|-------|
 | Administrador | `admin@empresa.com` | `Admin1234!` | Acceso total |
 | Operador | `operador@empresa.com` | `Operator1234!` | Operación diaria |
+| Operadora (Sofía Martínez) | `sofia@empresa.com` | `Operator1234!` | Segunda operadora |
 | Chofer (Juan Pérez) | `chofer@empresa.com` | `Driver1234!` | Licencia vigente — **disponible** |
-| Chofer (María Gómez) | `maria@empresa.com` | `Driver1234!` | Con viaje en curso |
-| Chofer (Carlos Ruiz) | `carlos@empresa.com` | `Driver1234!` | Licencia **por vencer** (10 días) |
+| Chofer (María Gómez) | `maria@empresa.com` | `Driver1234!` | Con viaje en curso (Mendoza, DDD444) |
+| Chofer (Carlos Ruiz) | `carlos@empresa.com` | `Driver1234!` | Licencia **por vencer** (10 días) — asignable |
 | Chofer (Lucía Fernández) | `lucia@empresa.com` | `Driver1234!` | Licencia **vencida** — no asignable |
+| Chofer (Valentina Ríos) | `valentina@empresa.com` | `Driver1234!` | Disponible |
+| Chofer (Diego Sosa) | `diego@empresa.com` | `Driver1234!` | Disponible (ingresó hace 4 meses) |
+| Chofer (Roberto Díaz) | `roberto@empresa.com` | `Driver1234!` | **Dado de baja** — no puede iniciar sesión |
 
 > El token de sesión dura 15 minutos; si algo deja de responder con "no autorizado", volvé a iniciar sesión.
 
@@ -53,12 +59,12 @@ Este recorrido sigue el ciclo completo de un viaje, tocando los tres roles. Hace
 ### 3.1 — Como ADMINISTRADOR: puesta a punto
 
 1. Iniciá sesión con `admin@empresa.com`. **Esperado:** entrás al **Dashboard** con sidebar oscuro. Ves las tarjetas KPI (viajes en curso, pendientes, vehículos disponibles, alertas activas), la fila extra de totales de admin, y el gráfico de viajes por mes.
-2. Andá a **Usuarios**. **Esperado:** ves solo cuentas administrativas (admin y operador), **ningún chofer** en la lista. El filtro de rol solo ofrece Administrador/Operador.
+2. Andá a **Usuarios**. **Esperado:** ves solo cuentas administrativas (el admin y los dos operadores), **ningún chofer** en la lista. El filtro de rol solo ofrece Administrador/Operador.
 3. Creá un usuario: *Nuevo usuario* → nombre "Test Operador", email `test@empresa.com`, contraseña `Test1234!`, rol Operador → *Crear*. **Esperado:** aparece en la tabla. (En la **Terminal A** del backend deberías ver la línea `[mailer:dev] credentials email for test@empresa.com`.)
 4. Editá ese usuario, desactivalo con el toggle y volvé a activarlo. Luego eliminalo (baja lógica). **Esperado:** cada acción se refleja al instante.
-5. Andá a **Choferes**. **Esperado:** ves los 4 choferes del seed. Lucía aparece con el vencimiento de licencia en **rojo** y "Disponible: No".
+5. Andá a **Choferes**. **Esperado:** ves los 7 choferes del seed. Lucía aparece con el vencimiento de licencia en **rojo** y "Disponible: No"; Roberto tiene el chip **Inactivo** (dado de baja).
 6. En Juan Pérez, abrí **Credenciales** (ícono de llave) → *Ver contraseña*. **Esperado:** muestra la contraseña en claro (A-9). Esto queda registrado en auditoría.
-7. En Juan Pérez, abrí **Documentación** (ícono de documento). Subí un archivo: tipo DNI, un vencimiento futuro, elegí un PDF/JPG/PNG (< 1 MB). **Esperado:** el documento aparece listado; podés abrirlo con el ícono de "abrir".
+7. En **Diego Sosa**, abrí **Documentación** (ícono de documento). Subí un archivo: tipo **Psicofísico** (es el único que le falta), un vencimiento futuro, elegí un PDF/JPG/PNG (< 1 MB). **Esperado:** el documento aparece listado; podés abrirlo con el ícono de "abrir". (Los documentos que ya trae el seed son de muestra: el archivo en sí no existe en disco, así que abrirlos da error.)
 
 ### 3.2 — Como OPERADOR: crear y asignar el viaje
 
@@ -75,16 +81,16 @@ Este recorrido sigue el ciclo completo de un viaje, tocando los tres roles. Hace
 2. En **Mi viaje**: **Esperado:** ves la hoja de ruta del viaje que asignó el operador (origen, destino, vehículo, salida).
 3. Clic en **Cerrar hoja de ruta**. Ingresá un kilometraje final **mayor** al inicial que muestra el diálogo → *Finalizar viaje*. **Esperado:** el viaje se cierra. (Probá poner un km menor: el botón queda deshabilitado y avisa que debe ser mayor — RN-5.)
 4. Andá a **Mi historial**. **Esperado:** el viaje recién cerrado aparece en tu historial.
-5. Andá a **Mi documentación**. **Esperado:** ves tus documentos y podés subir uno nuevo, pero **no hay botón de eliminar** (solo el admin borra — compliance).
+5. Andá a **Mi documentación**. **Esperado:** ves tus documentos con sus vencimientos (el ART de Juan figura por vencer). Es solo consulta: **no hay botón para subir ni para eliminar** — la documentación la carga el administrador.
 
 ### 3.4 — Como ADMINISTRADOR: alertas, reportes y auditoría
 
 1. Volvé a entrar como `admin@empresa.com`.
-2. Andá a **Alertas** → *Evaluar alertas*. **Esperado:** un aviso tipo "Evaluación completa: N nuevas, 0 auto-resueltas". Aparecen alertas del seed: licencia de Lucía **vencida**, licencia de Carlos **por vencer**, un vehículo con **km de mantenimiento superado**, un vehículo **inactivo**, documentos vencidos, etc.
-3. Marcá una alerta como resuelta (ícono de tilde). **Esperado:** desaparece de "Pendientes" y aparece en la pestaña "Resueltas".
+2. Andá a **Alertas**. **Esperado:** ya hay **10 alertas pendientes**, generadas solas por el job automático: licencia de Lucía **vencida** y de Carlos **por vencer**; documentos por vencer (ART de Juan y María, licencia de Carlos) y vencido (licencia de Lucía); seguro de BBB222 **por vencer** y de CCC333 **vencido**; BBB222 con **km de mantenimiento superado**; CCC333 **inactivo**. Si apretás *Evaluar alertas* el aviso dice "0 nuevas" (el job ya las creó). La pestaña **Resueltas** trae el historial: renovaciones de licencias y seguros, documentos reemplazados.
+3. Marcá una alerta como resuelta (ícono de tilde) y confirmá. **Esperado:** desaparece de "Pendientes" y aparece en "Resueltas". (Si la condición sigue vigente, el job la vuelve a levantar en su próxima pasada: resolver a mano no arregla la causa.)
 4. **Auto-resolución:** si corregís la condición (ej. en Choferes, editá a Carlos y ponele una licencia con vencimiento lejano) y volvés a *Evaluar alertas*, esa alerta se **auto-resuelve** (el aviso dirá "... N auto-resueltas").
-5. Andá a **Reportes**. Elegí un rango de fechas que incluya hoy → *Generar informe*. **Esperado:** KPIs (viajes finalizados, km totales, distancia promedio, mantenimientos) y tres tablas: por chofer, por vehículo, y destinos más frecuentes. El viaje que cerró Juan debería figurar.
-6. Andá a **Auditoría**. **Esperado:** el registro cronológico de todas las acciones. Buscá la de "VIEW_CREDENTIALS" (cuando viste la contraseña de Juan) y la de creación del viaje. Abrí el **detalle** (ícono de ver) de un registro UPDATE. **Esperado:** muestra el **antes/después** de los datos; los campos sensibles aparecen como `[REDACTED]`.
+5. Andá a **Reportes**. Tocá el atajo *Últimos 30 días* → *Generar informe*. **Esperado:** KPIs (viajes finalizados, km totales, distancia promedio, mantenimientos) y tres tablas: por chofer, por vehículo, y destinos más frecuentes, con datos de todo el mes. El viaje que cerró Juan debería figurar. Probá también un rango de más de 366 días: el botón se deshabilita y avisa el límite.
+6. Andá a **Auditoría**. **Esperado:** el registro cronológico de meses de uso, todo en castellano. Filtrá por acción *Consulta de credenciales* (ahí está la que hiciste con Juan) y buscá la creación de tu viaje. Abrí el **detalle** (ícono de ver) de una *Modificación* de vehículo o chofer (renovación de seguro o licencia). **Esperado:** "1 campo modificado" con el valor anterior tachado y el nuevo resaltado; los campos sin cambios quedan plegados.
 7. Andá a **Configuración**. Cambiá el teléfono de la empresa → *Guardar cambios*. **Esperado:** toast de confirmación. (Si volvés a Auditoría y evaluás, verás el registro del cambio con su antes/después.)
 
 ---

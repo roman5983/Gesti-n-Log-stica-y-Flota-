@@ -812,6 +812,12 @@ Prisma crea automáticamente esta tabla en la base:
 
 ## 4.7. `seed.ts` línea por línea
 
+> ⚠️ **El seed se reescribió después de este capítulo** (ver DEVLOG, "Seed ampliado"). El recorrido línea por línea que sigue corresponde a la versión anterior de 373 líneas. Los principios que explica —fechas relativas a "hoy", `upsert` por claves naturales, reutilizar `encrypt` y el cliente de la aplicación— siguen vigentes. Lo que cambió es la arquitectura:
+>
+> - **`prisma/seed-history.ts`** genera ~200 días de operación como una **función pura**: sin Prisma, sin I/O y sin `Math.random` (usa un PRNG con semilla fija, así la historia es siempre la misma, corrida al día en que se ejecuta). Incluye los datos de demostración (3 usuarios de staff, 7 choferes, 8 vehículos, 26 documentos), la simulación de viajes, los mantenimientos que siguen la política de km, las historias de renovación con sus alertas resueltas y las filas de auditoría, con las mismas formas que registran los servicios.
+> - **`prisma/seed-history.test.ts`** verifica sobre ese plan, sin base de datos, las reglas que el seed saltea al escribir directo en las tablas: ningún chofer ni vehículo en dos cosas a la vez, la cadena de odómetros (RN-5/RN-11), licencia y documentación vigentes al asignar (RN-1/RN-4), seguro vigente, estadísticas de los choferes, y que el evaluador vaya a encontrar exactamente las 10 alertas de la demo y ninguna accidental.
+> - **`prisma/seed.ts`** solo escribe el plan: upserts que devuelven usuarios, choferes y vehículos a su estado de demo (incluida la contraseña, así las credenciales del README siempre funcionan), borra los datos transaccionales —incluidas **todas** las alertas y la **auditoría completa**— y los recrea en orden cronológico.
+
 373 líneas que pueblan la base con datos coherentes y realistas. Es, con diferencia, el archivo más largo escrito a mano del backend, y es el que hace que el sistema sea demostrable.
 
 ### 4.7.1. Cabecera e imports (líneas 1-19)
