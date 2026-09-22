@@ -179,6 +179,19 @@ export const tripsService = {
     if (!driver) throw new NotFoundError(`No se encontró el chofer ${dto.driverId}`);
 
     const assigned = await prisma.$transaction(async (tx) => {
+      // Lock the trip first and re-check its state under the lock. The check
+      // above ran outside the transaction; without this, a cancel committed in
+      // between would be silently overwritten (the cancelled trip comes back
+      // IN_PROGRESS), and two concurrent assignments of the same trip would
+      // each grab a vehicle, leaving the first one ON_TRIP with no trip.
+      // Lock order trip → driver → vehicle, same as finish/cancel (trip only).
+      await tripsRepository.lockTrip(id, tx);
+      const lockedTrip = await tripsRepository.findById(id, tx);
+      if (!lockedTrip) throw new NotFoundError(`No se encontró el viaje ${id}`);
+      if (lockedTrip.status !== 'PENDING_ASSIGNMENT') {
+        throw new BusinessRuleError('Este viaje no está pendiente de asignación');
+      }
+
       // Lock the driver, then re-check availability under the lock (RN-19/RN-6:
       // no other active trip). RN-6 reduces to RN-19 here because assignment
       // starts the trip immediately, so a driver can hold only one at a time.

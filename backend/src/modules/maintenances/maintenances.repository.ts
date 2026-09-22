@@ -81,6 +81,18 @@ export const maintenancesRepository = {
     await tx.$queryRaw`SELECT id FROM vehicles WHERE id = ${vehicleId} FOR UPDATE`;
   },
 
+  /**
+   * Row-lock the maintenance inside a transaction to serialize its state
+   * transitions (start / complete / cancel). A plain read inside a transaction
+   * does NOT lock in InnoDB, so without this two operators acting at once can
+   * both see PENDING — e.g. a start and a cancel both succeed and the vehicle
+   * is left IN_WORKSHOP with its maintenance CANCELLED, with no way out from
+   * the app. Callers must re-read the row after taking the lock.
+   */
+  async lockMaintenance(id: number, tx: Prisma.TransactionClient): Promise<void> {
+    await tx.$queryRaw`SELECT id FROM maintenances WHERE id = ${id} FOR UPDATE`;
+  },
+
   create(data: Prisma.MaintenanceUncheckedCreateInput, db: DbClient = prisma) {
     return db.maintenance.create({ data, include: maintenanceInclude });
   },

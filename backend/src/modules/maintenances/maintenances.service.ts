@@ -1,4 +1,5 @@
 import { prisma } from '../../database/prisma-client';
+import type { Prisma } from '../../generated/prisma/client';
 import { BusinessRuleError, ConflictError, NotFoundError } from '../../shared/errors/app-error';
 import { safeUnlink, storeFile } from '../../shared/utils/files';
 import type { PaginatedResult } from '../../shared/schemas';
@@ -67,6 +68,22 @@ function toAuditSnapshot(m: MaintenanceWithRelations) {
 
 async function getExistingOrFail(id: number): Promise<MaintenanceWithRelations> {
   const maintenance = await maintenancesRepository.findById(id);
+  if (!maintenance) throw new NotFoundError(`No se encontró el mantenimiento ${id}`);
+  return maintenance;
+}
+
+/**
+ * Locks the maintenance row and returns a fresh copy read under that lock.
+ * Every state transition decides from this copy, never from a read taken
+ * before the transaction, so concurrent transitions serialize instead of
+ * racing (see maintenancesRepository.lockMaintenance).
+ */
+async function lockAndReload(
+  id: number,
+  tx: Prisma.TransactionClient,
+): Promise<MaintenanceWithRelations> {
+  await maintenancesRepository.lockMaintenance(id, tx);
+  const maintenance = await maintenancesRepository.findById(id, tx);
   if (!maintenance) throw new NotFoundError(`No se encontró el mantenimiento ${id}`);
   return maintenance;
 }
@@ -195,21 +212,29 @@ export const maintenancesService = {
    * PENDING → IN_PROGRESS. Effect: vehicle AVAILABLE → IN_WORKSHOP (F-6).
    * The vehicle must be AVAILABLE — a unit on a trip or already inactive
    * cannot enter the workshop.
+   *
+   * Both rows are locked (maintenance, then vehicle) and re-read before the
+   * checks: the maintenance lock serializes against a concurrent cancel or
+   * double start; the vehicle lock against a trip assignment grabbing the
+   * same unit (assign locks vehicles FOR UPDATE SKIP LOCKED).
    */
   async start(id: number, actorId: number): Promise<MaintenanceResponse> {
-    const existing = await getExistingOrFail(id);
-    if (existing.status !== 'PENDING') {
-      throw new BusinessRuleError('Solo se pueden iniciar mantenimientos pendientes');
-    }
-    const vehicle = await vehiclesRepository.findById(existing.vehicleId);
-    if (!vehicle) throw new NotFoundError(`No se encontró el vehículo ${existing.vehicleId}`);
-    if (vehicle.status !== 'AVAILABLE') {
-      throw new BusinessRuleError(
-        'El vehículo debe estar disponible para iniciar el mantenimiento',
-      );
-    }
+    await getExistingOrFail(id);
 
     const updated = await prisma.$transaction(async (tx) => {
+      const existing = await lockAndReload(id, tx);
+      if (existing.status !== 'PENDING') {
+        throw new BusinessRuleError('Solo se pueden iniciar mantenimientos pendientes');
+      }
+      await maintenancesRepository.lockVehicle(existing.vehicleId, tx);
+      const vehicle = await vehiclesRepository.findById(existing.vehicleId, tx);
+      if (!vehicle) throw new NotFoundError(`No se encontró el vehículo ${existing.vehicleId}`);
+      if (vehicle.status !== 'AVAILABLE') {
+        throw new BusinessRuleError(
+          'El vehículo debe estar disponible para iniciar el mantenimiento',
+        );
+      }
+
       const maintenance = await maintenancesRepository.update(id, { status: 'IN_PROGRESS' }, tx);
       await vehiclesRepository.update(existing.vehicleId, { status: 'IN_WORKSHOP' }, tx);
       await auditLogsService.record(
@@ -231,17 +256,18 @@ export const maintenancesService = {
   /**
    * IN_PROGRESS → COMPLETED. Effects (RN-9, F-6): vehicle IN_WORKSHOP →
    * AVAILABLE, lastMaintenanceDate updated, maintenance moves to history.
+   * Locked and re-read so a concurrent cancel cannot also apply its effects.
    */
   async complete(id: number, actorId: number): Promise<MaintenanceResponse> {
-    const existing = await getExistingOrFail(id);
-    if (existing.status !== 'IN_PROGRESS') {
-      throw new BusinessRuleError(
-        'Solo se pueden finalizar mantenimientos en curso',
-      );
-    }
+    await getExistingOrFail(id);
 
     const now = new Date();
     const updated = await prisma.$transaction(async (tx) => {
+      const existing = await lockAndReload(id, tx);
+      if (existing.status !== 'IN_PROGRESS') {
+        throw new BusinessRuleError('Solo se pueden finalizar mantenimientos en curso');
+      }
+
       const maintenance = await maintenancesRepository.update(
         id,
         { status: 'COMPLETED', completedAt: now },
@@ -272,14 +298,14 @@ export const maintenancesService = {
   /**
    * PENDING/IN_PROGRESS → CANCELLED (F-2). Cancelling one that is IN_PROGRESS
    * releases the vehicle (IN_WORKSHOP → AVAILABLE) without touching
-   * lastMaintenanceDate: the work was not done. Re-read under the transaction
-   * so a concurrent start/complete cannot slip past the state check.
+   * lastMaintenanceDate: the work was not done. The row is locked and re-read
+   * first: deciding whether to release the vehicle from a stale PENDING read
+   * is exactly what would strand it IN_WORKSHOP after a concurrent start.
    */
   async cancel(id: number, actorId: number): Promise<MaintenanceResponse> {
     await getExistingOrFail(id);
     const updated = await prisma.$transaction(async (tx) => {
-      const existing = await maintenancesRepository.findById(id, tx);
-      if (!existing) throw new NotFoundError(`No se encontró el mantenimiento ${id}`);
+      const existing = await lockAndReload(id, tx);
       if (existing.status !== 'PENDING' && existing.status !== 'IN_PROGRESS') {
         throw new BusinessRuleError('Solo se pueden cancelar mantenimientos pendientes o en curso');
       }

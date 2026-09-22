@@ -120,10 +120,11 @@ export const tripsRepository = {
   },
 
   /**
-   * Row-lock the trip inside a transaction to serialize concurrent finishes
-   * (driver and operator closing the same trip at once): without this, both
-   * read IN_PROGRESS and apply the effects twice (double odometer write,
-   * double increment of the driver's stats).
+   * Row-lock the trip inside a transaction to serialize its state transitions
+   * (assign / finish / cancel). Without it, two of them can both read the same
+   * state and apply their effects — e.g. driver and operator finishing at once
+   * (double odometer write, double stats increment), or an assignment
+   * overwriting a cancel. Callers must re-read the trip after taking the lock.
    */
   async lockTrip(id: number, tx: Prisma.TransactionClient): Promise<void> {
     await tx.$queryRaw`SELECT id FROM trips WHERE id = ${id} FOR UPDATE`;
