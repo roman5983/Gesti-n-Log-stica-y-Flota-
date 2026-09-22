@@ -839,6 +839,8 @@ if (!doc || doc.driverId !== driverId) {
 
 ### 11.7.3. `create` y la compensación de archivos (líneas 78-128)
 
+> ⚠️ **Cambio posterior (2026-09-23): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
+
 ```ts
 96   const stored = await storeFile('documents', file.originalname, file.buffer);
 97   try {
@@ -981,6 +983,8 @@ await prisma.$transaction(async (tx) => {
 **Dos políticas opuestas para dos tipos de archivo, y solo una está justificada por escrito.**
 
 ### 11.7.6. `download` y la entrega del archivo
+
+> ⚠️ **Cambio posterior (2026-09-23): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
 
 ```ts
 64 async download(req: Request, res: Response, next: NextFunction): Promise<void> {

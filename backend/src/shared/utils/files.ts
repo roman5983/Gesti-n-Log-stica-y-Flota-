@@ -1,40 +1,35 @@
-import { randomUUID } from 'node:crypto';
-import path from 'node:path';
-import fs from 'node:fs/promises';
-import { UPLOAD_ROOT } from '../../config/constants';
+import type { Response } from 'express';
 
+/**
+ * Uploaded files (driver documents, maintenance receipts) live in the
+ * database, next to their metadata — not on disk. Hosting platforms such as
+ * Render's free tier wipe the local filesystem on every deploy or restart,
+ * and files are small (<= 1 MB, F-9), so a MEDIUMBLOB column is enough.
+ * Storing them in the same row also makes an upload atomic: bytes, metadata
+ * and audit entry are written in one transaction, with nothing to roll back
+ * on disk if the database write fails.
+ */
 export interface StoredFile {
-  /** Relative path on disk, persisted as metadata. */
-  filePath: string;
+  fileName: string;
+  mimeType: string;
+  content: Uint8Array;
 }
 
 /**
- * Persist an in-memory upload to disk under uploads/<subfolder>/ with a
- * random, collision-free name (the original name is kept as DB metadata).
- * Only called after size/MIME validation has passed.
+ * Bytes of an upload as Prisma's `Bytes` column expects them. Multer's Buffer
+ * may be a view over Node's shared memory pool (ArrayBufferLike); Prisma
+ * wants a Uint8Array over a plain ArrayBuffer — copying (<= 1 MB) settles it.
  */
-export async function storeFile(
-  subfolder: string,
-  originalName: string,
-  buffer: Buffer,
-): Promise<StoredFile> {
-  const dir = path.join(UPLOAD_ROOT, subfolder);
-  await fs.mkdir(dir, { recursive: true });
-  const ext = path.extname(originalName).toLowerCase();
-  const filePath = path.join(dir, `${randomUUID()}${ext}`);
-  await fs.writeFile(filePath, buffer);
-  return { filePath };
+export function toBytes(buffer: Buffer): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(buffer);
 }
 
 /**
- * Best-effort deletion of a stored file. Used to roll back when the
- * accompanying DB write fails (files live outside the DB transaction).
- * Never throws: a missing file is a no-op.
+ * Send a stored file inline (viewable in the browser; the original name is
+ * offered when saving). Shared by the document and attachment downloads.
  */
-export async function safeUnlink(filePath: string): Promise<void> {
-  try {
-    await fs.unlink(filePath);
-  } catch {
-    // Already gone or never written — nothing to undo.
-  }
+export function sendStoredFile(res: Response, file: StoredFile): void {
+  res.type(file.mimeType);
+  res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
+  res.send(Buffer.from(file.content.buffer, file.content.byteOffset, file.content.byteLength));
 }

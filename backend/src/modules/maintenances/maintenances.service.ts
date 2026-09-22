@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma-client';
 import type { Prisma } from '../../generated/prisma/client';
 import { BusinessRuleError, ConflictError, NotFoundError } from '../../shared/errors/app-error';
-import { safeUnlink, storeFile } from '../../shared/utils/files';
+import { toBytes, type StoredFile } from '../../shared/utils/files';
 import type { PaginatedResult } from '../../shared/schemas';
 import { auditLogsService } from '../audit-logs/audit-logs.service';
 import { vehiclesRepository } from '../vehicles/vehicles.repository';
@@ -332,8 +332,8 @@ export const maintenancesService = {
 
   /**
    * Attach a receipt (F-9). The upload is validated in memory (size/MIME);
-   * here we persist it to disk and record its metadata. If the DB write
-   * fails, the just-written file is removed so no orphan is left behind.
+   * here we store it — bytes and metadata in the same row — together with
+   * the audit entry, in one transaction.
    *
    * Intentionally allowed even when the maintenance is COMPLETED: RN-22
    * protects the maintenance RECORD (km, dates, type, status), not its
@@ -349,57 +349,51 @@ export const maintenancesService = {
     actorId: number,
   ): Promise<MaintenanceResponse> {
     const existing = await getExistingOrFail(id);
-    const stored = await storeFile('maintenances', file.originalname, file.buffer);
-    try {
-      await prisma.$transaction(async (tx) => {
-        await maintenancesRepository.addAttachment(
-          {
-            maintenanceId: existing.id,
-            fileName: file.originalname,
-            filePath: stored.filePath,
-            mimeType: file.mimetype,
-            fileSize: file.size,
-          },
-          tx,
-        );
-        await auditLogsService.record(
-          {
-            actorId,
-            action: 'UPDATE',
-            entity: 'MAINTENANCE',
-            entityId: id,
-            newData: { attachmentAdded: file.originalname },
-          },
-          tx,
-        );
-      });
-    } catch (err) {
-      await safeUnlink(stored.filePath); // roll back the just-written file
-      throw err;
-    }
+    await prisma.$transaction(async (tx) => {
+      await maintenancesRepository.addAttachment(
+        {
+          maintenanceId: existing.id,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          content: toBytes(file.buffer),
+        },
+        tx,
+      );
+      await auditLogsService.record(
+        {
+          actorId,
+          action: 'UPDATE',
+          entity: 'MAINTENANCE',
+          entityId: id,
+          newData: { attachmentAdded: file.originalname },
+        },
+        tx,
+      );
+    });
     return toResponse((await maintenancesRepository.findById(id))!);
   },
 
   /**
-   * Resolve an attachment for download: returns the metadata the controller
-   * needs to stream the file (path on disk, original name, MIME type).
+   * Resolve an attachment for download (bytes, original name, MIME type).
    * Scoped to the maintenance so an attachment id from another record
    * cannot be fetched through this maintenance.
    */
   async getAttachment(
     maintenanceId: number,
     attachmentId: number,
-  ): Promise<{ filePath: string; fileName: string; mimeType: string }> {
+  ): Promise<StoredFile> {
     const attachment = await maintenancesRepository.findAttachment(attachmentId, maintenanceId);
     if (!attachment) {
       throw new NotFoundError(
         `No se encontró el adjunto ${attachmentId} del mantenimiento ${maintenanceId}`,
       );
     }
+    if (!attachment.content) throw new NotFoundError('El archivo ya no está disponible');
     return {
-      filePath: attachment.filePath,
       fileName: attachment.fileName,
       mimeType: attachment.mimeType,
+      content: attachment.content,
     };
   },
 };

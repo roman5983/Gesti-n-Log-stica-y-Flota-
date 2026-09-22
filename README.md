@@ -86,7 +86,7 @@ Variables de entorno necesarias (ver `backend/.env.example`): conexión a MySQL,
 ```bash
 cd frontend
 npm install
-cp .env.example .env          # VITE_API_URL (y opcional VITE_GOOGLE_MAPS_API_KEY)
+cp .env.example .env          # opcional: VITE_GOOGLE_MAPS_API_KEY (la API se alcanza por el proxy de Vite)
 npm run dev                   # http://localhost:5173
 ```
 
@@ -102,7 +102,32 @@ npm run prisma:deploy         # aplica las migraciones pendientes; nunca borra d
 NODE_ENV=production npm start # node dist/server.js
 ```
 
-En producción se usa `prisma migrate deploy`, no `migrate dev`: este último puede ofrecer resetear la base si detecta diferencias. El servidor debe arrancarse desde la carpeta `backend/`, porque los archivos subidos se guardan en `backend/uploads/`.
+En producción se usa `prisma migrate deploy`, no `migrate dev`: este último puede ofrecer resetear la base si detecta diferencias. Los archivos subidos (documentos y comprobantes) se guardan en la base de datos, así que el servidor no necesita disco persistente.
+
+### Deploy (Vercel + Render)
+
+```mermaid
+flowchart LR
+    B[Navegador] -->|"/ y /api/*"| V[Vercel<br/>frontend estático]
+    V -->|"/api/* (rewrite)"| R[Render<br/>backend Node]
+    R --> DB[(MySQL)]
+```
+
+El navegador habla solo con Vercel. Vercel sirve el frontend y reenvía `/api/*` al backend en Render (`frontend/vercel.json`). En desarrollo, el proxy de Vite hace lo mismo con `localhost:3000` (`frontend/vite.config.ts`). Así la cookie de sesión es del mismo sitio que la app. Si el frontend llamara directo a `onrender.com`, sería una cookie de terceros: Safari la bloquea y la sesión se perdería en cada recarga.
+
+1. **Base de datos:** una instancia de MySQL 8 accesible desde internet. Su URL de conexión va en `DATABASE_URL`.
+2. **Backend (Render):** *New → Blueprint* sobre este repositorio. Toma `render.yaml`, que define build, arranque, health check y variables. Render pide las que no puede generar:
+   - `DATABASE_URL`;
+   - `PASSWORD_ENCRYPTION_KEY`, que se genera con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`;
+   - `CORS_ORIGIN` y `APP_URL`: las dos con la URL de Vercel.
+
+   Las migraciones se aplican solas al arrancar. El seed de demostración se corre una vez desde la *Shell* del servicio: `npx prisma db seed`.
+3. **Frontend (Vercel):** *Add New → Project*, con *Root Directory* `frontend`. El resto lo detecta solo (Vite). No necesita variables de entorno. Si Render le asignó al servicio una URL distinta de `gestion-logistica-api.onrender.com`, hay que corregirla en `frontend/vercel.json`.
+4. **Calibrar `TRUST_PROXY`:** entrar a la app desplegada y buscar el pedido de login en los logs de Render. El campo `clientIp` tiene que coincidir con tu IP pública (por ejemplo, la que muestra `https://api.ipify.org`). Si muestra una IP de Vercel o de Render, subir el valor de a uno. Si falla, el límite de intentos de login trata a todos los usuarios como si fueran uno solo.
+
+Limitaciones del plan gratuito de Render:
+- El servicio se duerme tras 15 minutos sin tráfico, y el primer pedido después tarda alrededor de un minuto.
+- Mientras duerme, el job de alertas no corre. Las alertas pendientes se ponen al día en el primer ciclo después de despertar, o con "Evaluar alertas".
 
 ### Credenciales del seed
 
@@ -121,7 +146,7 @@ El seed carga una empresa con ~200 días de operación (más de 400 viajes, mant
 **Automatizadas (sin base de datos):**
 
 ```bash
-cd backend  && npm test      # 56 tests: crypto, fechas UTC, schemas, concurrencia de servicios, job de alertas, reglas del seed
+cd backend  && npm test      # 64 tests: crypto, fechas UTC, schemas, concurrencia de servicios, archivos en la base, job de alertas, seed
 cd frontend && npm test      # 25 tests: fechas, rutas por rol, auditoría (incluye un test de componente)
 ```
 

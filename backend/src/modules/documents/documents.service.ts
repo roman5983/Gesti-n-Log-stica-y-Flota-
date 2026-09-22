@@ -1,12 +1,11 @@
 import { prisma } from '../../database/prisma-client';
-import type { DriverDocument } from '../../generated/prisma/client';
 import { ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
 import { utcStartOfToday } from '../../shared/utils/dates';
-import { safeUnlink, storeFile } from '../../shared/utils/files';
 import type { AuthenticatedUser } from '../../shared/types/auth';
+import { toBytes, type StoredFile } from '../../shared/utils/files';
 import { auditLogsService } from '../audit-logs/audit-logs.service';
 import { driversRepository } from '../drivers/drivers.repository';
-import { documentsRepository } from './documents.repository';
+import { documentsRepository, type DocumentRow } from './documents.repository';
 import type { CreateDocumentDto, UpdateDocumentDto } from './documents.schemas';
 
 export interface DocumentResponse {
@@ -22,7 +21,7 @@ export interface DocumentResponse {
   uploadedAt: Date;
 }
 
-function toResponse(doc: DriverDocument): DocumentResponse {
+function toResponse(doc: DocumentRow): DocumentResponse {
   return {
     id: doc.id,
     driverId: doc.driverId,
@@ -36,7 +35,7 @@ function toResponse(doc: DriverDocument): DocumentResponse {
   };
 }
 
-function auditSnapshot(doc: DriverDocument) {
+function auditSnapshot(doc: DocumentRow) {
   return { driverId: doc.driverId, documentType: doc.documentType, expiryDate: doc.expiryDate };
 }
 
@@ -59,7 +58,7 @@ async function getDriverOrFail(driverId: number): Promise<void> {
 async function getOwnedDocumentOrFail(
   driverId: number,
   documentId: number,
-): Promise<DriverDocument> {
+): Promise<DocumentRow> {
   const doc = await documentsRepository.findById(documentId);
   if (!doc || doc.driverId !== driverId) {
     throw new NotFoundError(`No se encontró el documento ${documentId} del chofer ${driverId}`);
@@ -93,38 +92,34 @@ export const documentsService = {
       );
     }
 
-    const stored = await storeFile('documents', file.originalname, file.buffer);
-    try {
-      const created = await prisma.$transaction(async (tx) => {
-        const doc = await documentsRepository.create(
-          {
-            driverId,
-            documentType: dto.documentType,
-            expiryDate: dto.expiryDate,
-            fileName: file.originalname,
-            filePath: stored.filePath,
-            mimeType: file.mimetype,
-            fileSize: file.size,
-          },
-          tx,
-        );
-        await auditLogsService.record(
-          {
-            actorId: actor.id,
-            action: 'CREATE',
-            entity: 'DRIVER_DOCUMENT',
-            entityId: doc.id,
-            newData: auditSnapshot(doc),
-          },
-          tx,
-        );
-        return doc;
-      });
-      return toResponse(created);
-    } catch (err) {
-      await safeUnlink(stored.filePath);
-      throw err;
-    }
+    // The bytes go in the same row, inside the same transaction as the
+    // metadata and the audit entry: either all of it is stored or none.
+    const created = await prisma.$transaction(async (tx) => {
+      const doc = await documentsRepository.create(
+        {
+          driverId,
+          documentType: dto.documentType,
+          expiryDate: dto.expiryDate,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          fileSize: file.size,
+          content: toBytes(file.buffer),
+        },
+        tx,
+      );
+      await auditLogsService.record(
+        {
+          actorId: actor.id,
+          action: 'CREATE',
+          entity: 'DRIVER_DOCUMENT',
+          entityId: doc.id,
+          newData: auditSnapshot(doc),
+        },
+        tx,
+      );
+      return doc;
+    });
+    return toResponse(created);
   },
 
   /** Update document metadata (type/expiry). To replace the file, upload a new one. */
@@ -201,9 +196,13 @@ export const documentsService = {
     driverId: number,
     documentId: number,
     actor: AuthenticatedUser,
-  ): Promise<{ filePath: string; fileName: string; mimeType: string }> {
+  ): Promise<StoredFile> {
     assertCanAccess(actor, driverId);
-    const doc = await getOwnedDocumentOrFail(driverId, documentId);
-    return { filePath: doc.filePath, fileName: doc.fileName, mimeType: doc.mimeType };
+    const doc = await documentsRepository.findContent(documentId);
+    if (!doc || doc.driverId !== driverId) {
+      throw new NotFoundError(`No se encontró el documento ${documentId} del chofer ${driverId}`);
+    }
+    if (!doc.content) throw new NotFoundError('El archivo ya no está disponible');
+    return { fileName: doc.fileName, mimeType: doc.mimeType, content: doc.content };
   },
 };

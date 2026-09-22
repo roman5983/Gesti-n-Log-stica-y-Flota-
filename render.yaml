@@ -1,0 +1,40 @@
+# Render Blueprint — backend API (see README, "Deploy").
+# The frontend is deployed on Vercel (frontend/vercel.json), which proxies
+# /api/* to this service so the browser only ever talks to one origin.
+services:
+  - type: web
+    name: gestion-logistica-api # public URL: https://<name>.onrender.com — must match frontend/vercel.json
+    runtime: node
+    plan: free
+    rootDir: backend
+    # NODE_ENV=production makes `npm ci` skip devDependencies, but the build
+    # needs TypeScript: --include=dev keeps them for this step.
+    buildCommand: npm ci --include=dev && npm run build
+    # Free instances have no pre-deploy command: pending migrations are
+    # applied on start (`migrate deploy` never resets data; it is a no-op
+    # when the schema is up to date).
+    startCommand: npm run prisma:deploy && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Browser → Vercel (proxy) → Render (load balancer) → app. Calibrate
+      # with the `clientIp` field of the request logs (README, "Deploy").
+      - key: TRUST_PROXY
+        value: "2"
+      - key: ALERTS_EVAL_INTERVAL_MIN
+        value: "10"
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Values that only exist once the database and the frontend do:
+      # Render asks for them when the Blueprint is created.
+      - key: DATABASE_URL
+        sync: false
+      - key: PASSWORD_ENCRYPTION_KEY # 64 hex chars (Render's generateValue is not hex)
+        sync: false
+      - key: CORS_ORIGIN # the Vercel URL, e.g. https://gestion-logistica.vercel.app
+        sync: false
+      - key: APP_URL # same Vercel URL: login link in the credentials email
+        sync: false

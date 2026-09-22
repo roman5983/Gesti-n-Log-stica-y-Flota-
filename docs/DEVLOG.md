@@ -494,3 +494,72 @@ dos fallas encadenadas:
 **Después de hacer pull:** correr `npm install` en `backend/`. Eso regenera el cliente de Prisma
 (`src/generated/` no está en el repo) con el nuevo formato; sin ese paso, `npm run build` sigue
 produciendo el binario roto.
+
+---
+
+# Deploy: proxy, trust proxy y archivos en la base
+
+Plataforma elegida: frontend en **Vercel** y backend en **Render** (plan gratuito). Hubo cuatro
+problemas que impedían que funcionara desplegado; los cuatro quedaron resueltos.
+
+**1. La sesión se perdía al recargar.** El refresh token viaja en una cookie `httpOnly` con
+`SameSite=Strict`. Con el frontend en `*.vercel.app` y la API en `*.onrender.com`, que son sitios
+distintos, el navegador no la manda. Pasarla a `SameSite=None` la convertiría en cookie de terceros,
+y Safari (el navegador del chofer en iPhone) las bloquea. **Solución:** el navegador habla con un
+solo origen. `frontend/vercel.json` reenvía `/api/*` a Render, y en desarrollo el proxy de Vite hace
+lo mismo con `localhost:3000`. El cliente HTTP usa `/api/v1` relativo por defecto, y `VITE_API_URL`
+quedó como override opcional. La cookie es de primera parte y conserva `SameSite=Strict`.
+Complementos:
+- la API responde `Cache-Control: no-store`: son datos por usuario y ningún CDN debe guardarlos;
+- `vercel.json` desactiva explícitamente el cacheo de los rewrites.
+
+**2. El límite de intentos de login no distinguía clientes.** Detrás de proxies, la IP del socket es la
+del proxy. Sin `trust proxy`, el limitador de login contaría a todos como un único cliente y, tras 10
+intentos, bloquearía el login de todo el mundo. **Solución:** `TRUST_PROXY` (cantidad de saltos) en la
+configuración validada, con `app.set('trust proxy', n)`. Vale 0 en desarrollo y 2 en Render: Vercel
+fija `X-Forwarded-For` con la IP del cliente y Render agrega la de Vercel. Cada log de pedido incluye
+`clientIp` (la IP que ve el limitador) para calibrar el valor en el deploy real.
+
+Riesgo residual documentado: la URL de Render sigue siendo accesible directamente. Por ese camino, un
+cliente puede falsear el `X-Forwarded-For` y rotar su IP aparente. Cerrarlo exige autenticar al proxy
+(un secreto compartido), algo que los rewrites de Vercel no permiten sin middleware propio.
+
+**3. Los archivos subidos se perdían.** El disco de Render (plan gratuito) es efímero: se borra en cada
+deploy, reinicio o suspensión, y ese plan no admite disco persistente. **Solución:** los bytes pasaron
+a la base, en la columna `content MEDIUMBLOB` de `driver_documents` y `maintenance_attachments`
+(migración `20260923120000_store_files_in_db`). Esto revisa la decisión 3 del DER; la justificación
+está en `etapa-2-der-definitivo.md` §4. Detalles:
+- los repositorios nunca traen `content` salvo en la descarga (`omit` en listados, altas y
+  modificaciones, porque Prisma devuelve la fila entera también al crear o actualizar);
+- la subida guarda bytes, metadata y auditoría en una sola transacción, así que desaparece la
+  compensación de archivos en disco (`storeFile`/`safeUnlink`);
+- `content` es nullable solo por las filas previas a la migración. La descarga las informa como
+  "El archivo ya no está disponible", igual que antes cuando faltaba el archivo en disco.
+
+De paso, el seed guarda **PDFs de muestra reales**, generados sin dependencias (`prisma/sample-pdf.ts`).
+Antes, los documentos sembrados apuntaban a archivos inexistentes y abrirlos daba error.
+
+**4. Recargar una ruta del frontend daba 404.** `vercel.json` agrega el fallback de SPA: cualquier ruta
+que no sea un archivo estático sirve `index.html`.
+
+**Infraestructura como código.** `render.yaml` (Blueprint) define build, arranque, health check y
+variables. El build usa `npm ci --include=dev` porque `NODE_ENV=production` omitiría TypeScript. Las
+migraciones corren al arrancar (`prisma migrate deploy`), porque el plan gratuito no tiene comando de
+pre-deploy. El paso a paso está en el README, sección "Deploy".
+
+**Verificación** (copia aparte, sin MySQL):
+- tsc, ESLint y 64 tests en backend, con dos archivos nuevos: `documents.service.test.ts` (archivos en
+  la base, filas previas sin archivo y acceso ajeno) y `sample-pdf.test.ts` (estructura y offsets del PDF);
+- el PDF generado lo validan `qpdf --check` y `pdftotext`, con acentos;
+- el servidor compilado con `TRUST_PROXY=2` resuelve `clientIp` al primer valor del `X-Forwarded-For`;
+- el proxy de Vite llega al backend y la respuesta trae `no-store`;
+- el build del frontend no contiene `localhost:3000`.
+
+**Después de hacer pull:** en `backend/`, correr `npm install`, `npx prisma migrate dev` y
+`npx prisma db seed`. Los archivos subidos a mano antes de la migración quedan sin contenido. En
+`frontend/.env`, `VITE_API_URL` ya no hace falta.
+
+**Nota sobre el lockfile del frontend:** con npm 10, `npm ci` en `frontend/` reporta el lockfile
+desincronizado (faltan `esbuild` y `yaml` como *peers* opcionales de la versión de Vite que trae
+Vitest). Es una diferencia entre versiones de npm, no un error del proyecto: Vercel usa `npm install`.
+Se puede normalizar regenerando el lockfile con la versión de npm que use el equipo.

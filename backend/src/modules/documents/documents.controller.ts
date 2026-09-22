@@ -1,6 +1,6 @@
-import path from 'node:path';
 import type { NextFunction, Request, Response } from 'express';
-import { BadRequestError, NotFoundError } from '../../shared/errors/app-error';
+import { BadRequestError } from '../../shared/errors/app-error';
+import { sendStoredFile } from '../../shared/utils/files';
 import { documentsService } from './documents.service';
 import type { CreateDocumentDto, UpdateDocumentDto } from './documents.schemas';
 
@@ -68,11 +68,7 @@ export const documentsController = {
         documentId: number;
       };
       const file = await documentsService.getForDownload(driverId, documentId, req.user!);
-      res.type(file.mimeType);
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
-      res.sendFile(path.resolve(file.filePath), (err) => {
-        if (err && !res.headersSent) next(new NotFoundError('El archivo ya no está disponible'));
-      });
+      sendStoredFile(res, file);
     } catch (err) {
       next(err);
     }

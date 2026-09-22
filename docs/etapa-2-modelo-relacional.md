@@ -19,7 +19,7 @@ chofer         (_#usuario_id_, dni, categoria_licencia, fecha_vencimiento_licenc
                 -- PK = FK: especialización 1:1 de usuario
 
 documentacion  (_id_documentacion_, #chofer_id, tipo_documento, fecha_vencimiento,
-                nombre_archivo, ruta_archivo, mime_type, tamano_bytes,
+                nombre_archivo, mime_type, tamano_bytes, contenido,
                 fecha_subida, fecha_eliminacion)
 
 vehiculo       (_id_vehiculo_, patente, modelo, anio, km_inicial, km_acumulado,
@@ -34,7 +34,7 @@ mantenimiento  (_id_mantenimiento_, #vehiculo_id, #tipo_mantenimiento_id, estado
                 proximo_mantenimiento_km, created_at, updated_at)
 
 mantenimiento_adjunto (_id_adjunto_, #mantenimiento_id, nombre_archivo,
-                ruta_archivo, mime_type, tamano_bytes, fecha_subida)
+                mime_type, tamano_bytes, contenido, fecha_subida)
 
 viaje          (_id_viaje_, origen, destino, fecha_hora_salida, estado,
                 distancia_estimada_km, tiempo_estimado_min, observaciones,

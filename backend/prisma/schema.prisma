@@ -129,9 +129,12 @@ model DriverDocument {
   documentType DocumentType @map("document_type")
   expiryDate   DateTime     @map("expiry_date") @db.Date
   fileName     String       @map("file_name") @db.VarChar(255)
-  filePath     String       @map("file_path") @db.VarChar(500)
   mimeType     String       @map("mime_type") @db.VarChar(50)
   fileSize     Int          @map("file_size") @db.UnsignedInt
+  /// File bytes (<= 1 MB, F-9). Kept in the DB, not on disk: hosting disks are
+  /// ephemeral. Null only for rows uploaded before this change (file lost).
+  /// Omitted from every read except the download (see documents.repository).
+  content      Bytes?       @db.MediumBlob
   uploadedAt   DateTime     @default(now()) @map("uploaded_at")
   deletedAt    DateTime?    @map("deleted_at")
 
@@ -205,9 +208,10 @@ model MaintenanceAttachment {
   id            Int      @id @default(autoincrement()) @db.UnsignedInt
   maintenanceId Int      @map("maintenance_id") @db.UnsignedInt
   fileName      String   @map("file_name") @db.VarChar(255)
-  filePath      String   @map("file_path") @db.VarChar(500)
   mimeType      String   @map("mime_type") @db.VarChar(50)
   fileSize      Int      @map("file_size") @db.UnsignedInt
+  /// File bytes, same policy as DriverDocument.content.
+  content       Bytes?   @db.MediumBlob
   uploadedAt    DateTime @default(now()) @map("uploaded_at")
 
   maintenance Maintenance @relation(fields: [maintenanceId], references: [id], onDelete: Cascade, map: "fk_maintenance_attachments_maintenance")

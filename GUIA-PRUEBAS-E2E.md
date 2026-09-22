@@ -64,7 +64,7 @@ Este recorrido sigue el ciclo completo de un viaje, tocando los tres roles. Hace
 4. Editá ese usuario, desactivalo con el toggle y volvé a activarlo. Luego eliminalo (baja lógica). **Esperado:** cada acción se refleja al instante.
 5. Andá a **Choferes**. **Esperado:** ves los 7 choferes del seed. Lucía aparece con el vencimiento de licencia en **rojo** y "Disponible: No"; Roberto tiene el chip **Inactivo** (dado de baja).
 6. En Juan Pérez, abrí **Credenciales** (ícono de llave) → *Ver contraseña*. **Esperado:** muestra la contraseña en claro (A-9). Esto queda registrado en auditoría.
-7. En **Diego Sosa**, abrí **Documentación** (ícono de documento). Subí un archivo: tipo **Psicofísico** (es el único que le falta), un vencimiento futuro, elegí un PDF/JPG/PNG (< 1 MB). **Esperado:** el documento aparece listado; podés abrirlo con el ícono de "abrir". (Los documentos que ya trae el seed son de muestra: el archivo en sí no existe en disco, así que abrirlos da error.)
+7. En **Diego Sosa**, abrí **Documentación** (ícono de documento). Subí un archivo: tipo **Psicofísico** (es el único que le falta), un vencimiento futuro, elegí un PDF/JPG/PNG (< 1 MB). **Esperado:** el documento aparece listado; podés abrirlo con el ícono de "abrir". Los documentos que ya trae el seed también se abren: son PDFs de muestra con el nombre, el DNI y el vencimiento del chofer.
 
 ### 3.2 — Como OPERADOR: crear y asignar el viaje
 
@@ -81,7 +81,7 @@ Este recorrido sigue el ciclo completo de un viaje, tocando los tres roles. Hace
 2. En **Mi viaje**: **Esperado:** ves la hoja de ruta del viaje que asignó el operador (origen, destino, vehículo, salida).
 3. Clic en **Cerrar hoja de ruta**. Ingresá un kilometraje final **mayor** al inicial que muestra el diálogo → *Finalizar viaje*. **Esperado:** el viaje se cierra. (Probá poner un km menor: el botón queda deshabilitado y avisa que debe ser mayor — RN-5.)
 4. Andá a **Mi historial**. **Esperado:** el viaje recién cerrado aparece en tu historial.
-5. Andá a **Mi documentación**. **Esperado:** ves tus documentos con sus vencimientos (el ART de Juan figura por vencer). Es solo consulta: **no hay botón para subir ni para eliminar** — la documentación la carga el administrador.
+5. Andá a **Mi documentación**. **Esperado:** ves tus documentos con sus vencimientos (el ART de Juan figura por vencer). Es solo consulta: **no hay botón para subir ni para eliminar** — la documentación la carga el administrador. Abrí uno: se ve el PDF de muestra.
 
 ### 3.4 — Como ADMINISTRADOR: alertas, reportes y auditoría
 

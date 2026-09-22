@@ -1,14 +1,26 @@
 import { prisma } from '../../database/prisma-client';
-import type { DocumentType, DriverDocument, Prisma } from '../../generated/prisma/client';
+import type { DocumentType, Prisma } from '../../generated/prisma/client';
 import { utcStartOfToday } from '../../shared/utils/dates';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
+/**
+ * The file bytes (up to 1 MB each) are never loaded with the metadata:
+ * listings, updates and audit snapshots only need the metadata, and Prisma
+ * returns the whole row — blob included — from creates and updates too.
+ * Only findContent() reads them.
+ */
+const withoutContent = { content: true } as const;
+
+/** A document row as the app handles it: metadata only. */
+export type DocumentRow = Prisma.DriverDocumentGetPayload<{ omit: typeof withoutContent }>;
+
 /** Soft-delete convention (RN-20): every read filters deletedAt = null. */
 export const documentsRepository = {
-  findByDriver(driverId: number): Promise<DriverDocument[]> {
+  findByDriver(driverId: number): Promise<DocumentRow[]> {
     return prisma.driverDocument.findMany({
       where: { driverId, deletedAt: null },
       orderBy: { id: 'asc' },
+      omit: withoutContent,
     });
   },
 
@@ -48,19 +60,38 @@ export const documentsRepository = {
     return existing !== null;
   },
 
-  findById(id: number, db: DbClient = prisma): Promise<DriverDocument | null> {
-    return db.driverDocument.findFirst({ where: { id, deletedAt: null } });
+  findById(id: number, db: DbClient = prisma): Promise<DocumentRow | null> {
+    return db.driverDocument.findFirst({ where: { id, deletedAt: null }, omit: withoutContent });
   },
 
-  create(data: Prisma.DriverDocumentUncheckedCreateInput, db: DbClient = prisma) {
-    return db.driverDocument.create({ data });
+  /** The file itself, for download. Null content = uploaded before files moved into the DB. */
+  findContent(id: number) {
+    return prisma.driverDocument.findFirst({
+      where: { id, deletedAt: null },
+      select: { driverId: true, fileName: true, mimeType: true, content: true },
+    });
   },
 
-  update(id: number, data: Prisma.DriverDocumentUpdateInput, db: DbClient = prisma) {
-    return db.driverDocument.update({ where: { id }, data });
+  create(
+    data: Prisma.DriverDocumentUncheckedCreateInput,
+    db: DbClient = prisma,
+  ): Promise<DocumentRow> {
+    return db.driverDocument.create({ data, omit: withoutContent });
   },
 
-  softDelete(id: number, db: DbClient = prisma) {
-    return db.driverDocument.update({ where: { id }, data: { deletedAt: new Date() } });
+  update(
+    id: number,
+    data: Prisma.DriverDocumentUpdateInput,
+    db: DbClient = prisma,
+  ): Promise<DocumentRow> {
+    return db.driverDocument.update({ where: { id }, data, omit: withoutContent });
+  },
+
+  softDelete(id: number, db: DbClient = prisma): Promise<DocumentRow> {
+    return db.driverDocument.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+      omit: withoutContent,
+    });
   },
 };

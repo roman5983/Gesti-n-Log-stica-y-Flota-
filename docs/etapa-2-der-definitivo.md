@@ -46,7 +46,7 @@ erDiagram
         enum tipo_documento "DNI|LICENCIA|ART|PSICOFISICO"
         date fecha_vencimiento
         string nombre_archivo
-        string ruta_archivo
+        blob contenido "<= 1 MB"
         int tamano_bytes "<= 1 MB"
     }
     VEHICULO {
@@ -164,7 +164,7 @@ Entidades sin relaciones: `CONFIGURACION` (fila única con datos de empresa y pr
 | tipo_documento | ENUM('DNI','LICENCIA','ART','PSICOFISICO') | NOT NULL | LICENCIA = copia digitalizada; la vigencia legal vive en `chofer` (C-2) |
 | fecha_vencimiento | DATE | NOT NULL | Dispara alertas 2 semanas antes (RN-17) |
 | nombre_archivo | VARCHAR(255) | NOT NULL | Nombre original |
-| ruta_archivo | VARCHAR(500) | NOT NULL | Ruta en filesystem del servidor |
+| contenido | MEDIUMBLOB | NULL | Bytes del archivo, guardados en la base (el disco del hosting es efímero). NULL solo en filas subidas antes de ese cambio |
 | mime_type | VARCHAR(50) | NOT NULL | Solo PDF/JPG/PNG (validado en app) |
 | tamano_bytes | INT UNSIGNED | NOT NULL, **CHECK ≤ 1.048.576** | F-9: máx. 1 MB |
 | fecha_subida | DATETIME | NOT NULL | — |
@@ -221,7 +221,8 @@ Tabla propia porque un mantenimiento admite **múltiples** comprobantes (mockup 
 |:-|:-|:-|
 | id_adjunto | INT UNSIGNED | **PK**, AUTO_INCREMENT |
 | mantenimiento_id | INT UNSIGNED | NOT NULL, **FK → mantenimiento** |
-| nombre_archivo / ruta_archivo / mime_type | VARCHAR | NOT NULL |
+| nombre_archivo / mime_type | VARCHAR | NOT NULL |
+| contenido | MEDIUMBLOB | NULL (ídem documentacion) |
 | tamano_bytes | INT UNSIGNED | NOT NULL, **CHECK ≤ 1.048.576** (F-9) |
 | fecha_subida | DATETIME | NOT NULL |
 
@@ -314,7 +315,7 @@ Soporte del RNF de autenticación (revocación de sesiones): id PK, usuario_id F
 
 1. **Especialización usuario/chofer con PK compartida** — 1:1 real a nivel BD, sin joins polimórficos; los otros subtipos no tienen atributos → el rol ENUM basta.
 2. **Estados como ENUM** (vehículo, viaje, mantenimiento, alerta) — dominio cerrado por el documento funcional; el ENUM lo hace imposible de violar desde cualquier cliente SQL. `tipo_alerta` es la excepción deliberada (VARCHAR) por C-4.
-3. **Archivos en filesystem, metadata en BD** — blobs en MySQL inflan la BD y complican backups (F-7); con 1 MB máx. y ruta en BD el servicio de archivos queda intercambiable (disco → S3) sin migrar datos.
+3. **Archivos en la BD (`contenido` MEDIUMBLOB), junto a su metadata** — *revisada el 2026-09-23; antes: "archivos en filesystem, ruta en BD".* La decisión original evitaba inflar la base, pero el hosting del deploy (Render, plan gratuito) tiene disco efímero: cada deploy o reinicio borraría los archivos. Con un tope de 1 MB por archivo (F-9) y un volumen bajo, guardar los bytes en MySQL es la opción más simple que persiste. No suma servicios externos, funciona igual en desarrollo y en producción, y la subida queda atómica: bytes, metadata y auditoría van en una sola transacción. El costo es una base más pesada y backups más grandes. Si el volumen creciera, lo indicado sería mover los bytes a un almacenamiento de objetos (S3 o similar) y dejar en la base solo la referencia. Las consultas nunca traen `contenido`, salvo la descarga (ver repositorios).
 4. **Snapshots en viaje (`km_salida`, `origen`)** — congelan los datos con los que se validó/creó el viaje; los históricos no cambian si el vehículo o la configuración cambian después.
 5. **Denormalización acotada (`viajes_realizados`, `promedio_km`)** — atributos exigidos por el documento; se actualizan en la misma transacción del cierre (RN-11), nunca por procesos externos.
 6. **Baja lógica con `fecha_eliminacion`** (RN-20) — más informativa que un boolean (cuándo), y distingue "desactivado" (activo=false, reversible, visible) de "eliminado" (oculto).

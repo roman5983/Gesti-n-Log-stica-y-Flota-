@@ -27,6 +27,11 @@ import { settingsRoutes } from './modules/settings/settings.routes';
 export function createApp(): express.Express {
   const app = express();
 
+  // Behind reverse proxies (Render, and Vercel in front of it) the socket
+  // address is the proxy's: req.ip must come from X-Forwarded-For, trusting
+  // exactly the configured number of hops (see env.TRUST_PROXY).
+  if (env.TRUST_PROXY > 0) app.set('trust proxy', env.TRUST_PROXY);
+
   // --- Global middlewares ---
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true })); // credentials: refresh cookie
@@ -36,6 +41,9 @@ export function createApp(): express.Express {
     pinoHttp({
       transport: isProduction ? undefined : { target: 'pino-pretty' },
       redact: ['req.headers.authorization', 'req.headers.cookie'], // never log credentials
+      // The client IP as Express resolves it (after trust proxy): the same
+      // value the rate limiter keys on — used to calibrate TRUST_PROXY.
+      customProps: (req) => ({ clientIp: (req as express.Request).ip }),
     }),
   );
 
@@ -46,6 +54,12 @@ export function createApp(): express.Express {
 
   // --- API v1 (Stage 1 convention: versioned REST) ---
   const apiV1 = express.Router();
+  // API responses are per-user and change constantly: no browser or CDN
+  // (the Vercel proxy in production) may store them.
+  apiV1.use((_req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
   apiV1.use('/auth', authRoutes);
   apiV1.use('/users', usersRoutes);
   apiV1.use('/drivers', driversRoutes);

@@ -23,6 +23,7 @@ import { prisma } from '../src/database/prisma-client';
 import type { Prisma } from '../src/generated/prisma/client';
 import { encrypt } from '../src/shared/utils/crypto';
 import { FIXED_TRIP_ORIGIN } from '../src/config/constants';
+import { samplePdf } from './sample-pdf';
 import {
   COMPANY_SETTINGS,
   DOCUMENTS,
@@ -33,12 +34,33 @@ import {
   buildAuditRows,
   buildHistory,
   type ActorKey,
+  type DocDef,
+  type DocType,
   type IdMaps,
   type VehicleKey,
 } from './seed-history';
 
 const BCRYPT_ROUNDS = 10;
 const BATCH = 200;
+
+const DOC_TITLES: Record<DocType, string> = {
+  DNI: 'Documento Nacional de Identidad',
+  LICENSE: 'Licencia de conducir',
+  ART: 'Constancia de ART',
+  PSYCHOPHYSICAL: 'Certificado psicofísico',
+};
+
+/** A real, downloadable PDF for each sample document (files live in the DB). */
+function sampleDocumentFile(doc: DocDef, expiry: Date): Uint8Array<ArrayBuffer> {
+  const driver = DRIVERS.find((d) => d.key === doc.driver)!;
+  return samplePdf(DOC_TITLES[doc.type], [
+    `Titular: ${driver.name}`,
+    `DNI: ${driver.dni}`,
+    `Vencimiento: ${expiry.toLocaleDateString('es-AR', { timeZone: 'UTC' })}`,
+    '',
+    'Documento de muestra generado por el seed. Datos ficticios.',
+  ]);
+}
 
 /** Runs creates in array transactions (fast, and ids come back in order). */
 async function createInBatches<T>(items: T[], create: (item: T) => Prisma.PrismaPromise<{ id: number }>): Promise<number[]> {
@@ -186,22 +208,24 @@ async function main(): Promise<void> {
 
   // --- Documents ----------------------------------------------------------------
   const documents: Record<string, number> = {};
-  const docIds = await createInBatches(DOCUMENTS, (doc) =>
-    prisma.driverDocument.create({
+  const docIds = await createInBatches(DOCUMENTS, (doc) => {
+    const expiryDate = clock.dateOnly(doc.expiryDays);
+    const content = sampleDocumentFile(doc, expiryDate);
+    return prisma.driverDocument.create({
       data: {
         driverId: users[doc.driver],
         documentType: doc.type,
-        expiryDate: clock.dateOnly(doc.expiryDays),
-        fileName: `${doc.type.toLowerCase()}.pdf`,
-        filePath: `uploads/documents/sample-${users[doc.driver]}-${doc.key}.pdf`,
+        expiryDate,
+        fileName: `${doc.key}.pdf`,
         mimeType: 'application/pdf',
-        fileSize: 1024,
+        fileSize: content.byteLength,
+        content,
         uploadedAt: clock.at(doc.uploadedDay, doc.deletedDay === undefined ? 10.5 : 10),
         deletedAt: doc.deletedDay === undefined ? null : clock.at(doc.deletedDay, 10),
       },
       select: { id: true },
-    }),
-  );
+    });
+  });
   DOCUMENTS.forEach((doc, i) => (documents[doc.key] = docIds[i]!));
 
   // --- Trips (in creation order, so ids grow with time) -----------------------

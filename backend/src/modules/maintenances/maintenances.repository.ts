@@ -5,7 +5,8 @@ import type { DbClient } from '../audit-logs/audit-logs.repository';
 const maintenanceInclude = {
   vehicle: { select: { id: true, licensePlate: true, model: true } },
   maintenanceType: { select: { id: true, name: true } },
-  attachments: true,
+  // Attachment metadata only: the file bytes are read by findAttachment alone.
+  attachments: { omit: { content: true } },
 } satisfies Prisma.MaintenanceInclude;
 
 export type MaintenanceWithRelations = Prisma.MaintenanceGetPayload<{
@@ -102,12 +103,14 @@ export const maintenancesRepository = {
   },
 
   addAttachment(data: Prisma.MaintenanceAttachmentUncheckedCreateInput, db: DbClient = prisma) {
-    return db.maintenanceAttachment.create({ data });
+    return db.maintenanceAttachment.create({ data, select: { id: true } });
   },
 
+  /** The file itself, for download. Null content = uploaded before files moved into the DB. */
   findAttachment(attachmentId: number, maintenanceId: number) {
     return prisma.maintenanceAttachment.findFirst({
       where: { id: attachmentId, maintenanceId },
+      select: { fileName: true, mimeType: true, content: true },
     });
   },
 };

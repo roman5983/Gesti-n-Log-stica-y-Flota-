@@ -33,6 +33,15 @@ const envSchema = z.object({
   /** Login URL included in the credentials email. */
   APP_URL: z.string().url().default('http://localhost:5173'),
 
+  /**
+   * Number of reverse proxies between the client and this process (Express
+   * "trust proxy" hop count). 0 = none (local dev). Behind proxies it must
+   * match the real chain, or req.ip becomes the proxy's address and the
+   * login rate limiter throttles everyone as a single client. Too high lets
+   * a client spoof its IP through X-Forwarded-For. See README (deploy).
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
+
   /** Minutes between automatic alert evaluations. 0 disables the job. */
   ALERTS_EVAL_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(10),
 });

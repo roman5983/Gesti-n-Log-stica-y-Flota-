@@ -1,6 +1,6 @@
-import path from 'node:path';
 import type { NextFunction, Request, Response } from 'express';
-import { BadRequestError, NotFoundError } from '../../shared/errors/app-error';
+import { BadRequestError } from '../../shared/errors/app-error';
+import { sendStoredFile } from '../../shared/utils/files';
 import { paginationMeta } from '../../shared/schemas';
 import { maintenancesService } from './maintenances.service';
 import type {
@@ -97,14 +97,8 @@ export const maintenancesController = {
     try {
       const { id, attachmentId } = req.params as unknown as { id: number; attachmentId: number };
       const file = await maintenancesService.getAttachment(id, attachmentId);
-      res.type(file.mimeType);
-      // inline so the receipt can be viewed in the browser (mockup: "visualizar");
-      // the original name is offered for saving.
-      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.fileName)}"`);
-      res.sendFile(path.resolve(file.filePath), (err) => {
-        // File recorded in DB but missing on disk (e.g. manual removal).
-        if (err && !res.headersSent) next(new NotFoundError('El archivo ya no está disponible'));
-      });
+      // inline so the receipt can be viewed in the browser (mockup: "visualizar").
+      sendStoredFile(res, file);
     } catch (err) {
       next(err);
     }

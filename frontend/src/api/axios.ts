@@ -2,7 +2,16 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 import { authStore } from '../stores/auth-store';
 import type { ApiError, LoginResponse } from './types';
 
-const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api/v1';
+/**
+ * Same-origin by default: the browser always talks to the host that served
+ * the SPA, and that host forwards /api to the backend (Vite's dev proxy
+ * locally, a Vercel rewrite in production — see vite.config.ts and
+ * vercel.json). The refresh cookie is then first-party with SameSite=Strict,
+ * which cross-site setups (Vercel + Render on different domains) cannot
+ * offer: browsers that block third-party cookies, like Safari, would log
+ * the user out on every reload. VITE_API_URL remains as an override.
+ */
+const baseURL = import.meta.env.VITE_API_URL || '/api/v1';
 
 /** Main API client. withCredentials so the refresh cookie travels. */
 export const api = axios.create({ baseURL, withCredentials: true });
