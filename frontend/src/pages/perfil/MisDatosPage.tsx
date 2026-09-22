@@ -15,7 +15,7 @@ import { StatusChip } from '../../components/StatusChip';
 import { authApi } from '../../api/auth.api';
 import { apiErrorMessage } from '../../api/axios';
 import type { UserProfile } from '../../api/types';
-import { formatDateOnly } from '../../utils/datetime';
+import { formatDateOnly, formatLocalDate } from '../../utils/datetime';
 
 const LICENSE_LABELS: Record<string, string> = {
   A: 'A — Motos',
@@ -78,7 +78,7 @@ export function MisDatosPage() {
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!profile) return null;
 
-  const memberSince = new Date(profile.createdAt).toLocaleDateString('es-AR', {
+  const memberSince = formatLocalDate(profile.createdAt, {
     day: '2-digit',
     month: 'long',
     year: 'numeric',

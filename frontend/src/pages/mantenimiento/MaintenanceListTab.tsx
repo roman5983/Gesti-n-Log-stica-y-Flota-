@@ -13,6 +13,7 @@ import { maintenancesApi, type Maintenance } from '../../api/maintenances.api';
 import { apiErrorMessage } from '../../api/axios';
 import { CreateMaintenanceDialog } from './CreateMaintenanceDialog';
 import { MaintenanceDetailDialog } from './MaintenanceDetailDialog';
+import { formatLocalDate } from '../../utils/datetime';
 
 /** Scheduled (PENDING+IN_PROGRESS) or history (COMPLETED+CANCELLED) list of maintenances. */
 export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) {
@@ -62,7 +63,7 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
     () => [
       { key: 'vehicle', label: 'Vehículo', render: (m) => m.vehicle.licensePlate },
       { key: 'type', label: 'Tipo', render: (m) => m.maintenanceType.name },
-      { key: 'scheduled', label: 'Programado', render: (m) => new Date(m.scheduledAt).toLocaleDateString('es-AR') },
+      { key: 'scheduled', label: 'Programado', render: (m) => formatLocalDate(m.scheduledAt) },
       { key: 'km', label: 'Km', align: 'right', render: (m) => m.km.toLocaleString('es-AR') },
       { key: 'status', label: 'Estado', render: (m) => <StatusChip status={m.status} /> },
       {

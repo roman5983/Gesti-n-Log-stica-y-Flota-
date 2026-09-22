@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateOnly, isoToLocalInput, localInputToIso } from './datetime';
+import { formatDateOnly, formatLocalDate, isoToLocalInput, localInputToIso } from './datetime';
 
 describe('datetime helpers (datetime-local ↔ ISO)', () => {
   it('round-trips a local input value without drift', () => {
@@ -44,5 +44,24 @@ describe('formatDateOnly (@db.Date fields)', () => {
 
   it('formats in es-AR day/month/year order', () => {
     expect(formatDateOnly('2026-03-15T00:00:00.000Z')).toBe('15/3/2026');
+  });
+});
+
+describe('formatLocalDate (instants shown as a day)', () => {
+  it('uses the local calendar day, not the UTC one', () => {
+    // 02:00 UTC is still the previous evening west of Greenwich. An instant
+    // must be shown on the day the user lived it — the opposite of @db.Date.
+    const iso = '2026-03-15T02:00:00.000Z';
+    const local = new Date(iso);
+    const [day, month, year] = formatLocalDate(iso).split('/').map(Number);
+    expect(day).toBe(local.getDate());
+    expect(month).toBe(local.getMonth() + 1);
+    expect(year).toBe(local.getFullYear());
+  });
+
+  it('accepts Intl options for longer formats', () => {
+    expect(formatLocalDate('2026-03-15T15:00:00.000Z', { month: 'long', year: 'numeric' })).toMatch(
+      /marzo/,
+    );
   });
 });

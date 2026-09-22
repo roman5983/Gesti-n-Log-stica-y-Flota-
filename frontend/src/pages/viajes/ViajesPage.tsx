@@ -20,6 +20,7 @@ import { TripFormDialog } from './TripFormDialog';
 import { AssignTripDialog } from './AssignTripDialog';
 import { FinishTripDialog } from './FinishTripDialog';
 import { TripDetailDialog } from './TripDetailDialog';
+import { formatDateTime } from '../../utils/datetime';
 
 const STATUS_OPTIONS: { value: TripStatus; label: string }[] = [
   { value: 'PENDING_ASSIGNMENT', label: 'Pendiente de asignación' },
@@ -99,7 +100,7 @@ export function ViajesPage() {
   const columns = useMemo<Column<Trip>[]>(
     () => [
       { key: 'id', label: 'N°', render: (t) => `VJ-${String(t.id).padStart(5, '0')}` },
-      { key: 'departure', label: 'Salida', render: (t) => new Date(t.departureAt).toLocaleString('es-AR') },
+      { key: 'departure', label: 'Salida', render: (t) => formatDateTime(t.departureAt) },
       { key: 'destination', label: 'Destino', render: (t) => t.destination },
       { key: 'driver', label: 'Chofer', render: (t) => t.driver?.name ?? '—' },
       { key: 'vehicle', label: 'Vehículo', render: (t) => t.vehicle?.licensePlate ?? '—' },

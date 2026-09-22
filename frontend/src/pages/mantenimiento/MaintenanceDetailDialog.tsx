@@ -21,6 +21,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { StatusChip } from '../../components/StatusChip';
 import { maintenancesApi, type Maintenance } from '../../api/maintenances.api';
 import { apiErrorMessage } from '../../api/axios';
+import { formatDateTime, formatLocalDate } from '../../utils/datetime';
 
 interface Props {
   maintenance: Maintenance | null;
@@ -70,10 +71,10 @@ export function MaintenanceDetailDialog({ maintenance, onClose, onChanged }: Pro
             <Grid container spacing={2}>
               <Detail label="Vehículo" value={`${maintenance.vehicle.licensePlate} — ${maintenance.vehicle.model}`} />
               <Detail label="Tipo" value={maintenance.maintenanceType.name} />
-              <Detail label="Programado" value={new Date(maintenance.scheduledAt).toLocaleString('es-AR')} />
+              <Detail label="Programado" value={formatDateTime(maintenance.scheduledAt)} />
               <Detail label="Kilometraje" value={maintenance.km.toLocaleString('es-AR')} />
               <Detail label="Próximo (km)" value={maintenance.nextMaintenanceKm?.toLocaleString('es-AR') ?? '—'} />
-              <Detail label="Finalizado" value={maintenance.completedAt ? new Date(maintenance.completedAt).toLocaleString('es-AR') : '—'} />
+              <Detail label="Finalizado" value={maintenance.completedAt ? formatDateTime(maintenance.completedAt) : '—'} />
               {maintenance.notes && (
                 <Grid item xs={12}>
                   <Typography variant="caption" color="text.secondary">Observaciones</Typography>
@@ -125,7 +126,7 @@ export function MaintenanceDetailDialog({ maintenance, onClose, onChanged }: Pro
                     <ListItemButton onClick={() => handleOpen(a.id)}>
                       <ListItemText
                         primary={a.fileName}
-                        secondary={`${(a.fileSize / 1024).toFixed(0)} KB · ${new Date(a.uploadedAt).toLocaleDateString('es-AR')}`}
+                        secondary={`${(a.fileSize / 1024).toFixed(0)} KB · ${formatLocalDate(a.uploadedAt)}`}
                       />
                     </ListItemButton>
                   </ListItem>

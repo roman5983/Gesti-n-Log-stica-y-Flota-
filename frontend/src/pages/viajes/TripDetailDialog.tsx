@@ -11,6 +11,7 @@ import {
 import { StatusChip } from '../../components/StatusChip';
 import { RouteMap } from '../../components/RouteMap';
 import type { Trip } from '../../api/trips.api';
+import { formatDateTime } from '../../utils/datetime';
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -35,7 +36,7 @@ export function TripDetailDialog({ trip, onClose }: { trip: Trip | null; onClose
           <Grid container spacing={2}>
             <Field label="Origen" value={trip.origin} />
             <Field label="Destino" value={trip.destination} />
-            <Field label="Salida" value={new Date(trip.departureAt).toLocaleString('es-AR')} />
+            <Field label="Salida" value={formatDateTime(trip.departureAt)} />
             <Field
               label="Distancia estimada"
               value={trip.estimatedDistanceKm ? `${trip.estimatedDistanceKm} km` : '—'}
@@ -50,7 +51,7 @@ export function TripDetailDialog({ trip, onClose }: { trip: Trip | null; onClose
             <Field label="Operador" value={trip.operator.name} />
             <Field
               label="Finalizado"
-              value={trip.finishedAt ? new Date(trip.finishedAt).toLocaleString('es-AR') : '—'}
+              value={trip.finishedAt ? formatDateTime(trip.finishedAt) : '—'}
             />
             {trip.notes && (
               <Grid item xs={12}>

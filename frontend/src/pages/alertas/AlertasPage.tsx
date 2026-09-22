@@ -12,6 +12,7 @@ import { alertsApi, type Alert, type AlertStatus } from '../../api/alerts.api';
 import { apiErrorMessage } from '../../api/axios';
 import { useAuth } from '../../auth/use-auth';
 import { entityWithId } from '../auditoria/audit-labels';
+import { formatDateTime } from '../../utils/datetime';
 
 /**
  * Where each alert's entity is managed, so "ir al origen" can jump there.
@@ -118,7 +119,7 @@ export function AlertasPage() {
       { key: 'type', label: 'Tipo', render: (a) => ALERT_LABELS[a.alertType] ?? a.alertType },
       { key: 'description', label: 'Descripción', render: (a) => a.description },
       { key: 'entity', label: 'Entidad', render: (a) => entityWithId(a.entityType, a.entityId) },
-      { key: 'raised', label: 'Fecha', render: (a) => new Date(a.raisedAt).toLocaleString('es-AR') },
+      { key: 'raised', label: 'Fecha', render: (a) => formatDateTime(a.raisedAt) },
       {
         key: 'actions',
         label: 'Acciones',

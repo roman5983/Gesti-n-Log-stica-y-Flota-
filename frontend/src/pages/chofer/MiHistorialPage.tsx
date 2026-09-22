@@ -3,6 +3,7 @@ import { Alert, Box, Card, CardContent, Chip, Stack, TablePagination, Typography
 import { PageHeader } from '../../components/PageHeader';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { tripsApi, type Trip } from '../../api/trips.api';
+import { formatLocalDate } from '../../utils/datetime';
 
 /** Driver's completed trips (P-CH-5). Scoped to the driver server-side. */
 export function MiHistorialPage() {
@@ -29,7 +30,7 @@ export function MiHistorialPage() {
                   <Typography variant="subtitle2">VJ-{String(t.id).padStart(6, '0')}</Typography>
                   <Typography variant="body2" color="text.secondary">{t.destination}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {t.finishedAt ? new Date(t.finishedAt).toLocaleDateString('es-AR') : ''} · {t.vehicle?.licensePlate ?? ''}
+                    {t.finishedAt ? formatLocalDate(t.finishedAt) : ''} · {t.vehicle?.licensePlate ?? ''}
                   </Typography>
                 </Stack>
                 <Chip label="FINALIZADO" color="success" size="small" />

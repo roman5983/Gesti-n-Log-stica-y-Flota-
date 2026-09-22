@@ -45,3 +45,15 @@ export function formatDateOnly(iso: string): string {
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('es-AR');
 }
+
+/**
+ * Formats a true instant as its *local* calendar day, without the time
+ * (e.g. when a maintenance was scheduled, when a trip finished).
+ *
+ * Not interchangeable with formatDateOnly: that one reads the parts in UTC for
+ * `@db.Date` columns. Applied to an instant, UTC would show 23:30 local time
+ * on the 14th as the 15th.
+ */
+export function formatLocalDate(iso: string, options?: Intl.DateTimeFormatOptions): string {
+  return new Date(iso).toLocaleDateString('es-AR', options);
+}

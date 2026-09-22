@@ -16,6 +16,7 @@ import { tripsApi, type Trip } from '../../api/trips.api';
 import { apiErrorMessage } from '../../api/axios';
 import { RouteMap } from '../../components/RouteMap';
 import { FinishTripDialog } from '../viajes/FinishTripDialog';
+import { formatDateTime } from '../../utils/datetime';
 
 /** Driver's current trip (P-CH-2). The list endpoint already scopes to the
  *  driver's own trips server-side. */
@@ -78,7 +79,7 @@ export function MiViajePage() {
             <Row label="Origen" value={trip.origin} />
             <Row label="Destino" value={trip.destination} />
             <Row label="Vehículo" value={trip.vehicle ? `${trip.vehicle.licensePlate} — ${trip.vehicle.model}` : '—'} />
-            <Row label="Salida" value={new Date(trip.departureAt).toLocaleString('es-AR')} />
+            <Row label="Salida" value={formatDateTime(trip.departureAt)} />
             {trip.estimatedDistanceKm != null && <Row label="Distancia estimada" value={`${trip.estimatedDistanceKm} km`} />}
           </Stack>
         </CardContent>
