@@ -11,8 +11,13 @@ import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList'
 import { alertsApi, type Alert, type AlertStatus } from '../../api/alerts.api';
 import { apiErrorMessage } from '../../api/axios';
 import { useAuth } from '../../auth/use-auth';
+import { entityWithId } from '../auditoria/audit-labels';
 
-/** Where each alert's entity is managed, so "ir al origen" can jump there. */
+/**
+ * Where each alert's entity is managed, so "ir al origen" can jump there.
+ * DRIVER alerts open the chofer's form; DRIVER_DOCUMENT alerts open their
+ * documentation dialog instead (`open=docs` tells ChoferesPage which one).
+ */
 function sourceLink(a: Alert): string | null {
   switch (a.entityType) {
     case 'VEHICLE':
@@ -20,7 +25,7 @@ function sourceLink(a: Alert): string | null {
     case 'DRIVER':
       return `/choferes?highlight=${a.entityId}`;
     case 'DRIVER_DOCUMENT':
-      return a.linkedDriverId ? `/choferes?highlight=${a.linkedDriverId}` : null;
+      return a.linkedDriverId ? `/choferes?highlight=${a.linkedDriverId}&open=docs` : null;
     default:
       return null;
   }
@@ -112,16 +117,16 @@ export function AlertasPage() {
     () => [
       { key: 'type', label: 'Tipo', render: (a) => ALERT_LABELS[a.alertType] ?? a.alertType },
       { key: 'description', label: 'Descripción', render: (a) => a.description },
-      { key: 'entity', label: 'Entidad', render: (a) => `${a.entityType} #${a.entityId}` },
+      { key: 'entity', label: 'Entidad', render: (a) => entityWithId(a.entityType, a.entityId) },
       { key: 'raised', label: 'Fecha', render: (a) => new Date(a.raisedAt).toLocaleString('es-AR') },
       {
         key: 'actions',
         label: 'Acciones',
         align: 'right' as const,
         render: (a: Alert) => (
-          <Tooltip title={sourceLink(a) ? 'Ir al origen' : 'Origen no disponible'}>
+          <Tooltip title={!isAdmin ? 'Solo administradores' : sourceLink(a) ? 'Ir al origen' : 'Origen no disponible'}>
             <span>
-              <IconButton size="small" disabled={!sourceLink(a)} onClick={() => goToSource(a)}>
+              <IconButton size="small" disabled={!isAdmin || !sourceLink(a)} onClick={() => goToSource(a)}>
                 <LaunchIcon fontSize="small" />
               </IconButton>
             </span>
@@ -195,6 +200,7 @@ export function AlertasPage() {
         message={toResolve ? `¿Marcar como resuelta la alerta "${ALERT_LABELS[toResolve.alertType] ?? toResolve.alertType}"?` : ''}
         confirmLabel="Resolver"
         loading={resolving}
+        error={actionError}
         onConfirm={confirmResolve}
         onCancel={() => setToResolve(null)}
       />

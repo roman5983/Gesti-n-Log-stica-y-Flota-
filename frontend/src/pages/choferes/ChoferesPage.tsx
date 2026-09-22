@@ -65,15 +65,36 @@ export function ChoferesPage() {
     }
   }
 
-  // Deep link from Alertas ("ir al origen"): open that chofer's documentation.
-  const [searchParams] = useSearchParams();
+  // Deep link from Alertas ("ir al origen"): DRIVER alerts open the chofer's
+  // form, DRIVER_DOCUMENT alerts open its documentation (open=docs).
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlight = searchParams.get('highlight');
+  const openDocs = searchParams.get('open') === 'docs';
   useEffect(() => {
     if (!highlight || !canManage) return;
     driversApi
       .getById(Number(highlight))
-      .then((d) => setDocumentsFor(d))
-      .catch(() => setLinkError('No se encontró el chofer indicado.'));
+      .then((d) => {
+        if (openDocs) {
+          setDocumentsFor(d);
+        } else {
+          setEditing(d);
+          setFormOpen(true);
+        }
+      })
+      .catch(() => setLinkError('No se encontró el chofer indicado.'))
+      .finally(() => {
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('highlight');
+            next.delete('open');
+            return next;
+          },
+          { replace: true },
+        );
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlight, canManage]);
 
   const columns = useMemo<Column<Driver>[]>(
