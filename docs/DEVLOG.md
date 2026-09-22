@@ -450,3 +450,47 @@ inactivo y con seguro vencido). BBB222 queda con el service vencido porque el ge
 curso de María se recreaba aunque DDD444 hubiera quedado disponible) y resetea las contraseñas de demo.
 El ART de María pasó de vencido a por vencer: con un documento vencido, la regla RN-4 no le habría
 permitido tener el viaje en curso que le asigna el propio seed.
+
+---
+
+# Build de producción del backend
+
+**El problema.** `npm run dev` funcionaba, pero la versión compilada del backend no arrancaba. Tenía
+dos fallas encadenadas:
+
+1. `tsconfig.json` usa `rootDir: "."` para que `tsc --noEmit` revise también `prisma/*.ts`. Con eso,
+   la compilación dejaba el servidor en `dist/src/server.js`, mientras `npm start` buscaba
+   `dist/server.js`.
+2. Aun apuntando al archivo correcto, Node cortaba con `ReferenceError: exports is not defined in ES
+   module scope`. El generador `prisma-client` emite ESM por defecto y usa `import.meta.url`. `tsc`
+   compila a CommonJS (el `package.json` no tiene `"type": "module"`) pero deja `import.meta` intacto.
+   Node ve esa sintaxis, trata el archivo como ESM, y el `exports` de CommonJS no existe.
+
+**La solución.**
+
+- `schema.prisma`: `moduleFormat = "cjs"` en el generador. El cliente generado queda en el mismo formato
+  que el resto del backend. `tsx` (dev) y Vitest lo cargan igual.
+- `tsconfig.build.json` (nuevo): extiende `tsconfig.json`, compila solo `src/` con `rootDir: "src"` y
+  excluye los `*.test.ts`. El `tsconfig.json` sigue siendo el de revisión de tipos del editor, de
+  `tsc --noEmit` y del lint, e incluye `prisma/`.
+- Scripts: `build` usa `tsconfig.build.json` y lo precede `prebuild` → `clean`, que borra `dist/`
+  para no arrastrar archivos compilados de módulos que ya no existen. Se agregó `prisma:deploy`
+  (`prisma migrate deploy`).
+- `prisma` pasó de `devDependencies` a `dependencies`: producción lo necesita para el `postinstall`
+  (`prisma generate`) y para aplicar migraciones. Antes se instalaba igual, pero solo porque es
+  *peer dependency* de `@prisma/client`. En el lockfile solo cambian las marcas `devOptional`.
+- `engines.node`: `^20.19 || ^22.12 || >=24.0`, el mínimo que exige Prisma 7. Los servicios de hosting
+  lo usan para elegir la versión de Node.
+
+**Verificación** (en una copia aparte, sin MySQL):
+
+- `npm run build` genera `dist/server.js` sin tests.
+- `NODE_ENV=production node dist/server.js` arranca y responde `/health`. Las rutas protegidas
+  devuelven 401 y las que tocan la base, un 500 prolijo. El proceso sigue vivo después del primer
+  ciclo del job de alertas.
+- `npm ci --omit=dev` instala, genera el cliente y deja disponible `prisma migrate deploy`.
+- `npm run dev`, `tsc --noEmit`, ESLint y los 56 tests siguen igual.
+
+**Después de hacer pull:** correr `npm install` en `backend/`. Eso regenera el cliente de Prisma
+(`src/generated/` no está en el repo) con el nuevo formato; sin ese paso, `npm run build` sigue
+produciendo el binario roto.

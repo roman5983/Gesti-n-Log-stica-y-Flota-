@@ -789,6 +789,8 @@ npx prisma migrate deploy && node dist/server.js
 
 ⚠️ **Este proyecto no documenta el flujo de producción.** El `README.md` solo indica `npx prisma migrate dev --name init`, que es correcto para desarrollo. No hay Dockerfile, ni script de despliegue, ni mención de `migrate deploy`. Es coherente con el alcance académico del proyecto, pero es una omisión que hay que señalar: alguien que intentara desplegarlo siguiendo el README podría perder datos.
 
+> ✅ **Resuelto (2026-09-22).** El `README.md` tiene ahora la sección "Backend en modo producción" (`npm ci` → `npm run build` → `npm run prisma:deploy` → `npm start`). Además, el generador de `schema.prisma` declara `moduleFormat = "cjs"`. Sin eso, el cliente generado usaba `import.meta.url`, que sobrevivía a la compilación a CommonJS y hacía que `node dist/server.js` fallara al arrancar. Ver DEVLOG, "Build de producción del backend".
+
 ### 4.6.5. La tabla `_prisma_migrations`
 
 Prisma crea automáticamente esta tabla en la base:

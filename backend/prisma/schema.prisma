@@ -3,9 +3,13 @@
 // expressible in Prisma: they are added via raw SQL in migrations and
 // re-validated in the service layer.
 
+// moduleFormat = "cjs": the backend compiles to CommonJS (package.json has no
+// "type": "module"). The default ESM output uses `import.meta.url`, which
+// survives tsc's CJS emit and makes `node dist/server.js` crash at startup.
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {

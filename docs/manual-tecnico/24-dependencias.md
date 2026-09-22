@@ -94,6 +94,8 @@ de producción. Poner `typescript` ahí sumaría ~65 MB de imagen para nada.
 Ese guion corre **después de cada `npm install`**, incluida una instalación de producción
 con `--omit=dev`… donde `prisma` no estaría. Se desarrolla en §24.3.2.
 
+> ✅ **Resuelto (2026-09-22):** `prisma` pasó a `dependencies`. Ver la nota de §24.3.2.
+
 ---
 
 ## 24.2 · Panorama
@@ -262,6 +264,14 @@ compilaría: `src/generated/` no está en el repositorio.
 (`npm ci --omit=dev`) no lo instala, y el `postinstall` **falla**. La solución habitual es
 generar en la etapa de construcción, antes de podar las dependencias. No está documentado
 en el proyecto y es la clase de cosa que aparece la primera vez que se despliega.
+
+> ✅ **Resuelto (2026-09-22), con una corrección al diagnóstico.** Al verificarlo con
+> `npm ci --omit=dev`, `prisma` **sí** se instalaba: es *peer dependency* de
+> `@prisma/client`, y npm instala los *peers* aunque vengan de una dependencia de producción.
+> El `postinstall` funcionaba, pero de casualidad. Ahora `prisma` está declarado en
+> `dependencies`, porque producción lo usa de verdad (`prisma generate` en el `postinstall`
+> y `prisma migrate deploy` al desplegar, script `prisma:deploy`). El flujo de producción
+> quedó documentado en el `README.md`.
 
 **`@prisma/adapter-mariadb`** es la novedad de Prisma 7. Hasta la 6, Prisma incluía un
 **motor de consultas escrito en Rust**: un binario de ~20 MB por plataforma que la
@@ -1014,7 +1024,7 @@ en `AddressAutocomplete.tsx:30,35`. Sin él, todo el SDK sería `any`.
 | 3 | 🔴 Alta | **`@testing-library/react` y `jest-dom` instalados y sin usar.** Ninguna prueba renderiza un componente. Habrían detectado los tres cierres obsoletos. | 8 archivos de prueba, ninguno los importa |
 | 4 | ⚠️ Media | **`multer` en la línea 1.x**, en mantenimiento. La 2.x se publicó tras corregir vulnerabilidades de denegación de servicio. La dependencia a revisar antes de desplegar. | `^1.4.5-lts.1` |
 | 5 | ⚠️ Media | **`@types/nodemailer` 8.0.1 contra `nodemailer` 9.0.3.** El runtime no trae tipos propios (verificado), así que el desajuste de mayor es real: el compilador describe una API que puede no ser la que corre. | `package.json` + `node_modules` |
-| 6 | ⚠️ Media | **`postinstall: prisma generate` con `prisma` en `devDependencies`.** Una instalación de producción con `--omit=dev` no lo tiene y el guion falla. No está documentado. | `package.json:9` |
+| 6 | ✅ Resuelto *(2026-09-22, §24.3.2)* | **`postinstall: prisma generate` con `prisma` en `devDependencies`.** Una instalación de producción con `--omit=dev` no lo tiene y el guion falla. No está documentado. | `package.json:9` |
 | 7 | ⚠️ Media | **`express-rate-limit` cuenta en memoria del proceso.** Con dos instancias, el límite efectivo se duplica. Sin almacén compartido. | `middlewares/rate-limiter.ts` |
 | 8 | ⚠️ Baja | **Las pruebas cubren solo funciones puras.** 28 casos: utilidades y esquemas Zod. Cero servicios, repositorios, endpoints, componentes o concurrencia. Falta la infraestructura, no la voluntad. | 8 archivos |
 | 9 | ⚠️ Baja | **`jsdom` se carga sin hacer falta.** `environment: 'jsdom'` en la configuración, ninguna prueba toca el DOM. `'node'` sería más rápido. | `frontend/vitest.config.ts:9` |

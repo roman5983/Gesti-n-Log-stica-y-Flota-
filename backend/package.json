@@ -4,16 +4,22 @@
   "description": "Logistics & Fleet Management System — REST API (TP DSW)",
   "private": true,
   "main": "dist/server.js",
+  "engines": {
+    "node": "^20.19 || ^22.12 || >=24.0"
+  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "postinstall": "prisma generate",
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "npm run clean",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -36,6 +42,7 @@
     "nodemailer": "^9.0.3",
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
+    "prisma": "^7.8.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -51,7 +58,6 @@
     "eslint": "^10.9.1",
     "globals": "^17.12.0",
     "pino-pretty": "^13.0.0",
-    "prisma": "^7.8.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.69.0",

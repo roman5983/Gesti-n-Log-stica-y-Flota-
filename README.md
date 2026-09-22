@@ -66,7 +66,7 @@ Toda la documentación de diseño y desarrollo está en `docs/`: (índice comple
 
 ## Cómo levantar el proyecto
 
-**Requisitos:** Node.js 20+, MySQL 8, y npm.
+**Requisitos:** Node.js 20.19+ (o 22.12+), MySQL 8, y npm. Es la versión mínima que exige Prisma 7; está declarada en `backend/package.json` (`engines`).
 
 ### 1. Backend
 
@@ -89,6 +89,20 @@ npm install
 cp .env.example .env          # VITE_API_URL (y opcional VITE_GOOGLE_MAPS_API_KEY)
 npm run dev                   # http://localhost:5173
 ```
+
+### Backend en modo producción
+
+`npm run dev` ejecuta TypeScript directamente. Para producción (o para probar localmente lo mismo que corre en el deploy), el backend se compila a JavaScript y se ejecuta con Node:
+
+```bash
+cd backend
+npm ci                        # también regenera el cliente de Prisma (postinstall)
+npm run build                 # limpia dist/ y compila src/ → dist/ (sin los tests)
+npm run prisma:deploy         # aplica las migraciones pendientes; nunca borra datos
+NODE_ENV=production npm start # node dist/server.js
+```
+
+En producción se usa `prisma migrate deploy`, no `migrate dev`: este último puede ofrecer resetear la base si detecta diferencias. El servidor debe arrancarse desde la carpeta `backend/`, porque los archivos subidos se guardan en `backend/uploads/`.
 
 ### Credenciales del seed
 
