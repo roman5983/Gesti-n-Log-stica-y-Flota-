@@ -18,7 +18,7 @@ export const ALERT_TYPES = [
   'VOYAGE_NOT_ASSIGNED',
 ] as const;
 
-export const ENTITY_TYPES = ['DRIVER', 'VEHICLE', 'DRIVER_DOCUMENT'] as const;
+export const ENTITY_TYPES = ['DRIVER', 'VEHICLE', 'DRIVER_DOCUMENT', 'TRIP'] as const;
 
 export const listAlertsQuerySchema = paginationSchema.extend({
   status: z.enum(['PENDING', 'RESOLVED']).optional(),

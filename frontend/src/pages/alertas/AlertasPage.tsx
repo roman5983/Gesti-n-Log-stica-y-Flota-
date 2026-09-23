@@ -48,6 +48,7 @@ const ALERT_LABELS: Record<string, string> = {
   INSURANCE_EXPIRED: 'Seguro vencido',
   MAINTENANCE_KM_EXCEEDED: 'Km de mantenimiento superado',
   VEHICLE_INACTIVE: 'Vehículo inactivo',
+  VOYAGE_NOT_ASSIGNED: 'Viaje no asignado',
 };
 
 export function AlertasPage() {
