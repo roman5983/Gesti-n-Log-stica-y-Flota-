@@ -1,5 +1,7 @@
 # Capítulo 22B — Las pantallas de viajes y mantenimiento
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Archivos cubiertos** (11 archivos, 1.230 líneas)
 >
 > | Carpeta | Archivo | Líneas |

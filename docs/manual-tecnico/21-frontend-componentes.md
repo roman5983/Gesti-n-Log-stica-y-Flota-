@@ -1,5 +1,7 @@
 # Capítulo 21 — Componentes reutilizables y layouts
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Prerrequisitos:** [Capítulo 18](18-frontend-bootstrap.md) (React, JSX, hooks) y [Capítulo 20](20-frontend-auth-estado.md).
 > **Archivos que se explican aquí:** los 8 de `src/components/` (514 líneas), los 3 de `src/layouts/` (121), `src/hooks/usePaginatedList.ts` (49) y `src/lib/google-maps.ts` (28). Total: 712 líneas, todas.
 > **Al terminar** el lector entenderá qué hace reutilizable a un componente, cómo se comparte lógica con estado mediante hooks personalizados, y por qué el hook de paginación tiene una trampa que puede producir un bucle infinito.

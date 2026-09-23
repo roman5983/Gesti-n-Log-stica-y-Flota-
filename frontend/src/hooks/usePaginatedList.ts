@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { apiErrorMessage } from '../api/axios';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiErrorMessage } from '@/api/axios';
 
 export interface PaginatedFetchResult<T> {
   items: T[];
@@ -26,18 +26,25 @@ export function usePaginatedList<T>(
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Each request gets a number; only the latest one may write the state. With
+  // search-as-you-type, an older (slower) response could otherwise arrive
+  // last and overwrite the list with results for a text no longer typed.
+  const lastRequest = useRef(0);
 
   const load = useCallback(async () => {
+    const request = ++lastRequest.current;
     setLoading(true);
     setError(null);
     try {
       const result = await fetchFn({ page, limit });
+      if (request !== lastRequest.current) return;
       setItems(result.items);
       setTotal(result.total);
     } catch (err) {
+      if (request !== lastRequest.current) return;
       setError(apiErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (request === lastRequest.current) setLoading(false);
     }
   }, [fetchFn, page, limit]);
 

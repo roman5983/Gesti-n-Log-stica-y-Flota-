@@ -22,8 +22,11 @@ services:
       # with the `clientIp` field of the request logs (README, "Deploy").
       - key: TRUST_PROXY
         value: "2"
-      - key: ALERTS_EVAL_INTERVAL_MIN
-        value: "10"
+      # Daily alert evaluation (plus one pass after each start/wake-up).
+      - key: ALERTS_EVAL_TIME
+        value: "06:00"
+      - key: ALERTS_EVAL_TIMEZONE
+        value: America/Argentina/Buenos_Aires
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET

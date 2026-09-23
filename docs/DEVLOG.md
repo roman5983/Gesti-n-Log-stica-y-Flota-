@@ -652,3 +652,34 @@ el azul, la escala es de azules; si se la quiere verde, se cambian `chart.low` y
   advertencia e información cae a ~4.0:1 sobre su propio tinte en un contenedor gris. Para texto se
   usa el 800;
 - 81 tests del frontend, tsc, ESLint y build limpios.
+
+---
+
+# Mejoras de UX pedidas (pendientes 26 a 31)
+
+Seis pedidos de Román del 23/09/2026. Tres de ellos tenían decisiones abiertas que se acordaron antes de empezar: el buscador de Viajes es un solo campo para chofer y destino; en la estructura del frontend se traduce solo el código, no la interfaz; y el estándar de carpetas se adapta al stack.
+
+**26 · Buscador en Viajes.** Una caja con lupa (`SearchField`) busca a la vez en el nombre del chofer y en el destino. La búsqueda se hace en el servidor (`GET /trips?search=`, `buildTripWhere` arma un `OR`), así funciona junto con la paginación y los demás filtros. MySQL compara con la collation de la columna: no distingue mayúsculas ni tildes. El campo espera 350 ms después de la última tecla antes de buscar, y Enter busca en el momento. Vehículos y Choferes, que ya tenían búsqueda con un botón "Buscar", pasaron al mismo componente. `usePaginatedList` ahora descarta respuestas viejas: sin eso, una búsqueda lenta que llega tarde pisaba el resultado de la última.
+
+**27 · Filtrar y ordenar en Mantenimiento y Alertas.**
+- Mantenimiento se filtra por vehículo, tipo y período. Se ordena por fecha programada, fecha de finalización, tipo, patente o kilometraje, con el control "Ordenar por" o tocando el encabezado de la columna.
+- Alertas se filtra por tipo (agrupados por categoría), vehículo y período, y se ordena por fecha o tipo. `DateRangeFilter` sumó el atajo "Esta semana" (lunes a domingo).
+- En el backend: `sortBy` / `sortOrder` en `GET /maintenances` y `GET /alerts`, con listas cerradas de campos, y un desempate por `id` para que la paginación no repita ni saltee filas. El filtro por vehículo en Mantenimiento también resuelve el pendiente 15 ("historial de mantenimientos por vehículo" en la interfaz).
+
+**29 · Evaluación de alertas una vez al día.** El job pasó de correr cada 10 minutos a una vez al día a la hora `ALERTS_EVAL_TIME` (06:00 por defecto), en la zona horaria de la empresa (`ALERTS_EVAL_TIMEZONE`). También corre 15 s después de cada arranque, porque en Render el servicio se duerme y a las 06:00 puede estar dormido. "Evaluar alertas" sigue igual. `ALERTS_EVAL_INTERVAL_MIN` desaparece: si quedó en un `.env`, se ignora.
+
+**30 · Carteles cuando algo no se puede.** Antes, un error de una acción de fila aparecía arriba de la tabla, a veces fuera de la vista, y cada pantalla lo manejaba distinto. Ahora hay una regla para todas:
+- una acción confirmada en un diálogo que el servidor rechaza deja el diálogo abierto con el motivo adentro;
+- una acción de un clic (activar, iniciar un mantenimiento) muestra el motivo en un cartel emergente (`NotificationProvider` + `useNotify`);
+- toda acción que sale bien muestra un cartel verde de confirmación.
+
+Además, `apiErrorMessage` explica en castellano los errores sin mensaje del servidor: sin conexión, sesión vencida, permisos, 429, y el servidor iniciándose (502/503/504, lo que pasa al despertar Render). En los errores de validación nombra el campo en castellano. En Reportes, el botón deshabilitado dice qué falta elegir.
+
+**31 · Alertas como tarjetas.** `AlertCard` reemplaza la tabla. El ícono dice de qué trata la alerta (licencia, documento, seguro, mantenimiento, vehículo) y el color dice qué tan urgente es (rojo vencida, ámbar por vencer, cian informativa). Un borde lateral del mismo color permite recorrer la lista por urgencia, y una etiqueta ("Vencida", "Por vencer") lo repite en palabras. La fecha se lee "Hoy 10:32" / "Ayer 17:42". Un tipo que el frontend todavía no conoce se muestra igual, con una campana.
+
+**28 · Una carpeta por componente, código en inglés.** Cada componente tiene su carpeta con `.tsx`, `.types.ts`, `.const.ts`, `.data.ts`, `.helpers.ts`, `.styles.ts` y sus tests (solo los que hacen falta), y el código quedó en inglés. La interfaz y las URLs siguen en castellano. Los imports usan el alias `@/`. La migración la hizo un script reproducible y se verificó con tsc, ESLint, los tests y el build. Detalle y tabla de rutas anteriores → actuales en `docs/manual-tecnico/21b-frontend-estructura.md`. De paso:
+- `IconBadge` reemplaza el círculo con ícono que estaba copiado en KPIs y alertas;
+- la clave de Maps se define una sola vez;
+- se eliminó el último warning de ESLint (pendiente 24).
+
+**Verificación.** Backend: 91 tests (27 nuevos), tsc, ESLint y build. Frontend: 102 tests (21 nuevos), tsc, ESLint sin warnings y build.

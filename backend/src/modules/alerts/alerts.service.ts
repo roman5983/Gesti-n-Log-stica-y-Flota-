@@ -214,9 +214,16 @@ export const alertsService = {
       status: query.status,
       entityType: query.entityType,
       alertType: query.alertType,
+      vehicleId: query.vehicleId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     };
     const [alerts, total] = await Promise.all([
-      alertsRepository.findMany(filters, { skip: (query.page - 1) * query.limit, take: query.limit }),
+      alertsRepository.findMany(
+        filters,
+        { skip: (query.page - 1) * query.limit, take: query.limit },
+        { field: query.sortBy, order: query.sortOrder },
+      ),
       alertsRepository.count(filters),
     ]);
 

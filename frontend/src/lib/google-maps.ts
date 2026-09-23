@@ -5,6 +5,9 @@
  */
 let loadPromise: Promise<void> | null = null;
 
+/** Browser key for Maps (optional): without it, address and route features degrade to plain text. */
+export const GOOGLE_MAPS_KEY: string | undefined = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
 export function loadGoogleMaps(apiKey: string): Promise<void> {
   if (loadPromise) return loadPromise;
 

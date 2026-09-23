@@ -42,11 +42,34 @@ const envSchema = z.object({
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
 
-  /** Minutes between automatic alert evaluations. 0 disables the job. */
-  ALERTS_EVAL_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(10),
+  /**
+   * Time of day of the automatic alert evaluation ("HH:mm", 24 h), once a day,
+   * in ALERTS_EVAL_TIMEZONE. "off" disables the daily run. There is also one
+   * pass shortly after every start (see alerts.scheduler.ts), and "Evaluar
+   * alertas" runs it on demand at any time.
+   */
+  ALERTS_EVAL_TIME: z
+    .string()
+    .regex(/^(off|([01]\d|2[0-3]):[0-5]\d)$/, 'Must be "HH:mm" (24 h) or "off"')
+    .default('06:00'),
+
+  /** IANA timezone the evaluation time refers to (the company's). */
+  ALERTS_EVAL_TIMEZONE: z
+    .string()
+    .refine(isValidTimeZone, 'Must be an IANA timezone, e.g. America/Argentina/Buenos_Aires')
+    .default('America/Argentina/Buenos_Aires'),
 });
 
 const parsed = envSchema.safeParse(process.env);
+
+function isValidTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 if (!parsed.success) {
   // eslint-disable-next-line no-console

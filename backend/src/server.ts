@@ -8,7 +8,9 @@ const app = createApp();
 const server = app.listen(env.PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
-  if (env.NODE_ENV !== 'test') startAlertsScheduler(env.ALERTS_EVAL_INTERVAL_MIN);
+  if (env.NODE_ENV !== 'test') {
+    startAlertsScheduler({ time: env.ALERTS_EVAL_TIME, timeZone: env.ALERTS_EVAL_TIMEZONE });
+  }
 });
 
 /** Graceful shutdown: close HTTP first, then release DB connections. */

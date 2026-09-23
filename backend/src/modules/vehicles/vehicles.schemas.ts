@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { paginationSchema } from '../../shared/schemas';
+import { paginationSchema, searchSchema } from '../../shared/schemas';
 
 const currentYear = new Date().getFullYear();
 
@@ -35,6 +35,7 @@ export type UpdateVehicleDto = z.infer<typeof updateVehicleSchema>;
 export const listVehiclesQuerySchema = paginationSchema.extend({
   /** C-1 status filter for the fleet listing. */
   status: z.enum(['AVAILABLE', 'INACTIVE', 'IN_WORKSHOP', 'ON_TRIP']).optional(),
-  search: z.string().max(100).optional(),
+  /** Plate or model (same search box semantics as trips). */
+  search: searchSchema,
 });
 export type ListVehiclesQuery = z.infer<typeof listVehiclesQuerySchema>;

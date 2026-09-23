@@ -1,5 +1,7 @@
 # Capítulo 22A — Las pantallas: el patrón de listado y el ABM
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Prerrequisitos:** [Capítulo 19](19-frontend-api.md) (la capa API), [Capítulo 20](20-frontend-auth-estado.md) (sesión y guards) y [Capítulo 21](21-frontend-componentes.md) (`DataTable`, `usePaginatedList`, `StatusChip`).
 > **Archivos que se explican aquí:** `pages/vehiculos/` (2), `pages/usuarios/` (2), `pages/choferes/` (4). Total: 8 archivos, 1.261 líneas.
 > **Nota de método:** el patrón de pantalla de listado se explica **una vez, línea por línea**, usando `VehiculosPage` como caso canónico. Las otras dos pantallas se cubren **solo en lo que las diferencia**. Los diálogos sí se analizan completos, porque ahí vive la lógica específica.

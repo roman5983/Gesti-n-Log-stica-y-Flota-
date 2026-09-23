@@ -1,5 +1,7 @@
 # Capítulo 19 — La capa API del frontend
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Prerrequisitos:** [Capítulo 1, §1.2.3-1.2.5](01-conceptos-previos.md) (HTTP, REST, JSON), [Capítulo 8](08-modulo-auth.md) (el esquema de doble token) y [Capítulo 18](18-frontend-bootstrap.md).
 > **Archivos que se explican aquí:** los 15 de `src/api/` (722 líneas) más `src/utils/blob.ts` (17) y `src/utils/datetime.ts` (25) con su test (24). Total: 788 líneas.
 > **Al terminar** el lector entenderá el mecanismo de renovación transparente de sesión —la pieza más ingeniosa del frontend—, por qué las fechas son el problema recurrente del proyecto, y dónde el contrato entre las dos aplicaciones se sostiene solo con disciplina.

@@ -32,7 +32,7 @@ El objetivo declarado es fuerte: al terminar de leer este documento, el lector d
 
 - *Solo base de datos*: 1, 3, 4
 - *Solo backend*: 1, 2, 3, 4, 5, 6, 7, y luego los módulos 8–17
-- *Solo frontend*: 1, 2, 18, 19, 20, 21, 22A, 22B, 22C
+- *Solo frontend*: 1, 2, 18, 19, 20, 21, 21B, 22A, 22B, 22C
 
 **Lectura por caso de uso.** Si lo que se quiere entender es «qué pasa exactamente cuando un operador asigna un viaje», ir directo al **capítulo 23**, que recorre seis casos completos del clic al píxel con referencias a archivo y línea.
 
@@ -121,6 +121,7 @@ Los bloques de código del repositorio se muestran **sin modificar**. Si aparece
 | 19 | [`19-frontend-api.md`](19-frontend-api.md) | Por qué una capa de API. Interceptores. El refresco transparente y sus tres protecciones. El contrato duplicado. `blob.ts`, `datetime.ts` | 1.068 |
 | 20 | [`20-frontend-auth-estado.md`](20-frontend-auth-estado.md) | Zustand vs Redux vs Context. La doble interfaz del store. Los guards son ergonomía, no seguridad. `LoginPage` | 1.078 |
 | 21 | [`21-frontend-componentes.md`](21-frontend-componentes.md) | Restricciones de reutilización. Componentes genéricos. `DataTable`. `usePaginatedList` y su trampa. `AppSidebarLayout`, `RouteMap` | 1.173 |
+| 21B | [`21b-frontend-estructura.md`](21b-frontend-estructura.md) | Carpeta por componente (`.types`, `.const`, `.data`, `.helpers`, `.styles`), código en inglés, alias `@/`, tabla de rutas anteriores → actuales | — |
 | 22A | [`22a-frontend-pantallas-abm.md`](22a-frontend-pantallas-abm.md) | **El patrón de listado explicado una vez**, con `VehiculosPage` como caso canónico. El bug de las fechas. Usuarios, choferes y sus cuatro diálogos | 1.151 |
 | 22B | [`22b-frontend-viajes-mantenimiento.md`](22b-frontend-viajes-mantenimiento.md) | El diálogo como unidad de transacción. `datetime-local` bien resuelto. La máquina de estados dibujada con iconos. Los seis diálogos línea por línea | 2.407 |
 | 22C | [`22c-frontend-chofer-tableros.md`](22c-frontend-chofer-tableros.md) | La pantalla de recurso único. Alcance forzado por el servidor. Las tres pantallas del chofer. Tableros, informes, auditoría y configuración | 1.915 |
@@ -284,6 +285,7 @@ Los 28 positivos no son cortesía: son decisiones que **hay que proteger de un r
 | 19 — La capa de API | ✅ | 1.068 |
 | 20 — Autenticación y estado | ✅ | 1.078 |
 | 21 — Componentes y hooks | ✅ | 1.159 |
+| 21B — Estructura del frontend | ✅ | — |
 | 22A — Pantallas de listado y ABM | ✅ | 1.137 |
 | 22B — Viajes y mantenimiento | ✅ | 2.276 |
 | 22C — Chofer, tableros y consulta | ✅ | 1.777 |

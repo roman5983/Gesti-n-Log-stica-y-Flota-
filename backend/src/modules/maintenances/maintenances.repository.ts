@@ -1,6 +1,9 @@
 import { prisma } from '../../database/prisma-client';
 import type { MaintenanceStatus, Prisma } from '../../generated/prisma/client';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
+import type { SortOrder } from '../../shared/schemas';
+import { utcEndOfDay } from '../../shared/utils/dates';
+import type { MaintenanceSortField } from './maintenances.schemas';
 
 const maintenanceInclude = {
   vehicle: { select: { id: true, licensePlate: true, model: true } },
@@ -18,6 +21,14 @@ export interface MaintenanceFilters {
   status?: MaintenanceStatus;
   /** C-6: 'scheduled' → PENDING+IN_PROGRESS, 'history' → COMPLETED+CANCELLED. */
   view?: 'scheduled' | 'history';
+  maintenanceTypeId?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export interface MaintenanceSort {
+  field: MaintenanceSortField;
+  order: SortOrder;
 }
 
 interface PageArgs {
@@ -25,8 +36,18 @@ interface PageArgs {
   take: number;
 }
 
-function buildWhere(filters: MaintenanceFilters): Prisma.MaintenanceWhereInput {
-  const where: Prisma.MaintenanceWhereInput = { vehicleId: filters.vehicleId };
+/** Exported for unit tests. */
+export function buildMaintenanceWhere(filters: MaintenanceFilters): Prisma.MaintenanceWhereInput {
+  const where: Prisma.MaintenanceWhereInput = {
+    vehicleId: filters.vehicleId,
+    maintenanceTypeId: filters.maintenanceTypeId,
+  };
+  if (filters.dateFrom || filters.dateTo) {
+    where.scheduledAt = {
+      ...(filters.dateFrom ? { gte: filters.dateFrom } : {}),
+      ...(filters.dateTo ? { lte: utcEndOfDay(filters.dateTo) } : {}),
+    };
+  }
   if (filters.status) {
     where.status = filters.status;
   } else if (filters.view === 'scheduled') {
@@ -37,23 +58,56 @@ function buildWhere(filters: MaintenanceFilters): Prisma.MaintenanceWhereInput {
   return where;
 }
 
+/**
+ * ORDER BY for the sort control. Type and vehicle sort by their visible name
+ * (type name, license plate), not by id. Every order ends in the scheduled
+ * date and the id, so rows with equal keys keep a stable order across pages —
+ * without a unique tiebreaker, paginating could repeat or skip rows.
+ * Exported for unit tests.
+ */
+export function buildMaintenanceOrderBy(sort: MaintenanceSort): Prisma.MaintenanceOrderByWithRelationInput[] {
+  const { field, order } = sort;
+  const primary: Prisma.MaintenanceOrderByWithRelationInput = (() => {
+    switch (field) {
+      case 'type':
+        return { maintenanceType: { name: order } };
+      case 'vehicle':
+        return { vehicle: { licensePlate: order } };
+      case 'km':
+        return { km: order };
+      case 'completedAt':
+        // Not-yet-completed rows (NULL) go last in either direction.
+        return { completedAt: { sort: order, nulls: 'last' } };
+      case 'scheduledAt':
+        return { scheduledAt: order };
+    }
+  })();
+  const tail: Prisma.MaintenanceOrderByWithRelationInput[] =
+    field === 'scheduledAt' ? [{ id: order }] : [{ scheduledAt: 'desc' }, { id: 'desc' }];
+  return [primary, ...tail];
+}
+
 export const maintenancesRepository = {
   findById(id: number, db: DbClient = prisma): Promise<MaintenanceWithRelations | null> {
     return db.maintenance.findUnique({ where: { id }, include: maintenanceInclude });
   },
 
-  findMany(filters: MaintenanceFilters, page: PageArgs): Promise<MaintenanceWithRelations[]> {
+  findMany(
+    filters: MaintenanceFilters,
+    page: PageArgs,
+    sort: MaintenanceSort = { field: 'scheduledAt', order: 'desc' },
+  ): Promise<MaintenanceWithRelations[]> {
     return prisma.maintenance.findMany({
-      where: buildWhere(filters),
+      where: buildMaintenanceWhere(filters),
       include: maintenanceInclude,
-      orderBy: { scheduledAt: 'desc' },
+      orderBy: buildMaintenanceOrderBy(sort),
       skip: page.skip,
       take: page.take,
     });
   },
 
   count(filters: MaintenanceFilters): Promise<number> {
-    return prisma.maintenance.count({ where: buildWhere(filters) });
+    return prisma.maintenance.count({ where: buildMaintenanceWhere(filters) });
   },
 
   /** True if the vehicle already has an open (non-completed) maintenance. */

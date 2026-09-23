@@ -38,13 +38,17 @@ Trabajo práctico de Desarrollo de Software (DSW). Full-stack con backend REST y
 │   │   ├── shared/   utilidades, errores, tipos comunes
 │   │   └── config/   validación de entorno (fail-fast)
 │   └── prisma/       schema, migraciones y seed de datos de demostración
-├── frontend/         SPA React (Vite + MUI). Todas las pantallas por rol.
+├── frontend/         SPA React (Vite + MUI). Todas las pantallas por rol. Una carpeta por componente, código en inglés.
 │   └── src/
-│       ├── pages/    pantallas (dashboard, usuarios, vehículos, choferes, viajes, ...)
-│       ├── components/  componentes reutilizables (tabla, diálogos, KPIs)
-│       ├── api/      clientes HTTP tipados por módulo
-│       ├── auth/     guards y sesión
-│       └── layouts/  layouts por rol (sidebar admin/operador, mobile chofer)
+│       ├── pages/<módulo>/<Componente>/  pantallas y diálogos (trips, drivers, vehicles, alerts, ...)
+│       ├── components/<Componente>/      reutilizables (DataTable, SearchField, SortControl, ...)
+│       ├── layouts/<Componente>/         layouts por rol (sidebar admin/operador, mobile chofer)
+│       ├── api/      clientes HTTP tipados por recurso
+│       ├── hooks/    hooks compartidos (sesión, avisos, listas paginadas)
+│       ├── theme/    sistema de diseño (tokens de color, tema claro/oscuro)
+│       └── auth/     guards de rutas
+│       Cada carpeta de componente: X.tsx · X.types.ts · X.const.ts · X.data.ts · X.helpers.ts · X.styles.ts · tests
+│       (solo los que hacen falta). Imports con alias `@/` = `src/`. Detalle: docs/manual-tecnico/21b-frontend-estructura.md
 ├── docs/             documentación del proyecto (ver abajo)
 └── GUIA-PRUEBAS-E2E.md   guía de pruebas manuales end-to-end
 ```
@@ -127,7 +131,7 @@ El navegador habla solo con Vercel. Vercel sirve el frontend y reenvía `/api/*`
 
 Limitaciones del plan gratuito de Render:
 - El servicio se duerme tras 15 minutos sin tráfico, y el primer pedido después tarda alrededor de un minuto.
-- Mientras duerme, el job de alertas no corre. Las alertas pendientes se ponen al día en el primer ciclo después de despertar, o con "Evaluar alertas".
+- Mientras duerme, el job de alertas no corre. Las alertas se evalúan una vez al día (`ALERTS_EVAL_TIME`, 06:00 hora argentina) y también al arrancar, así que se ponen al día apenas alguien despierta el servicio. "Evaluar alertas" las evalúa en cualquier momento.
 
 ### Credenciales del seed
 
@@ -146,8 +150,8 @@ El seed carga una empresa con ~200 días de operación (más de 400 viajes, mant
 **Automatizadas (sin base de datos):**
 
 ```bash
-cd backend  && npm test      # 64 tests: crypto, fechas UTC, schemas, concurrencia de servicios, archivos en la base, job de alertas, seed
-cd frontend && npm test      # 81 tests: contraste de la paleta (WCAG AA), fechas, selector de fecha, rutas por rol, auditoría
+cd backend  && npm test      # 91 tests: crypto, fechas UTC, schemas, filtros/orden/búsqueda, concurrencia de servicios, archivos en la base, job de alertas diario, seed
+cd frontend && npm test      # 102 tests: contraste de la paleta (WCAG AA), buscador, tarjetas de alerta, mensajes de error, fechas, selector de fecha, rutas por rol, auditoría
 ```
 
 **Manuales (end-to-end):** ver `GUIA-PRUEBAS-E2E.md` — guion paso a paso por rol contra la app corriendo.

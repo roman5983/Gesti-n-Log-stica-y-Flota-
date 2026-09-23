@@ -82,6 +82,7 @@ export const tripsService = {
       vehicleId: query.vehicleId,
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
+      search: query.search,
     };
     // A driver only ever sees their own trips (current trip + history,
     // P-CH-2/P-CH-5), regardless of any driverId passed in the query.

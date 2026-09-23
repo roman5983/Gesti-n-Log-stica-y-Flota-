@@ -1,5 +1,7 @@
 # Capítulo 18 — Arranque del frontend
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Prerrequisitos:** [Capítulo 1](01-conceptos-previos.md) completo (especialmente JavaScript, TypeScript y el navegador como runtime) y [Capítulo 2, §2.3.4](02-arquitectura.md).
 > **Archivos que se explican aquí:** `frontend/index.html` (12 líneas), `vite.config.ts` (9), `tsconfig.json` (23), `vitest.config.ts` (13), `src/vite-env.d.ts` (10), `src/main.tsx` (14), `src/App.tsx` (150), `src/theme.ts` (24). Total: 255 líneas, todas.
 > **Al terminar** el lector entenderá React desde cero —JSX, componentes, Virtual DOM, hooks, re-render— y sabrá exactamente qué ocurre entre que el navegador pide una URL y aparece la primera pantalla.

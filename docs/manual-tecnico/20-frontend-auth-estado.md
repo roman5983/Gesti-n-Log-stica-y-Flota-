@@ -1,5 +1,7 @@
 # Capítulo 20 — Estado y autorización en el cliente
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Prerrequisitos:** [Capítulo 8](08-modulo-auth.md) (el esquema de doble token), [Capítulo 18](18-frontend-bootstrap.md) (hooks y rutas) y [Capítulo 19](19-frontend-api.md).
 > **Archivos que se explican aquí:** `src/stores/auth-store.ts` (37 líneas), `src/auth/guards.tsx` (38), `src/auth/use-auth.ts` (25), `src/auth/guards.test.ts` (13) y `src/pages/auth/LoginPage.tsx` (123). Total: 236 líneas, todas.
 > **Al terminar** el lector entenderá cómo se gestiona el estado global sin Redux, cómo se implementa la autorización del lado del cliente, y por qué las 38 líneas de `guards.tsx` **no son seguridad**.

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PublicUser } from '../api/types';
+import type { PublicUser } from '@/api/types';
 
 /**
  * Session store (Zustand). The access token lives in memory only (never in

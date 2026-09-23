@@ -1,5 +1,5 @@
 import { api } from './axios';
-import { openBlobInNewTab } from '../utils/blob';
+import { openBlobInNewTab } from '@/utils/blob';
 import type { ApiResponse, PaginationMeta } from './types';
 
 export type MaintenanceStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
@@ -31,7 +31,15 @@ export interface ListMaintenancesParams {
   vehicleId?: number;
   status?: MaintenanceStatus;
   view?: 'scheduled' | 'history';
+  maintenanceTypeId?: number;
+  /** Period on the scheduled date, 'YYYY-MM-DD' (inclusive). */
+  dateFrom?: string;
+  dateTo?: string;
+  sortBy?: MaintenanceSortField;
+  sortOrder?: 'asc' | 'desc';
 }
+
+export type MaintenanceSortField = 'scheduledAt' | 'completedAt' | 'type' | 'vehicle' | 'km';
 
 export interface CreateMaintenanceInput {
   vehicleId: number;
