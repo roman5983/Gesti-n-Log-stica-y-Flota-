@@ -194,6 +194,7 @@ const SHARED_VALUE_LABELS: Record<string, string> = {
   MAINTENANCE_KM_EXCEEDED: 'Km de mantenimiento superado',
   VEHICLE_INACTIVE: 'Vehículo inactivo',
   RESOLVED: 'Resuelta',
+  VOYAGE_NOT_ASSIGNED: 'Viaje no asignado',
 };
 
 /**

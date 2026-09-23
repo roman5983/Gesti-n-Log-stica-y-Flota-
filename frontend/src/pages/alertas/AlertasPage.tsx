@@ -27,8 +27,11 @@ function sourceLink(a: Alert): string | null {
       return `/choferes?highlight=${a.entityId}`;
     case 'DRIVER_DOCUMENT':
       return a.linkedDriverId ? `/choferes?highlight=${a.linkedDriverId}&open=docs` : null;
+    case 'TRIP':
+    return `/viajes?highlight=${a.entityId}&open=assign`;
+
     default:
-      return null;
+    return null;
   }
 }
 
