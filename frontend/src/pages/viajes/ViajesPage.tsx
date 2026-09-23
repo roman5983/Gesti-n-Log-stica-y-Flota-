@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -65,6 +65,15 @@ export function ViajesPage() {
   const [toCancel, setToCancel] = useState<Trip | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const highlight = searchParams.get('highlight');
+useEffect(() => {
+  if (!highlight) return;
+  tripsApi
+    .getById(Number(highlight))
+    .then((t) => setAssignTrip(t))
+    .catch(() => setActionError('No se encontró el viaje indicado.'));
+}, [highlight]);
+
 
   async function confirmDelete() {
     if (!toDelete) return;

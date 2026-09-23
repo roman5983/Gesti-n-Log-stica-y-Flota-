@@ -27,8 +27,11 @@ function sourceLink(a: Alert): string | null {
       return `/choferes?highlight=${a.entityId}`;
     case 'DRIVER_DOCUMENT':
       return a.linkedDriverId ? `/choferes?highlight=${a.linkedDriverId}&open=docs` : null;
+    case 'TRIP':
+    return `/viajes?highlight=${a.entityId}&open=assign`;
+
     default:
-      return null;
+    return null;
   }
 }
 
@@ -45,6 +48,7 @@ const ALERT_LABELS: Record<string, string> = {
   INSURANCE_EXPIRED: 'Seguro vencido',
   MAINTENANCE_KM_EXCEEDED: 'Km de mantenimiento superado',
   VEHICLE_INACTIVE: 'Vehículo inactivo',
+  VOYAGE_NOT_ASSIGNED: 'Viaje no asignado',
 };
 
 export function AlertasPage() {

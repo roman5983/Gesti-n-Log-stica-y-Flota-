@@ -361,14 +361,10 @@ export const tripsService = {
       await tripsRepository.lockTrip(id, tx);
       const existing = await tripsRepository.findById(id, tx);
       if (!existing) throw new NotFoundError(`No se encontró el viaje ${id}`);
-      if (existing.status !== 'PENDING_ASSIGNMENT' && existing.status !== 'IN_PROGRESS') {
-        throw new BusinessRuleError('Solo se pueden cancelar viajes pendientes o en curso');
+      if (existing.status !== 'PENDING_ASSIGNMENT') {
+        throw new BusinessRuleError('Solo se pueden cancelar viajes pendientes');
       }
       const trip = await tripsRepository.update(id, { status: 'CANCELLED' }, tx);
-      const releasesVehicle = existing.status === 'IN_PROGRESS' && existing.vehicleId !== null;
-      if (releasesVehicle) {
-        await vehiclesRepository.update(existing.vehicleId as number, { status: 'AVAILABLE' }, tx);
-      }
       await auditLogsService.record(
         {
           actorId,
@@ -376,7 +372,7 @@ export const tripsService = {
           entity: 'TRIP',
           entityId: id,
           previousData: { status: existing.status },
-          newData: { status: 'CANCELLED', ...(releasesVehicle ? { vehicleStatus: 'AVAILABLE' } : {}) },
+          newData: { status: 'CANCELLED'},
         },
         tx,
       );
