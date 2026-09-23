@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import { driversApi, type Driver, type LicenseCategory } from '../../api/drivers.api';
 import { apiErrorMessage } from '../../api/axios';
+import { DateField } from '../../components/DateField';
 
 interface Props {
   open: boolean;
@@ -96,14 +97,12 @@ export function DriverFormDialog({ open, driver, onClose, onSaved }: Props) {
                 <MenuItem key={c} value={c}>{c}</MenuItem>
               ))}
             </TextField>
-            <TextField
+            <DateField
               label="Vencimiento de licencia"
-              type="date"
               value={licenseExpiryDate}
-              onChange={(e) => setLicenseExpiryDate(e.target.value)}
+              onChange={setLicenseExpiryDate}
               required
               fullWidth
-              InputLabelProps={{ shrink: true }}
             />
           </Stack>
         </DialogContent>

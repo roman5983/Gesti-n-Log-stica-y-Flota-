@@ -1,8 +1,10 @@
 /**
- * Helpers to bridge an ISO instant and the value of an <input type="datetime-local">.
+ * Helpers to bridge an ISO instant and the value of a DateTimeField
+ * (components/DateField.tsx), the same shape the native datetime-local input
+ * used before it.
  *
- * A datetime-local input has NO timezone: its value is "YYYY-MM-DDTHH:mm" in
- * the user's local wall-clock time. Slicing an ISO string mixes UTC digits
+ * That value has NO timezone: it is "YYYY-MM-DDTHH:mm" in the user's local
+ * wall-clock time. Slicing an ISO string mixes UTC digits
  * with a local interpretation and shifts the time by the timezone offset.
  * These functions convert through the Date object so the local wall-clock
  * time stays consistent between create, edit and the list view.

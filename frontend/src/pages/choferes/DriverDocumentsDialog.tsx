@@ -24,6 +24,7 @@ import { documentsApi, type DocumentType, type DriverDocument } from '../../api/
 import type { Driver } from '../../api/drivers.api';
 import { apiErrorMessage } from '../../api/axios';
 import { formatDateOnly } from '../../utils/datetime';
+import { DateField } from '../../components/DateField';
 
 const DOC_TYPES: { value: DocumentType; label: string }[] = [
   { value: 'DNI', label: 'DNI' },
@@ -41,6 +42,7 @@ interface Props {
 /** Admin management of a driver's documents (F-4): list, upload, view, delete. */
 export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadForm = useRef<HTMLFormElement>(null);
   const [docs, setDocs] = useState<DriverDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,14 +108,20 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
         {canManage && (
           <>
             <Typography variant="subtitle2" gutterBottom>Subir documento</Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
+            {/* A form only so the browser validates the date (empty, incomplete)
+                before the file picker opens, with the field's own message. */}
+            <Stack component="form" ref={uploadForm} direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start" onSubmit={(e) => e.preventDefault()}>
               <TextField select label="Tipo" size="small" value={docType} onChange={(e) => setDocType(e.target.value as DocumentType)} sx={{ minWidth: 140 }}>
                 {DOC_TYPES.map((t) => (
                   <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
                 ))}
               </TextField>
-              <TextField label="Vencimiento" type="date" size="small" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} InputLabelProps={{ shrink: true }} />
-              <Button variant="outlined" onClick={() => fileInput.current?.click()} disabled={uploading}>
+              <DateField label="Vencimiento" size="small" value={expiryDate} onChange={setExpiryDate} required sx={{ minWidth: 180 }} />
+              <Button
+                variant="outlined"
+                onClick={() => { if (uploadForm.current?.reportValidity()) fileInput.current?.click(); }}
+                disabled={uploading}
+              >
                 Elegir archivo
               </Button>
               <input

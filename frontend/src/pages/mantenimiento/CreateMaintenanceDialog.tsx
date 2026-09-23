@@ -16,6 +16,7 @@ import { vehiclesApi, type Vehicle } from '../../api/vehicles.api';
 import { maintenanceTypesApi, type MaintenanceType } from '../../api/maintenance-types.api';
 import { apiErrorMessage } from '../../api/axios';
 import { localInputToIso } from '../../utils/datetime';
+import { DateTimeField } from '../../components/DateField';
 
 interface Props {
   open: boolean;
@@ -95,14 +96,12 @@ export function CreateMaintenanceDialog({ open, onClose, onSaved }: Props) {
                 <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
               ))}
             </TextField>
-            <TextField
+            <DateTimeField
               label="Fecha programada"
-              type="datetime-local"
               value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
+              onChange={setScheduledAt}
               required
               fullWidth
-              InputLabelProps={{ shrink: true }}
             />
             <Grid container spacing={2}>
               <Grid item xs={6}>

@@ -14,11 +14,12 @@ import { tripsApi, type Trip } from '../../api/trips.api';
 import { apiErrorMessage } from '../../api/axios';
 import { isoToLocalInput, localInputToIso } from '../../utils/datetime';
 import { AddressAutocomplete } from '../../components/AddressAutocomplete';
+import { DateTimeField } from '../../components/DateField';
 
 /** Fixed origin for every trip (RN-21) — shown read-only. */
 const FIXED_ORIGIN = 'Ciudad Industria, Autopista Córdoba - Rosario, Rosario, Santa Fe';
 
-/** Today at local midnight, formatted for a datetime-local input's `min`. */
+/** Today at local midnight, as a 'YYYY-MM-DDTHH:mm' local value (the DateTimeField format). */
 function todayLocalInputMin(): string {
   const now = new Date();
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -91,15 +92,13 @@ export function TripFormDialog({ open, trip = null, onClose, onSaved }: Props) {
               <Typography variant="body2">{FIXED_ORIGIN}</Typography>
             </Stack>
             <AddressAutocomplete label="Destino" value={destination} onChange={setDestination} required />
-            <TextField
+            <DateTimeField
               label="Fecha y hora de salida"
-              type="datetime-local"
               value={departureAt}
-              onChange={(e) => setDepartureAt(e.target.value)}
+              onChange={setDepartureAt}
               required
               fullWidth
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ min: todayLocalInputMin() }}
+              minDate={todayLocalInputMin().slice(0, 10)}
             />
             <TextField label="Observaciones" value={notes} onChange={(e) => setNotes(e.target.value)} fullWidth multiline minRows={2} />
           </Stack>

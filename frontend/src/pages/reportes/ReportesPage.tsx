@@ -35,9 +35,11 @@ export function ReportesPage() {
   const [error, setError] = useState<string | null>(null);
 
   const tooLong = Boolean(dateFrom && dateTo) && dayjs(dateTo).diff(dayjs(dateFrom), 'day') >= MAX_REPORT_DAYS;
+  // Flagged on the "Hasta" field too; here it just keeps the button off.
+  const inverted = Boolean(dateFrom && dateTo) && dateTo < dateFrom;
 
   async function generate() {
-    if (!dateFrom || !dateTo || tooLong) return;
+    if (!dateFrom || !dateTo || tooLong || inverted) return;
     setLoading(true);
     setError(null);
     try {
@@ -57,7 +59,7 @@ export function ReportesPage() {
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-end' }} justifyContent="space-between">
             <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
-            <Button variant="contained" onClick={generate} disabled={loading || !dateFrom || !dateTo || tooLong}>
+            <Button variant="contained" onClick={generate} disabled={loading || !dateFrom || !dateTo || tooLong || inverted}>
               Generar informe
             </Button>
           </Stack>

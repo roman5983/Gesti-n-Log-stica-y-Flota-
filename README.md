@@ -147,7 +147,7 @@ El seed carga una empresa con ~200 días de operación (más de 400 viajes, mant
 
 ```bash
 cd backend  && npm test      # 64 tests: crypto, fechas UTC, schemas, concurrencia de servicios, archivos en la base, job de alertas, seed
-cd frontend && npm test      # 25 tests: fechas, rutas por rol, auditoría (incluye un test de componente)
+cd frontend && npm test      # 36 tests: fechas, selector de fecha, rutas por rol, auditoría (incluye tests de componentes)
 ```
 
 **Manuales (end-to-end):** ver `GUIA-PRUEBAS-E2E.md` — guion paso a paso por rol contra la app corriendo.

@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { vehiclesApi, type Vehicle } from '../../api/vehicles.api';
 import { apiErrorMessage } from '../../api/axios';
+import { DateField } from '../../components/DateField';
 
 interface Props {
   open: boolean;
@@ -100,13 +101,11 @@ export function VehicleFormDialog({ open, vehicle, onClose, onSaved }: Props) {
               fullWidth
               helperText={isEdit ? 'Solo editable si el vehículo no tiene viajes ni mantenimientos' : 'Se ingresa manualmente al alta'}
             />
-            <TextField
+            <DateField
               label="Vencimiento del seguro"
-              type="date"
               value={insuranceExpiryDate}
-              onChange={(e) => setInsuranceExpiryDate(e.target.value)}
+              onChange={setInsuranceExpiryDate}
               fullWidth
-              InputLabelProps={{ shrink: true }}
             />
           </Stack>
         </DialogContent>

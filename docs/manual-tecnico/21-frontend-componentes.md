@@ -1168,6 +1168,28 @@ Con esta incorporación, el catálogo de §21.1 pasa de ocho a **nueve** compone
 
 **`ConfirmDialog` gana `cancelLabel`** (2026-09-21, por la cancelación de viajes y mantenimientos, §22B.11): el botón de descarte decía siempre *"Cancelar"*, que en un diálogo titulado *"Cancelar viaje"* significa lo contrario de lo esperado. La prop es opcional (por defecto `"Cancelar"`), así que los demás usos no cambian; las cancelaciones usan `"Volver"`.
 
+## 21.11. Actualización posterior — `DateField` y `DateTimeField`: un solo selector de fecha
+
+> **Fecha:** 2026-09-23. Detalle y motivos en el DEVLOG, "Selector de fecha unificado".
+
+Hasta acá convivían dos formas de ingresar fechas: `DateRangeFilter` con el `DatePicker` de MUI (Viajes, Reportes), y el `<input type="date">` / `datetime-local` nativo en el resto (Auditoría, choferes, vehículos, documentos, viajes, mantenimientos). El nativo se ve y se ordena distinto según el navegador y el sistema operativo: dd/mm en uno, mm/dd en otro. Ahora hay un único control, `components/DateField.tsx`:
+
+| Componente | Muestra / se tipea | Valor que recibe y entrega |
+|:--|:--|:--|
+| `DateField` | `dd/mm/aaaa` | `'YYYY-MM-DD'` |
+| `DateTimeField` | `dd/mm/aaaa hh:mm` (24 h) | `'YYYY-MM-DDTHH:mm'` local, igual que el `datetime-local` de antes (`localInputToIso` sigue funcionando igual) |
+
+Se completa de dos formas: tipeando los números, que avanzan solos de día a mes y a año, o con el botón de calendario, que abre en los **años**, sigue con los **meses** y termina en los **días** (`openTo="year"`). Los textos están en castellano gracias a `AppLocalizationProvider`: placeholders DD/MM/AAAA, "Seleccionar fecha", "Cancelar".
+
+Decisiones que no se ven a simple vista:
+
+- **Copia local de lo que se muestra.** El componente guarda lo que el usuario ve y solo le avisa al padre cuando la fecha está terminada. Antes, cada tecla le llegaba al padre: una fecha a medio tipear lo vaciaba, y el año que se completa dígito a dígito (0002 → 0020 → 0202 → 2027) mandaba al backend pedidos con el año 202.
+- **"Terminada" depende de cómo se ingresa.** Tipeando, es cuando todas las partes están completas y el año cae entre 1900 y 2099. Con el calendario, es cuando se cierra (`onAccept`): elegir año y mes ya cambia el valor, y avisar en cada paso haría que un filtro consultara tres veces.
+- **Validación nativa del formulario.** Una fecha incompleta, fuera de rango o requerida y vacía marca el `<input>` con `setCustomValidity`. Así el `<form>` no se envía y el navegador muestra el mensaje en castellano, igual que en cualquier otro campo obligatorio. El error visible debajo del campo aparece recién al salir de él, no mientras se tipea.
+- **La lógica pura vive aparte** (`utils/date-input.ts`: parseo estricto, qué cuenta como terminada, mensajes) y tiene sus propios tests, además de los del componente (`DateField.test.tsx`).
+
+`DateRangeFilter` ahora son dos `DateField` más los atajos, y cada extremo acota al otro. También lo usa Auditoría, que antes tenía los dos inputs nativos.
+
 ---
 
 **Anterior:** [Capítulo 20 — Estado y autorización en el cliente](20-frontend-auth-estado.md) · **Siguiente:** Capítulo 22 — Las pantallas *(pendiente)*

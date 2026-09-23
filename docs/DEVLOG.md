@@ -563,3 +563,47 @@ pre-deploy. El paso a paso está en el README, sección "Deploy".
 desincronizado (faltan `esbuild` y `yaml` como *peers* opcionales de la versión de Vite que trae
 Vitest). Es una diferencia entre versiones de npm, no un error del proyecto: Vercel usa `npm install`.
 Se puede normalizar regenerando el lockfile con la versión de npm que use el equipo.
+
+---
+
+# Selector de fecha unificado
+
+**Qué pasaba.** Había dos formas de ingresar fechas:
+- el `DatePicker` de MUI, solo en los filtros de Viajes y Reportes;
+- el `<input type="date">` / `datetime-local` del navegador en todo lo demás (filtro de Auditoría,
+  vencimiento de licencia, seguro y documentos, salida del viaje, fecha del mantenimiento).
+
+El nativo cambia de aspecto y de orden según el navegador y el sistema: dd/mm en uno, mm/dd en otro.
+El de MUI tenía dos fallas:
+- avisaba cada tecla al padre: una fecha incompleta vaciaba el filtro, y el año completado dígito a
+  dígito (0002 → 0020 → 0202 → 2027) disparaba consultas con el año 202 (reproducido en un test);
+- sus textos quedaban en inglés, porque faltaba el paquete de idioma.
+
+**Qué se hizo.** Un único control para toda la app, `components/DateField.tsx`:
+- `DateField` para fechas (dd/mm/aaaa) y `DateTimeField` para fecha y hora (dd/mm/aaaa hh:mm, 24 h);
+- se tipea con números, y cada parte salta a la siguiente al completarse; también se puede pegar una
+  fecha entera;
+- el botón de calendario abre en los años, sigue con los meses y termina en los días;
+- le avisa al padre solo cuando la fecha está terminada: tipeando, con un año de 4 cifras entre 1900
+  y 2099; con el calendario, al cerrarlo;
+- una fecha incompleta, fuera de rango o requerida y vacía bloquea el envío del formulario con un
+  mensaje en castellano (validación nativa, `setCustomValidity`);
+- el valor sigue siendo el mismo string de antes (`YYYY-MM-DD` o `YYYY-MM-DDTHH:mm` local), así que las
+  llamadas a la API y el manejo de zonas horarias no cambiaron;
+- `AppLocalizationProvider` monta el idioma castellano de los pickers (placeholders DD/MM/AAAA, textos
+  de los botones).
+
+Reemplaza los 9 selectores:
+- los filtros Desde/Hasta de Viajes, Reportes y Auditoría (Auditoría pasó a usar `DateRangeFilter`,
+  con sus atajos);
+- el vencimiento de licencia, de seguro y de documentos;
+- la salida del viaje y la fecha programada del mantenimiento.
+
+En Reportes, un rango invertido deshabilita "Generar informe". En Documentación, "Elegir archivo"
+valida el vencimiento antes de abrir el selector de archivos.
+
+**Verificación.**
+- 11 tests nuevos en el frontend (36 en total): `DateField.test.tsx` maneja el componente como un
+  usuario (tipeo, calendario año → mes → día, cambios externos, rangos, formulario bloqueado) y
+  `date-input.test.ts` cubre la lógica pura;
+- tsc, ESLint y build limpios.

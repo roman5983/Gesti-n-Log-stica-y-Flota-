@@ -15,6 +15,7 @@ import {
   entityWithId,
 } from './audit-labels';
 import { formatDateTime } from '../../utils/datetime';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
 
 /** Read-only audit trail with filters (RN-7 / P-AD-3), Admin-only. */
 export function AuditoriaPage() {
@@ -70,7 +71,7 @@ export function AuditoriaPage() {
       <PageHeader title="Auditoría" />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'flex-start' }} sx={{ mb: 2 }}>
         <TextField select label="Entidad" size="small" value={entity} onChange={(e) => { setEntity(e.target.value); setPage(1); }} sx={{ minWidth: 180 }}>
           <MenuItem value="">Todas</MenuItem>
           {AUDIT_ENTITIES.map((e) => <MenuItem key={e} value={e}>{entityLabel(e)}</MenuItem>)}
@@ -79,8 +80,11 @@ export function AuditoriaPage() {
           <MenuItem value="">Todas</MenuItem>
           {AUDIT_ACTIONS.map((a) => <MenuItem key={a} value={a}>{actionLabel(a)}</MenuItem>)}
         </TextField>
-        <TextField label="Desde" type="date" size="small" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} InputLabelProps={{ shrink: true }} />
-        <TextField label="Hasta" type="date" size="small" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} InputLabelProps={{ shrink: true }} />
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onChange={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }}
+        />
       </Stack>
 
       <DataTable
