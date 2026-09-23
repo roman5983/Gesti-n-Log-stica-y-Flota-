@@ -603,7 +603,7 @@ if (vehicle?.status !== 'IN_WORKSHOP') {
 
 ### 13.4.6. `addAttachment` y el mejor comentario de negocio del proyecto
 
-> ⚠️ **Cambio posterior (2026-09-23): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
+> ⚠️ **Cambio posterior (2026-09-22): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
 
 ```ts
 272 /**

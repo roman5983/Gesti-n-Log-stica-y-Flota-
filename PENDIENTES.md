@@ -1,119 +1,79 @@
-# Pendientes — Sistema de Gestión Logística
+# Pendientes — Sistema de Gestión Logística y Flota
 
-Lista de trabajo pendiente. No incluye implementación, solo el detalle de qué hay que hacer.
+Documento único de pendientes del proyecto. Reemplaza a `PENDIENTES-EQUIPO.md`, `PENDIENTES-EQUIPO.pdf` y a la versión anterior de este mismo archivo, que quedaron desactualizados y duplicados entre sí. También existe como PDF (`PENDIENTES.pdf`) para compartir fuera de git.
 
----
-
-## 0. Preguntas resueltas (contexto)
-
-**¿Pueden un Administrador, un Operador y un Chofer usar el sistema simultáneamente en localhost?**
-Sí. El backend atiende múltiples conexiones concurrentes y cada sesión tiene su propio token JWT. El sistema ya está preparado para uso concurrente: los flujos críticos (asignar/finalizar viajes, evaluar alertas, crear mantenimientos) usan transacciones con bloqueos de fila (`FOR UPDATE`) para que dos usuarios operando a la vez no se pisen.
-
-- En la misma máquina: abrir varias sesiones en navegadores/ventanas distintas (ej. Chrome normal + incógnito + Safari).
-- Desde otros dispositivos de la misma red: requiere usar la IP local de la máquina (ej. `192.168.x.x`) en vez de `localhost`, y ajustar `CORS_ORIGIN` (backend) y `VITE_API_URL` (frontend). **Tarea pendiente si se quiere demostrar multi-dispositivo.**
-
-**¿Las alertas pueden correr en tiempo real en localhost?**
-Sí. `localhost` no es la limitación. Hoy la evaluación es **a demanda** (botón "Evaluar alertas") por decisión de diseño, no por restricción técnica. La única condición para automatizarlas es que el backend esté corriendo. Ver tarea 6.
+**Estado al 23/09/2026.** Ya resuelto y no aparece en esta lista: build de producción del backend, preparación para Vercel + Render, archivos subidos guardados en MySQL, y el selector de fecha único (dd/mm/aaaa, tipeo o calendario).
 
 ---
 
-## 1. Datos de ejemplo — simular un sistema con historia
+## 🔴 Deploy (lo que falta para tenerlo online)
 
-Ampliar el seed para que el sistema parezca llevar tiempo en uso, en vez de arrancar casi vacío.
+1. **Elegir y crear la base de datos MySQL en internet.** Render no ofrece MySQL gratis. La opción gratuita más directa es Aiven, con 1 GB. Exige conexión cifrada, así que probablemente haya que ajustar un poco cómo se conecta el backend.
+2. **Crear los servicios** siguiendo el README (sección "Deploy"): el backend en Render con `render.yaml` y el frontend en Vercel. Después, cargar el seed de demostración desde la terminal (*Shell*) del servicio en Render.
+3. **Calibrar `TRUST_PROXY`** una vez desplegado, con los logs de Render (está explicado en el README).
+4. **Revisar la URL del backend en `frontend/vercel.json`.** Si Render le asigna al servicio un nombre distinto de `gestion-logistica-api`, hay que actualizarla ahí.
 
-- Muchos más viajes finalizados, distribuidos a lo largo de varios meses (para que el gráfico de "viajes por mes" del dashboard muestre una curva real y no un solo mes).
-- Más vehículos, con kilometrajes acumulados variados y coherentes con su antigüedad.
-- Historial de mantenimientos ya completados por vehículo (no solo pendientes).
-- Más choferes, con estadísticas acumuladas (viajes realizados, promedio de km) coherentes con su historial.
-- Documentación cargada para todos los choferes, con vencimientos variados (vigentes, por vencer, vencidos).
-- Registros de auditoría históricos, para que la pantalla de Auditoría no se vea vacía al inicio.
-- Alertas ya resueltas además de las pendientes, para que la pestaña "Resueltas" tenga contenido.
+## 🟠 Falta para cumplir la consigna (aprobación)
 
----
+5. **Test de integración del backend contra una base real.** Por ejemplo: crear, asignar y finalizar un viaje con supertest.
+6. **Test E2E automatizado** con Playwright o Cypress. La guía E2E actual es manual.
+7. **Documentación de la API** con Swagger/OpenAPI.
+8. **Video de demostración.**
+9. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` sigue diciendo "23 / 5 tests"; hoy son 64 en el backend y 36 en el frontend.
+10. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
+11. **Links a los pull requests en `proposal.md`.** Ya se piden para la regularidad.
+12. **Participación:** cada integrante tiene que tener commits propios y al menos un test de su autoría. Hoy Santiago no tiene commits en el repo oficial.
+13. **Links del deploy y credenciales** para la entrega, cuando esté online.
 
-## 2. Modo oscuro / modo claro
+## 🟠 Diferencias entre la propuesta y lo implementado
 
-- Implementar alternancia entre tema claro y oscuro en toda la aplicación.
-- Control visible para cambiar de modo (ej. en la barra superior).
-- Recordar la preferencia del usuario entre sesiones.
-- Verificar contraste y legibilidad en ambos modos, en todas las pantallas (tablas, diálogos, gráficos, chips de estado).
+14. **Vista de detalle de Vehículo.** La consigna exige un detalle al seleccionar un elemento de cada listado. Choferes, Usuarios y Alertas tampoco tienen vista de detalle.
+15. **"Historial de mantenimientos por vehículo" en la interfaz.** El backend ya acepta filtrar por vehículo; falta el filtro en la pantalla de Mantenimiento.
+16. **Dashboard:** faltan "Kilometraje total por vehículo" y "Alertas abiertas por tipo".
+17. **Reescribir "CRUD Auditoría" y "CRUD Alerta" en la propuesta.** La auditoría no se edita a propósito, y las alertas solo se crean y se resuelven. Así escrito, parece que falta algo.
 
----
+## 🟡 Bugs a corregir
 
-## 3. Cambio de paleta — verde oscuro
+18. **Se puede eliminar un chofer con un viaje en curso.** Desactivarlo está bloqueado, pero eliminarlo no.
+19. **Carrera en la baja de vehículos y de choferes.** Falta el bloqueo de fila que ya usan viajes y mantenimientos. Sin él, si la baja coincide con una asignación, puede quedar un vehículo inactivo con un viaje en curso.
 
-- Reemplazar el azul marino actual por una paleta de **verde oscuro** como color principal de la UI.
-- Aplicar en: sidebar, barra superior, botones primarios, chips/estados, gráficos y acentos.
-- Mantener coherencia con los colores semánticos (éxito, advertencia, error) para que sigan siendo distinguibles.
-- Debe funcionar tanto en modo claro como en modo oscuro (tarea 2).
+## 🟢 Menores / prolijidad
 
----
+20. **Vulnerabilidades de dependencias:** 18 en el backend y 8 en el frontend. Varias se arreglan con actualizaciones menores. Prisma y Vite requieren cambio de versión mayor, y en ningún caso hay que correr `npm audit fix --force`.
+21. **El frontend se carga en un solo archivo de 1,2 MB.** Se puede partir por pantalla con `React.lazy`.
+22. **Documentación desactualizada:** el README dice 57 endpoints y son 60. Algunos capítulos del manual técnico dicen que no hay tests de componentes ni de servicios, y ya los hay.
+23. **Limpiar la raíz del repo:** `Backend-Gestion-Logistica.docx` (la cátedra no acepta `.docx`) y `CRUD-proposal-ubicacion-codigo.pdf` si ya cumplió su propósito.
+24. **Warning de lint pendiente** en `auth/guards.tsx`.
+25. **Lockfile del frontend:** con npm 10, `npm ci` lo marca desincronizado. Conviene regenerarlo con la versión de npm que use el equipo.
 
-## 4. Sección de Auditoría — terminar de pulir
+## 🔵 Mejoras de UX pedidas (Román, 23/09/2026)
 
-- **Traducir al castellano todo lo que ve el usuario**: hoy se muestran los códigos internos tal cual (`CREATE`, `UPDATE`, `VIEW_CREDENTIALS`, `USER`, `VEHICLE`, `TRIP`, etc.). Deben mostrarse como texto legible ("Creación", "Modificación", "Consulta de credenciales", "Usuario", "Vehículo", "Viaje"…). Aplica a la columna de acción, la de entidad y los filtros.
-- **Rediseñar el detalle de antes/después** con un enfoque más cercano al usuario:
-  - Mostrar nombres de campo legibles en castellano en vez de las claves técnicas (`licensePlate` → "Patente", `isActive` → "Activo").
-  - Formatear los valores (fechas en formato local, booleanos como "Sí/No", estados traducidos).
-  - Resaltar visualmente **qué campos cambiaron** en vez de mostrar dos bloques completos que el usuario tiene que comparar a ojo.
-  - Ocultar o agrupar los campos que no cambiaron.
+26. **Buscador en Viajes (chofer y destino).** Ícono de lupa que filtre por nombre del chofer asignado y por destino. A definir: un campo único o dos separados, y si la búsqueda es server-side (nuevo parámetro en `GET /trips`, preferible por consistencia con los demás filtros) o client-side.
 
----
+27. **Ordenamiento en Alertas y Mantenimiento.** Hoy ambas pantallas solo filtran, no ordenan.
+    - Mantenimiento: por tipo de mantenimiento, por vehículo, por período (fecha programada / finalización), y otros criterios útiles (ej. kilómetro).
+    - Alertas: por tipo de alerta, por vehículo, por período (semanal u otro rango).
+    - Implica un parámetro `sortBy`/`sortOrder` en `GET /maintenances` y `GET /alerts` (hoy ordenan fijo) y el control en la UI.
 
-## 5. Selector de fecha (calendario) — mejorar la experiencia
+28. **Reorganización del frontend por componente + código en inglés.** Cambio de fondo, no cosmético: toca casi todos los archivos del frontend. Conviene una rama propia y discutirlo en equipo antes de arrancar.
+    - **Carpeta por componente**, según el estándar de referencia:
+      ```
+      ComponentName/
+      ├─ ComponentName.tsx          # Componente, JSX, hooks, manejadores de eventos
+      ├─ ComponentName.scss         # Estilos
+      ├─ ComponentName.types.ts     # Props, formas de estado local, enums internos
+      ├─ ComponentName.data.ts      # Arrays/objetos fijos (named exports)
+      ├─ ComponentName.const.ts     # Constantes primitivas (SCREAMING_SNAKE_CASE)
+      ├─ ComponentName.helpers.ts   # Funciones TS puras — sin React, sin hooks
+      └─ ComponentName.server.ts    # Llamadas a la API, con callbacks onSuccess/onError
+      ```
+      Hoy el proyecto usa MUI con `sx` (no SCSS) y `axios`/`async-await` (no callbacks `onSuccess`/`onError`) — definir si se adopta el patrón tal cual o se adapta a esas convenciones (ej. `.styles.ts` en vez de `.scss`, `.api.ts` en vez de `.server.ts`).
+    - **Todo el código en inglés**: identificadores, comentarios y nombres de archivo hoy en castellano (`pages/viajes/`, `pages/choferes/`, variables como `chofer`, `vehiculo`). Definir el alcance antes de tocar nada: ¿incluye los **textos que ve el usuario** (labels, mensajes, botones) o solo identificadores/comentarios/nombres de archivo? Los textos de UI están en castellano a propósito, para una empresa argentina — traducirlos cambia la experiencia del usuario final. Confirmar también si el backend (ya en inglés, con mensajes de error en castellano por diseño) sigue el mismo criterio.
 
-Aplica a los filtros de **Reportes** y de **búsqueda de Viajes** (y cualquier otro filtro por fecha).
+29. **Evaluación de alertas: automática una vez al día + botón manual siempre disponible.** Hoy corre cada `ALERTS_EVAL_INTERVAL_MIN` minutos (10 por defecto). Pasarlo a una vez al día (ej. `ALERTS_EVAL_INTERVAL_HOURS` o fijo a 24h en `alerts.scheduler.ts`, actualizar `.env.example`/README) y dejar el botón "Evaluar alertas" (`POST /alerts/evaluate`) sin cambios, para uso manual del Admin/Operador en cualquier momento.
 
-- El calendario actual (input nativo del navegador) resulta incómodo, especialmente al elegir mes y día.
-- Reemplazarlo por un selector de fecha propio con mejor navegación: cambio de mes/año ágil, selección clara del día.
-- Considerar un selector de **rango** (desde/hasta en un solo control) para los filtros que usan dos fechas.
-- Agregar atajos útiles si aplica (ej. "Hoy", "Últimos 7 días", "Este mes").
-- Mantener el manejo correcto de zonas horarias ya resuelto (no debe reintroducir desfasajes).
-
----
-
-## 6. Alertas en tiempo real (opcional — definir)
-
-Hoy las alertas se evalúan solo al presionar el botón. Si se quiere que aparezcan solas, elegir uno de estos caminos:
-
-- **Tarea programada en el backend:** un job que ejecute la evaluación cada X minutos mientras el servidor esté corriendo. Es lo más simple y suficiente para la demo.
-- **Consulta periódica desde el frontend:** que la app recargue las alertas cada cierto tiempo. Simple, pero no genera alertas nuevas, solo refresca.
-- **Notificaciones push (WebSockets / SSE):** verdadero tiempo real, con aviso inmediato al usuario. Es el más complejo.
-
-**Decisión pendiente:** si se implementa y con cuál de las tres opciones.
-
----
-
-## 7. Testing — según la consigna oficial del TP
-
-Verificado en la consigna (https://github.com/utnfrrodsw/tp). Los requisitos exactos para **Aprobación Directa o en Examen** son:
-
-**Backend:**
-- "Implementar **1 test automatizado por integrante**." → con 3 integrantes, 3 tests automatizados. **Ya cumplido** (hay 23 tests unitarios).
-- "Implementar **1 test de integración**." → ❌ **FALTA**. Los tests actuales son unitarios y corren sin base de datos. Hace falta al menos un test de integración que ejercite el flujo real contra la base (ej. crear un viaje, asignarlo y finalizarlo verificando los efectos en vehículo y chofer).
-
-**Frontend:**
-- "Realizar al menos **1 test unitario de un componente**." → ❌ **FALTA**. Los 5 tests actuales son de funciones utilitarias (fechas, rutas por rol), no de un componente renderizado. Hace falta testear un componente real (ej. un diálogo de formulario o la tabla), típicamente con Testing Library.
-- "Realizar al menos **1 test de end-to-end**." → ❌ **FALTA**. No hay ningún test E2E automatizado. La guía E2E actual es manual. Hace falta uno automatizado (ej. con Playwright o Cypress) que recorra un flujo completo en el navegador.
-
-**Resumen de lo que falta en testing:** 1 test de integración (backend), 1 test unitario de componente (frontend), 1 test E2E automatizado (frontend).
+30. **Carteles aclaratorios cuando una acción no se puede hacer.** Reforzar los mensajes visibles al usuario cuando el sistema rechaza algo (ejemplo dado: login con contraseña incorrecta, que ya muestra "Credenciales inválidas"). Revisar que el mismo patrón sea consistente en todo el sistema: reglas de negocio bloqueadas, permisos insuficientes, validaciones de formulario. Definir si alcanza el `Alert` actual o hace falta algo más visible (Snackbar/Toast) para errores hoy silenciosos, relevando pantalla por pantalla.
 
 ---
 
-## 8. Otros requisitos de la consigna aún no cubiertos
-
-Detectados al revisar la consigna oficial. No estaban en la lista original pero son necesarios para la entrega de Aprobación:
-
-- **Documentación de la API de backend** — la consigna pide "Documentación de la API de backend (según la tecnología y standard utilizados)". Hoy no existe. Habitualmente se resuelve con OpenAPI/Swagger.
-- **Deploy** — la consigna pide "Links de Deploy" y "Credenciales para utilizar la aplicación deployada". El sistema hoy corre solo en local.
-- **Video explicando el funcionamiento del sistema.**
-- **Evidencia del resultado de la ejecución de los tests automáticos** (capturas o salida de la corrida).
-- **Verificar los 3 breakpoints (SM, MD, LG)** y la estrategia mobile-first que exige la consigna de frontend.
-- **Documentación de gestión del proyecto** — metodología usada, minutas de reuniones, trackeo de tareas (la consigna lo pide explícitamente).
-
----
-
-## 9. Pendientes técnicos previos (ya identificados)
-
-- **Autocompletado de direcciones en modo estricto**: hoy sugiere direcciones reales pero permite texto libre; falta decidir si se bloquea el guardado sin selección. Requiere además habilitar la Places API en la key de Google.
-- **Vulnerabilidades de dependencias**: dos reportadas por `npm audit` (esbuild/vite y react-router). Ambas requieren actualizaciones mayores; se dejaron para una pasada de endurecimiento previa al deploy. **No correr `npm audit fix --force`** sin planificarlo.
+**Prioridad sugerida** (primera entrega: 12 al 16 de octubre): primero el deploy (1 a 4), después los tests de integración y E2E junto con la documentación de la API (5 a 7), y después la vista de detalle (14), por ser un requisito explícito de la consigna. Los puntos 26 a 30 son mejoras de UX sin fecha límite de la cátedra — encajan después de lo anterior, o en paralelo si hay integrantes libres.

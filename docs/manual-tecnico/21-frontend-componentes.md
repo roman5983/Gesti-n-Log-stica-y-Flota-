@@ -1170,7 +1170,7 @@ Con esta incorporación, el catálogo de §21.1 pasa de ocho a **nueve** compone
 
 ## 21.11. Actualización posterior — `DateField` y `DateTimeField`: un solo selector de fecha
 
-> **Fecha:** 2026-09-23. Detalle y motivos en el DEVLOG, "Selector de fecha unificado".
+> **Fecha:** 2026-09-22. Detalle y motivos en el DEVLOG, "Selector de fecha unificado".
 
 Hasta acá convivían dos formas de ingresar fechas: `DateRangeFilter` con el `DatePicker` de MUI (Viajes, Reportes), y el `<input type="date">` / `datetime-local` nativo en el resto (Auditoría, choferes, vehículos, documentos, viajes, mantenimientos). El nativo se ve y se ordena distinto según el navegador y el sistema operativo: dd/mm en uno, mm/dd en otro. Ahora hay un único control, `components/DateField.tsx`:
 

@@ -1243,7 +1243,7 @@ dayjs().utc().startOf('day').toDate();
 
 ## 6.7. `shared/utils/files.ts`
 
-> ⚠️ **Cambio posterior (2026-09-23): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
+> ⚠️ **Cambio posterior (2026-09-22): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
 
 Cuarenta líneas que gestionan el almacenamiento en disco: el único estado del sistema que vive **fuera** de las transacciones.
 
@@ -1727,7 +1727,7 @@ sequenceDiagram
 
 ### 6.9.2. El ciclo de vida de un archivo subido
 
-> ⚠️ **Cambio posterior (2026-09-23): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
+> ⚠️ **Cambio posterior (2026-09-22): los archivos ya no se guardan en disco.** Los bytes pasaron a la base (columna `content` MEDIUMBLOB en `driver_documents` y `maintenance_attachments`), porque el hosting del deploy tiene disco efímero. `storeFile`/`safeUnlink` desaparecieron: la subida guarda bytes, metadata y auditoría en una sola transacción, sin archivos huérfanos que compensar. `files.ts` quedó con `toBytes` y `sendStoredFile`. El análisis de esta sección describe el diseño anterior. Ver DEVLOG, "Deploy: proxy, trust proxy y archivos en la base".
 
 ```mermaid
 sequenceDiagram
