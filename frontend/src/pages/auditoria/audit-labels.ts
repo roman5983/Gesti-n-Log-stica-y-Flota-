@@ -13,7 +13,7 @@ import { formatDateOnly, formatDateTime } from '../../utils/datetime';
  * disappearing from the UI.
  */
 
-export type AuditChipColor = 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary';
+export type AuditChipColor = 'default' | 'success' | 'warning' | 'error' | 'info';
 
 /** Actions, in the order they are offered in the filter. */
 export const AUDIT_ACTIONS = [

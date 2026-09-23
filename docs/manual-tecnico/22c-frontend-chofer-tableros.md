@@ -227,6 +227,14 @@ hexadecimal —que casualmente coincide con `primary.main`— rompiendo el vínc
 alguien cambia el tema, el gráfico se queda con el azul viejo. Recharts no accede al
 tema de MUI automáticamente, pero `useTheme()` lo resolvería en una línea.
 
+> **Actualización (23/09/2026).** Resuelto en dos pasos. Primero el gráfico pasó a leer el tema con
+> `useTheme()` (ejes, grilla y tooltip incluidos, para el modo oscuro). Después, con el sistema de
+> color (§18.6), cada barra recibe su propio tono: `scaleColor` (en `theme-tokens.ts`) interpola entre
+> `chart.low` (el mes con menos viajes, tono más oscuro) y `chart.high` (el de más viajes, tono más
+> claro), y se pinta con un `<Cell>` por barra. Un `<LabelList>` escribe el número sobre cada barra,
+> así el tono ayuda pero nunca es la única forma de leer el dato. Los dos extremos de la escala tienen
+> contraste ≥ 3:1 con la tarjeta en los dos modos, y lo verifica `theme-tokens.test.ts`.
+
 ---
 
 ## 22C.3 · Las tres pantallas del chofer
@@ -244,6 +252,9 @@ apiladas verticalmente, botones grandes, y una jerarquía visual simple:
   Cerrar hoja de ruta
 </Button>
 ```
+
+> **Actualización (23/09/2026).** Hoy el botón usa el color primario (sin `color="error"`): el rojo
+> quedó reservado para errores y acciones destructivas (§18.6 y §22B.4.4).
 
 `fullWidth size="large"` sobre el botón principal. Es el único botón así del proyecto, y
 la razón es evidente en cuanto se piensa en el contexto de uso: **el chofer está en la
@@ -1406,8 +1417,8 @@ sequenceDiagram
 | 13 | ⚠️ Baja | **La configuración no permite descartar cambios.** El estado del servidor *es* el estado del formulario. Sin copia original: el botón está siempre habilitado, no se puede deshacer, y navegar pierde los cambios en silencio. | `ConfiguracionPage:21,37-39` |
 | 14 | ⚠️ Baja | **La documentación del chofer no dice qué falta.** Lista lo cargado; los cuatro tipos obligatorios están en `DOC_LABELS`. Un chofer con 3 de 4 no sabe cuál le impide que le asignen viajes (RN-4). | `MiDocumentacionPage:9-14, 62` |
 | 15 | ⚠️ Baja | **Alineación por heurístico.** "las dos últimas columnas a la derecha" se rompe en la tabla de dos columnas: el destino, texto largo, queda alineado a la derecha. | `ReportesPage:108,123` |
-| 16 | ⚠️ Baja | **`fill="#1e88e5"` en crudo**, fuera del tema de MUI. Coincide con `primary.main` hoy; cambiar el tema no cambia el gráfico. | `DashboardPage:108` |
-| 17 | ⚠️ Baja | **`Info` es la cuarta copia** de la etiqueta-valor: `Field`, `Detail`, `Row`, `Info`. Cuatro archivos, ninguno exportado. Y `MiHistorialPage:34` reimplementa `StatusChip` a mano. | 4 archivos |
+| 16 | ✅ Resuelto | ~~**`fill="#1e88e5"` en crudo**, fuera del tema de MUI.~~ El gráfico lee el tema y cada barra toma un tono de la escala `chart` de `theme-tokens.ts` (§18.6). | `DashboardPage` |
+| 17 | ⚠️ Baja | **`Info` es la cuarta copia** de la etiqueta-valor: `Field`, `Detail`, `Row`, `Info`. Cuatro archivos, ninguno exportado. Y `MiHistorialPage:34` reimplementaba `StatusChip` a mano (✅ resuelto el 23/09/2026: ahora usa `StatusChip`, igual que `MiViajePage`). | 4 archivos |
 | 18 | ⚠️ Baja | **`MiViajePage` depende de RN-19 sin decirlo.** `items[0] ?? null` es correcto porque un chofer tiene a lo sumo un viaje activo. Sin comentario, la suposición es invisible. | `MiViajePage:32-33` |
 | 19 | ✅ Bueno | **Alcance forzado por el servidor.** `filters.driverId = actor.id` *"regardless of any driverId passed in the query"*, más la comprobación explícita para el acceso individual. El patrón correcto contra IDOR. | `trips.service.ts:87-88, 99` |
 | 20 | ✅ Bueno | **Los estados vacíos del chofer están bien escritos.** Icono, voseo, y `MiDocumentacionPage` además dice **quién** resuelve el problema. La mejor redacción del proyecto. | `MiViajePage:54-65`, `MiDocumentacionPage:58` |

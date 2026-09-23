@@ -1,142 +1,309 @@
-import { createTheme, type PaletteMode, type Theme } from '@mui/material/styles';
+import { alpha, createTheme, type PaletteMode, type Theme } from '@mui/material/styles';
+import { TINT_ALPHA, tokensFor, type ColorTokens, type SidebarTokens, type Tone } from './theme-tokens';
 
 /**
- * App theme — "verde petróleo" (dark teal) palette, available in light and
- * dark mode.
+ * App theme — built from the design-system tokens in theme-tokens.ts, in light
+ * and dark mode.
  *
  * The theme is built by a factory instead of being a module-level constant:
  * the color mode lives in a store (see stores/color-mode-store) and
  * AppThemeProvider rebuilds the theme whenever the mode changes.
  *
- * Design notes:
- *  - The primary color flips between a deep teal (light mode) and a lighter
- *    teal (dark mode). A dark primary over a dark background would be
- *    unreadable, so each mode gets its own tone rather than sharing one.
- *  - Semantic colors (success / warning / error / info) are deliberately kept
- *    away from teal so they stay distinguishable from the brand color: success
- *    is a leaf green, info a clear blue.
- *  - The dark sidebar (DOC-5 §5.1/5.2) is no longer hardcoded in the layout;
- *    it is exposed here as `palette.sidebar` so both modes stay consistent.
+ * Besides mapping tokens to MUI palette slots, the component overrides below
+ * enforce the design-system rules once, for every screen:
+ *  - interactive states: hover / pressed / disabled / keyboard focus;
+ *  - colored chips are "soft" (tinted background + dark text of the same hue)
+ *    instead of saturated blocks: legible (AA) and calmer (60-30-10);
+ *  - containers are delimited by crisp 1px neutral borders instead of blurry
+ *    shadows (pixel perfect on low-density screens);
+ *  - form controls keep a ≥ 3:1 outline (WCAG 1.4.11).
  */
 
-/** Custom palette slot for the dark navigation sidebar. */
-export interface SidebarPalette {
-  /** Sidebar background. */
-  bg: string;
-  /** Brand title on top of the sidebar. */
-  title: string;
-  /** Idle navigation item. */
-  text: string;
-  /** Background of the active navigation item. */
-  activeBg: string;
-  /** Text/icon of the active navigation item. */
-  activeText: string;
-  /** Separator line inside the sidebar. */
-  divider: string;
-  /** Hover background for idle items. */
-  hoverBg: string;
-}
+export type { SidebarTokens as SidebarPalette } from './theme-tokens';
 
 declare module '@mui/material/styles' {
   interface Palette {
-    sidebar: SidebarPalette;
+    sidebar: SidebarTokens;
+    /** Accent (secondary) color — badges and key metrics, used sparingly. */
+    accent: Palette['primary'];
+    /** Raw design tokens of the current mode, for the rare component (charts)
+     *  that needs more than the MUI palette slots. */
+    tokens: ColorTokens;
   }
   interface PaletteOptions {
-    sidebar?: SidebarPalette;
+    sidebar?: SidebarTokens;
+    accent?: PaletteOptions['primary'];
+    tokens?: ColorTokens;
   }
 }
 
-const LIGHT_SIDEBAR: SidebarPalette = {
-  bg: '#0E2B29',
-  title: '#FFFFFF',
-  text: 'rgba(255, 255, 255, 0.75)',
-  activeBg: 'rgba(77, 182, 172, 0.20)',
-  activeText: '#FFFFFF',
-  divider: 'rgba(255, 255, 255, 0.12)',
-  hoverBg: 'rgba(255, 255, 255, 0.06)',
-};
-
-/** In dark mode the sidebar goes *darker* than the page so it still reads as a
- *  distinct surface instead of blending into the background. */
-const DARK_SIDEBAR: SidebarPalette = {
-  bg: '#0A1312',
-  title: '#FFFFFF',
-  text: 'rgba(255, 255, 255, 0.70)',
-  activeBg: 'rgba(77, 182, 172, 0.22)',
-  activeText: '#FFFFFF',
-  divider: 'rgba(255, 255, 255, 0.10)',
-  hoverBg: 'rgba(255, 255, 255, 0.05)',
-};
-
-function palette(mode: PaletteMode) {
-  if (mode === 'dark') {
-    return {
-      mode,
-      primary: { main: '#4DB6AC', light: '#82E9DE', dark: '#00867D', contrastText: '#04211F' },
-      secondary: { main: '#26A69A', contrastText: '#04211F' },
-      background: { default: '#0F1615', paper: '#18211F' },
-      text: { primary: '#E6EDEB', secondary: 'rgba(230, 237, 235, 0.68)' },
-      divider: 'rgba(255, 255, 255, 0.10)',
-      success: { main: '#66BB6A', contrastText: '#0B1F0C' },
-      warning: { main: '#FFA726', contrastText: '#241400' },
-      error: { main: '#EF5350', contrastText: '#2A0707' },
-      info: { main: '#4FC3F7', contrastText: '#04212B' },
-      sidebar: DARK_SIDEBAR,
-    };
+declare module '@mui/material/Chip' {
+  interface ChipPropsColorOverrides {
+    accent: true;
   }
+}
+
+declare module '@mui/material/Button' {
+  interface ButtonPropsColorOverrides {
+    accent: true;
+  }
+}
+
+declare module '@mui/material/IconButton' {
+  interface IconButtonPropsColorOverrides {
+    accent: true;
+  }
+}
+
+declare module '@mui/material/SvgIcon' {
+  interface SvgIconPropsColorOverrides {
+    accent: true;
+  }
+}
+
+const TONES: Tone[] = ['primary', 'accent', 'success', 'warning', 'error', 'info'];
+
+/** MUI slot for a tone: `dark` is the hover step and `light` carries the
+ *  legible text shade (MUI has no slot for it; read it through toneText). */
+function paletteColor(t: ColorTokens[Tone]) {
+  return { main: t.main, dark: t.hover, light: t.text, contrastText: t.contrastText };
+}
+
+function palette(mode: PaletteMode, tk: ColorTokens) {
+  const n = tk.neutral;
   return {
     mode,
-    primary: { main: '#00695C', light: '#4DB6AC', dark: '#004D40', contrastText: '#FFFFFF' },
-    secondary: { main: '#00897B', contrastText: '#FFFFFF' },
-    background: { default: '#F2F6F5', paper: '#FFFFFF' },
-    success: { main: '#2E7D32', contrastText: '#FFFFFF' },
-    // Amber is too bright to carry white text: white over #ED6C02 only reaches
-    // 3.1:1, under the 4.5:1 WCAG AA floor. Dark text on the same amber reads
-    // cleanly and keeps the warning chips recognizable.
-    warning: { main: '#ED6C02', contrastText: '#2B1400' },
-    error: { main: '#D32F2F', contrastText: '#FFFFFF' },
-    info: { main: '#0277BD', contrastText: '#FFFFFF' },
-    sidebar: LIGHT_SIDEBAR,
+    primary: paletteColor(tk.primary),
+    // MUI's `secondary` slot is the accent, so third-party components that
+    // default to "secondary" follow the design system too.
+    secondary: paletteColor(tk.accent),
+    accent: paletteColor(tk.accent),
+    success: paletteColor(tk.success),
+    warning: paletteColor(tk.warning),
+    error: paletteColor(tk.error),
+    info: paletteColor(tk.info),
+    background: { default: n.background, paper: n.surface },
+    text: { primary: n.textPrimary, secondary: n.textSecondary, disabled: n.textDisabled },
+    divider: n.divider,
+    action: {
+      hover: alpha(n.textPrimary, 0.06),
+      selected: alpha(tk.primary.main, 0.12),
+      disabled: n.disabledText,
+      disabledBackground: n.disabledBg,
+      focus: alpha(tk.primary.main, 0.16),
+    },
+    sidebar: tk.sidebar,
+    tokens: tk,
   };
+}
+
+/** Soft chip styles for one tone: tint of the hue + the hue's text shade. */
+function softTone(tk: ColorTokens, tone: Tone, mode: PaletteMode) {
+  const t = tk[tone];
+  return {
+    backgroundColor: alpha(t.main, TINT_ALPHA[mode]),
+    color: t.text,
+    '& .MuiChip-icon, & .MuiChip-deleteIcon': { color: t.text },
+  };
+}
+
+/**
+ * Tone of a color when written as text or drawn as a small icon (the legible
+ * `text` shade). Falls back to MUI's `dark` slot when rendered under a theme
+ * that was not built here (e.g. component tests with the default MUI theme).
+ */
+export function toneText(theme: Theme, tone: Tone): string {
+  return theme.palette.tokens?.[tone].text ?? theme.palette[tone === 'accent' ? 'secondary' : tone].dark;
 }
 
 /** Builds the MUI theme for the given color mode. */
 export function buildTheme(mode: PaletteMode): Theme {
+  const tk = tokensFor(mode);
+  const n = tk.neutral;
+
   return createTheme({
-    palette: palette(mode),
+    palette: palette(mode, tk),
     shape: { borderRadius: 8 },
     typography: {
       fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       h4: { fontWeight: 600 },
       h5: { fontWeight: 600 },
       h6: { fontWeight: 600 },
+      button: { textTransform: 'none', fontWeight: 600 },
     },
     components: {
       MuiCssBaseline: {
-        styleOverrides: (themeParam) => ({
-          // Tells the browser to render its own widgets (scrollbars, native
-          // date/time pickers, form controls) in the matching scheme. Without
-          // this, the native datetime-local inputs used in Viajes/Reportes
-          // stay bright white in dark mode.
-          ':root': { colorScheme: themeParam.palette.mode },
-        }),
+        styleOverrides: {
+          // The browser's own widgets (scrollbars, native pickers) follow the mode.
+          ':root': { colorScheme: mode },
+        },
       },
-      MuiButton: { defaultProps: { disableElevation: true } },
+
+      // --- Keyboard focus: always visible, never only a color change -------
+      MuiButtonBase: {
+        styleOverrides: {
+          root: {
+            '&.Mui-focusVisible': {
+              outline: `2px solid ${tk.primary.main}`,
+              outlineOffset: 2,
+            },
+          },
+        },
+      },
+
+      // --- Buttons: default / hover / pressed / disabled --------------------
+      MuiButton: {
+        defaultProps: { disableElevation: true },
+        styleOverrides: {
+          root: ({ ownerState }) => {
+            const color = ownerState.color;
+            if (!color || color === 'inherit' || !TONES.includes(color as Tone)) return {};
+            const t = tk[color as Tone];
+            if (ownerState.variant === 'contained') {
+              return {
+                '&:hover': { backgroundColor: t.hover, color: t.stateText },
+                '&:active': { backgroundColor: t.active, color: t.stateText },
+              };
+            }
+            // Text and outlined buttons print the color as text → text shade.
+            return {
+              color: t.text,
+              ...(ownerState.variant === 'outlined' && { borderColor: t.main }),
+              '&:hover': { backgroundColor: alpha(t.main, 0.08) },
+              '&:active': { backgroundColor: alpha(t.main, 0.16) },
+            };
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: ({ ownerState }) => {
+            const color = ownerState.color;
+            if (!color || !TONES.includes(color as Tone)) return {};
+            const t = tk[color as Tone];
+            return {
+              color: t.text,
+              '&:hover': { backgroundColor: alpha(t.main, 0.1) },
+              '&:active': { backgroundColor: alpha(t.main, 0.2) },
+            };
+          },
+        },
+      },
+
+      // --- Chips: soft tones, legible text -----------------------------------
+      MuiChip: {
+        styleOverrides: {
+          root: ({ ownerState }) => {
+            const color = ownerState.color;
+            if (ownerState.variant === 'outlined') {
+              if (!color || color === 'default') return { borderColor: n.border };
+              const t = tk[color as Tone];
+              return { borderColor: t.main, color: t.text };
+            }
+            if (!color || color === 'default') {
+              return { backgroundColor: n.subtle, color: n.textPrimary };
+            }
+            if (!TONES.includes(color as Tone)) return {};
+            const clickable = ownerState.clickable
+              ? { '&:hover': { backgroundColor: alpha(tk[color as Tone].main, TINT_ALPHA[mode] + 0.08) } }
+              : {};
+            return { ...softTone(tk, color as Tone, mode), ...clickable };
+          },
+        },
+      },
+
+      // --- Containers: flat + crisp neutral border --------------------------
       MuiPaper: {
         styleOverrides: {
-          // MUI tints elevated surfaces in dark mode with a white overlay,
-          // which washes the teal background out. Flat surfaces + an explicit
-          // border (below) read cleaner.
+          // MUI tints elevated surfaces in dark mode with a white overlay;
+          // flat surfaces read cleaner.
           root: { backgroundImage: 'none' },
+          // elevation 1 = every page-level container (cards, tables, tabs).
+          // Menus and dialogs keep their shadow: they float above the page.
+          elevation1: { boxShadow: 'none', border: `1px solid ${n.border}` },
         },
       },
       MuiCard: {
+        defaultProps: { elevation: 1 },
+      },
+      MuiDialog: {
         styleOverrides: {
-          root: ({ theme }) => ({
-            ...(theme.palette.mode === 'dark' && {
-              border: `1px solid ${theme.palette.divider}`,
-            }),
-          }),
+          paper: { border: `1px solid ${n.border}` },
+        },
+      },
+      MuiAppBar: {
+        styleOverrides: {
+          root: { backgroundImage: 'none' },
+        },
+      },
+
+      // --- Tables ------------------------------------------------------------
+      MuiTableCell: {
+        styleOverrides: {
+          root: { borderBottomColor: n.divider },
+          head: { fontWeight: 600, color: n.textPrimary },
+        },
+      },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            '&.MuiTableRow-hover:hover': { backgroundColor: alpha(n.textPrimary, 0.04) },
+          },
+        },
+      },
+
+      // --- Form controls: outline with ≥ 3:1 --------------------------------
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-notchedOutline': { borderColor: n.controlBorder },
+            '&:hover:not(.Mui-disabled):not(.Mui-error) .MuiOutlinedInput-notchedOutline': {
+              borderColor: n.textPrimary,
+            },
+            '&.Mui-disabled .MuiOutlinedInput-notchedOutline': { borderColor: n.disabledBg },
+          },
+        },
+      },
+
+      // --- Navigation --------------------------------------------------------
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+            fontWeight: 600,
+            color: n.textSecondary,
+            '&.Mui-selected': { color: tk.primary.text },
+          },
+        },
+      },
+      MuiLink: {
+        styleOverrides: { root: { color: tk.primary.text } },
+      },
+
+      // --- Alerts: tinted banner, text in the tone's text shade --------------
+      MuiAlert: {
+        styleOverrides: {
+          standard: ({ ownerState }) => {
+            const tone = (ownerState.severity ?? 'success') as Tone;
+            const t = tk[tone];
+            return {
+              backgroundColor: alpha(t.main, TINT_ALPHA[mode]),
+              color: n.textPrimary,
+              border: `1px solid ${alpha(t.main, 0.4)}`,
+              '& .MuiAlert-icon': { color: t.text },
+            };
+          },
+        },
+      },
+
+      MuiTooltip: {
+        styleOverrides: {
+          // Inverted neutrals: dark bubble in light mode and vice versa.
+          tooltip: {
+            backgroundColor: n.textPrimary,
+            color: n.background,
+            fontSize: '0.8125rem',
+          },
         },
       },
     },

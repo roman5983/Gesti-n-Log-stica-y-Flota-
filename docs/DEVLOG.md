@@ -607,3 +607,48 @@ valida el vencimiento antes de abrir el selector de archivos.
   usuario (tipeo, calendario año → mes → día, cambios externos, rangos, formulario bloqueado) y
   `date-input.test.ts` cubre la lógica pura;
 - tsc, ESLint y build limpios.
+
+---
+
+# Sistema de color (pendientes 31 y 33)
+
+**Qué pasaba.** Casi toda la interfaz usaba el mismo verde petróleo: botones, menú, avatar, insignia
+de rol, gráfico. Nada se distinguía de un vistazo, y el color no decía si algo era una acción, un
+estado o decoración. Además:
+- los chips de color eran bloques saturados con texto blanco; en éxito y advertencia no llegaba a
+  4.5:1;
+- el borde de los campos de formulario (gris de MUI al 23 %) quedaba por debajo del 3:1 que pide
+  WCAG 1.4.11;
+- "Finalizar viaje" era rojo, el color de los errores, aunque es la acción principal.
+
+**Qué se hizo.** Un sistema de color con la paleta que acordó el equipo, en dos archivos:
+- `theme-tokens.ts` tiene todos los hexadecimales, por modo, en cuatro grupos: primario `#2563EB`
+  (solo acciones y estados activos), acento violeta (insignias y métricas), neutros (fondo `#FFFFFF`,
+  contenedores `#F3F4F6`, texto `#1F2937`) y semánticos (éxito `#16A34A`, advertencia `#D97706`, error
+  `#DC2626`, información cian);
+- `theme.ts` los pasa a MUI e impone las reglas en todos los componentes: hover ~10 % más oscuro y
+  presionado ~20 %, deshabilitado gris, anillo de foco visible, chips suaves, contenedores con borde
+  neutro de 1 px en vez de sombra, borde de controles con ≥ 3:1, sin negro puro;
+- el modo oscuro tiene los mismos roles con valores propios.
+
+En las pantallas:
+- el menú lateral es gris muy oscuro, con el ítem activo en el primario;
+- el avatar y la insignia "Administrador" usan el acento (no son acciones);
+- los KPI del dashboard muestran el ícono en un círculo del color de su estado, y la fila de totales
+  del admin ganó íconos;
+- "Finalizar viaje" y "Cerrar hoja de ruta" pasaron al primario;
+- las pantallas del chofer usan `StatusChip`, igual que el resto.
+
+**Gráfico del dashboard (pendiente 31).** Cada barra tiene su tono: el mes con más viajes es el más
+claro y el de menos, el más oscuro (`scaleColor`, un `<Cell>` por barra). El número se escribe sobre
+cada barra, así el color no es la única forma de leer el dato. Como el color de la interfaz pasó a ser
+el azul, la escala es de azules; si se la quiere verde, se cambian `chart.low` y `chart.high`.
+
+**Verificación.**
+- `theme-tokens.test.ts` (45 tests) comprueba, en los dos modos, cada par de colores que la UI
+  dibuja: texto, texto sobre cada color en sus tres estados, chips sobre fondo y contenedor, menú,
+  tooltip, bordes de controles y toda la escala del gráfico;
+- el test encontró un problema que la paleta de referencia no mostraba: el paso 700 de éxito,
+  advertencia e información cae a ~4.0:1 sobre su propio tinte en un contenedor gris. Para texto se
+  usa el 800;
+- 81 tests del frontend, tsc, ESLint y build limpios.

@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
   CircularProgress,
   Divider,
   Stack,
@@ -15,6 +14,7 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import { tripsApi, type Trip } from '../../api/trips.api';
 import { apiErrorMessage } from '../../api/axios';
 import { RouteMap } from '../../components/RouteMap';
+import { StatusChip } from '../../components/StatusChip';
 import { FinishTripDialog } from '../viajes/FinishTripDialog';
 import { formatDateTime } from '../../utils/datetime';
 
@@ -69,7 +69,7 @@ export function MiViajePage() {
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Typography variant="h6">Mi viaje actual</Typography>
-        <Chip label="EN VIAJE" color="info" size="small" />
+        <StatusChip status="IN_PROGRESS" />
       </Stack>
 
       <Card>
@@ -91,7 +91,7 @@ export function MiViajePage() {
 
       <Divider sx={{ my: 2 }} />
 
-      <Button variant="contained" color="error" fullWidth size="large" onClick={() => setFinishOpen(true)}>
+      <Button variant="contained" fullWidth size="large" onClick={() => setFinishOpen(true)}>
         Cerrar hoja de ruta
       </Button>
 

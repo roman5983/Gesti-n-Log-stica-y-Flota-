@@ -1037,6 +1037,12 @@ se registra la auditoría— y RN-22 hace el resultado inmutable. No hay "deshac
 
 Discutible como convención de color, correcto como señal.
 
+> **Actualización (23/09/2026, sistema de color — §18.6).** Se resolvió la discusión a favor de la
+> convención: el rojo queda para errores y acciones destructivas, y "Finalizar viaje" pasó al color
+> primario (`variant="contained"` sin `color`), que es el de la acción principal. La irreversibilidad
+> ya la comunica el diálogo en sí: pide el kilometraje final y explica la condición antes de confirmar.
+> Lo mismo en el ícono de la tabla de Viajes y en "Cerrar hoja de ruta" del chofer.
+
 ### 22B.4.5 · `TripDetailDialog` (79 líneas) — la vista de solo lectura
 
 El diálogo más simple del capítulo, y el único **completamente sin estado**: ni un

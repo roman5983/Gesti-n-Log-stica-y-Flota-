@@ -26,6 +26,7 @@ import {
   formatAuditValue,
 } from './audit-labels';
 import { formatDateTime } from '../../utils/datetime';
+import { toneText } from '../../theme';
 
 /**
  * Audit detail (P-AD-3).
@@ -86,12 +87,13 @@ function ValueChip({ text, tone }: { text: string; tone: 'before' | 'after' | 'p
       : tone === 'before'
         ? {
             bgcolor: (t: Theme) => alpha(t.palette.error.main, 0.14),
-            color: 'error.main',
+            // `text` shade: the base red/green are for fills, not for small text.
+            color: (t: Theme) => toneText(t, 'error'),
             textDecoration: 'line-through',
           }
         : {
             bgcolor: (t: Theme) => alpha(t.palette.success.main, 0.16),
-            color: 'success.main',
+            color: (t: Theme) => toneText(t, 'success'),
             fontWeight: 600,
           };
 

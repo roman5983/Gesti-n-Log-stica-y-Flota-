@@ -9,6 +9,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../auth/use-auth';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ColorModeToggle } from '../components/ColorModeToggle';
+import { toneText } from '../theme';
 
 /** Driver layout: mobile-style with bottom navigation (DOC-5 §5.3). */
 const navItems = [
@@ -31,7 +32,7 @@ export function ChoferLayout() {
 
   return (
     <Box sx={{ minHeight: '100vh', pb: 8, maxWidth: 480, mx: 'auto' }}>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>
+      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'background.default', color: 'text.primary', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Gestión Logística
@@ -56,7 +57,7 @@ export function ChoferLayout() {
               to={item.path}
               label={item.label}
               icon={item.icon}
-              sx={{ '&.active': { color: 'primary.main' } }}
+              sx={{ color: 'text.secondary', '&.active': { color: (t) => toneText(t, 'primary') } }}
             />
           ))}
         </BottomNavigation>

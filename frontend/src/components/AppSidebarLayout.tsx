@@ -81,7 +81,7 @@ export function AppSidebarLayout({ title, navItems }: { title: string; navItems:
         sx={{
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { md: `${DRAWER_WIDTH}px` },
-          bgcolor: 'background.paper',
+          bgcolor: 'background.default',
           color: 'text.primary',
           borderBottom: '1px solid',
           borderColor: 'divider',
@@ -105,7 +105,7 @@ export function AppSidebarLayout({ title, navItems }: { title: string; navItems:
             <NotificationsIcon />
           </IconButton>
           <Tooltip title={user?.email ?? ''}>
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'accent.main', color: 'accent.contrastText' }}>
               {user?.name?.charAt(0).toUpperCase()}
             </Avatar>
           </Tooltip>

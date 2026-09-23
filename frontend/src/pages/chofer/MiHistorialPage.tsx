@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
-import { Alert, Box, Card, CardContent, Chip, Stack, TablePagination, Typography } from '@mui/material';
+import { Alert, Box, Card, CardContent, Stack, TablePagination, Typography } from '@mui/material';
 import { PageHeader } from '../../components/PageHeader';
+import { StatusChip } from '../../components/StatusChip';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { tripsApi, type Trip } from '../../api/trips.api';
 import { formatLocalDate } from '../../utils/datetime';
@@ -33,7 +34,7 @@ export function MiHistorialPage() {
                     {t.finishedAt ? formatLocalDate(t.finishedAt) : ''} · {t.vehicle?.licensePlate ?? ''}
                   </Typography>
                 </Stack>
-                <Chip label="FINALIZADO" color="success" size="small" />
+                <StatusChip status="COMPLETED" />
               </Stack>
             </CardContent>
           </Card>

@@ -148,7 +148,7 @@ export function ViajesPage() {
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Finalizar">
-                  <IconButton size="small" color="error" onClick={() => setFinishTrip(t)}>
+                  <IconButton size="small" color="primary" onClick={() => setFinishTrip(t)}>
                     <FlagIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>

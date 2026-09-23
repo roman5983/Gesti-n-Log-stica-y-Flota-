@@ -931,83 +931,56 @@ Captura **cualquier** ruta no reconocida y la redirige al inicio del rol.
 
 ---
 
-## 18.6. `theme.ts` — el sistema de diseño
+## 18.6. `theme-tokens.ts` y `theme.ts` — el sistema de diseño
 
-```ts
-5  export const theme = createTheme({
-6    palette: {
-7      primary: { main: '#1e88e5' },
-8      secondary: { main: '#5e35b1' },
-9      background: { default: '#f4f6f8' },
-10     success: { main: '#2e7d32' },
-11     warning: { main: '#ed6c02' },
-12     error: { main: '#d32f2f' },
-13   },
-14   shape: { borderRadius: 8 },
-15   typography: {
-16     fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-17     h4: { fontWeight: 600 }, h5: { fontWeight: 600 }, h6: { fontWeight: 600 },
-20   },
-21   components: {
-22     MuiButton: { defaultProps: { disableElevation: true } },
-23   },
-24 });
-```
+> Reescrito el 23/09/2026 con el sistema de color acordado por el equipo. La versión anterior del tema (verde petróleo, y antes azul `#1e88e5`) quedó en el historial de git.
 
-⚙️ **`createTheme` produce un objeto que MUI distribuye por Context.** Los ~50 componentes de la librería lo leen automáticamente.
+El color vive en dos archivos con responsabilidades separadas:
 
-💡 **Definir solo `main` es suficiente:** MUI **calcula** `light`, `dark` y `contrastText` a partir de él, garantizando contraste accesible sin que nadie elija esos valores.
-
-**Los seis colores semánticos**, y su uso en la aplicación:
-
-| Color | Valor | Dónde se usa |
+| Archivo | Qué contiene | Quién lo lee |
 |:--|:--|:--|
-| `primary` | Azul `#1e88e5` | Botones principales, enlaces, elementos activos |
-| `secondary` | Violeta `#5e35b1` | Acciones alternativas |
-| `success` | Verde `#2e7d32` | Estados `AVAILABLE`, `COMPLETED` |
-| `warning` | Naranja `#ed6c02` | Alertas de vencimiento próximo |
-| `error` | Rojo `#d32f2f` | Vencido, inactivo, errores |
-| `background.default` | Gris `#f4f6f8` | Fondo de la aplicación |
+| `theme-tokens.ts` | **Todos** los valores hexadecimales de la app, por modo (claro/oscuro), y la matemática de color (contraste WCAG, mezcla, escala del gráfico) | `theme.ts`, el gráfico del dashboard y los tests |
+| `theme.ts` | Traduce los tokens a la paleta de MUI y fija las reglas de interacción de cada componente (`components`) | `AppThemeProvider` (§18.4) |
 
-🔴 **Los tres últimos son los que usa `StatusChip`** (§21) para mapear estados de dominio a colores. **Cambiar `warning` aquí cambia el color de todas las alertas de vencimiento del sistema, en un solo lugar.**
+🔴 **Regla: ningún componente escribe un hexadecimal.** Si una pantalla necesita un color, lo pide al tema (`'text.secondary'`, `color="error"`, `toneText(theme, 'success')`). Cambiar un color es cambiar una línea de `theme-tokens.ts`.
 
-**Línea 16 — la pila de fuentes del sistema**
+### Los cuatro grupos de color
 
-```ts
-fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-```
+| Grupo | Tokens (modo claro) | Para qué se usa — y para qué **no** |
+|:--|:--|:--|
+| **Primario (marca / acción)** | `#2563EB`, hover `#1D4ED8`, presionado `#1E40AF` | Solo lo interactivo: botón principal, enlaces, pestaña e ítem de menú activos, foco del teclado. **Nunca decoración**: así "azul" siempre significa "se puede tocar". |
+| **Acento (secundario)** | Violeta `#7C3AED` | Con moderación: insignia de rol, avatar, métricas de totales del dashboard. |
+| **Neutros** | Fondo `#FFFFFF`, contenedores `#F3F4F6`, texto `#1F2937` / `#4B5563`, bordes `#D1D5DB`, controles `#6B7280` | El ~90 % de la pantalla: fondos, tarjetas, tablas, diálogos, bordes y toda la jerarquía de texto. |
+| **Semánticos (estado)** | Éxito `#16A34A`, advertencia `#D97706`, error `#DC2626`, información `#0891B2` | Estados del sistema: chips de estado, alertas, confirmaciones. Información es **cian**, no el azul primario, para que un estado no se confunda con un botón. |
 
-💡 **Usa la tipografía nativa de cada sistema operativo** en lugar de descargar una fuente web.
+El modo oscuro tiene los mismos roles con otros valores (escala 400 de cada color, fondo `#111827`, contenedores `#1F2937`).
 
-| Ventaja | Detalle |
+### Las reglas que el tema impone en toda la app
+
+| Regla | Cómo se cumple |
 |:--|:--|
-| **Cero descarga** | Ahorra 50-200 KB y una petición |
-| **Sin destello de texto** | No hay FOIT/FOUT (texto invisible o cambio de fuente al cargar) |
-| **Familiar** | La aplicación se ve nativa en cada plataforma |
+| **Contraste WCAG AA** (4.5:1 texto, 3:1 gráficos y bordes de controles) | `theme-tokens.test.ts` verifica cada par de colores que la UI dibuja, en los dos modos. Si alguien cambia un hex y rompe la legibilidad, el test falla. |
+| **Sin negro puro** (halación) | El texto más oscuro es `#1F2937`; el test rechaza `#000000` en cualquier token. |
+| **Estados visibles** (heurística de Nielsen n.º 1) | Cada color de acción tiene default / hover (~10 % más oscuro) / presionado (~20 %) / deshabilitado (gris plano). El foco del teclado dibuja un anillo de 2 px del primario (`Mui-focusVisible`). |
+| **60-30-10 y Von Restorff** | Chips "suaves" (tinte del color + texto del mismo tono) en vez de bloques saturados; el color fuerte queda para el 10 % que importa. |
+| **No depender solo del color** | Los chips siempre llevan texto; los KPI llevan ícono y etiqueta; el gráfico muestra el número sobre cada barra. |
+| **Píxel perfecto** | Los contenedores de página (`elevation1`) usan un borde neutro de 1 px en lugar de una sombra borrosa; diálogos y menús conservan la sombra porque flotan. |
 
-⚠️ **La contrapartida: la aplicación se ve DISTINTA en cada sistema.** Un diseñador que quiera control pixel a pixel preferiría una fuente web. **Para una herramienta interna de gestión, la decisión es correcta.**
+⚠️ **Éxito y advertencia no sirven como texto chico.** `#16A34A` y `#D97706` llegan a ~3.2:1 sobre blanco: alcanzan para íconos y rellenos, no para letras. Por eso cada tono tiene un token `text` (paso 800 para éxito, advertencia e información; 700 para el resto) y un `stateText` para el texto sobre hover/presionado. **Esto lo detectó el test de contraste**, no una revisión visual.
 
-**Nótese que `Roboto` está en la lista pero MUI no la incluye por defecto**, así que solo se usa si el sistema ya la tiene (Android). **Es un respaldo, no una descarga.**
-
-**Línea 14 — `borderRadius: 8`**
-
-El valor por defecto de MUI es `4`. **Ocho píxeles dan un aspecto más redondeado y moderno**, y se aplica a **todos** los componentes: botones, tarjetas, campos, diálogos.
-
-**Línea 22 — `disableElevation` global**
+### `toneText` — el color de un tono escrito como texto
 
 ```ts
-components: { MuiButton: { defaultProps: { disableElevation: true } } }
+export function toneText(theme: Theme, tone: Tone): string {
+  return theme.palette.tokens?.[tone].text ?? theme.palette[tone === 'accent' ? 'secondary' : tone].dark;
+}
 ```
 
-⚙️ **`components` permite cambiar los valores por defecto de un componente de MUI en toda la aplicación.** Sin esto, habría que escribir `disableElevation` en cada `<Button variant="contained">`.
+Se usa cuando un componente pinta texto o un ícono chico con un color semántico (KPI, antes/después de Auditoría, navegación del chofer). El `?? …dark` cubre los tests de componentes, que se renderizan con el tema por defecto de MUI.
 
-💡 **Elimina la sombra de los botones**, produciendo un estilo plano. **Es una decisión estética aplicada una vez y respetada en las 29 pantallas.**
+### La tipografía
 
-🔴 **Lo que NO hay: modo oscuro.**
-
-El comentario de las líneas 3-4 dice *"Dark sidebar layouts (DOC-5) are handled per-layout"* — es decir, **el menú lateral oscuro se implementa con estilos locales**, no con un tema oscuro.
-
-⚠️ **Consecuencia: los colores oscuros del menú están codificados en los archivos de layout**, fuera del tema. **Cambiar el color del sidebar requiere editar los tres layouts**, no una línea aquí. Es la excepción que rompe la centralización que el tema promete.
+`system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`: la fuente nativa de cada sistema, sin descarga ni destello de texto al cargar. `borderRadius: 8` para todos los componentes, y los botones sin mayúsculas forzadas (`textTransform: 'none'`), más fáciles de leer.
 
 ---
 

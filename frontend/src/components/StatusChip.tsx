@@ -1,6 +1,6 @@
 import { Chip } from '@mui/material';
 
-type ChipColor = 'default' | 'success' | 'warning' | 'error' | 'info' | 'primary';
+type ChipColor = 'default' | 'success' | 'warning' | 'error' | 'info' | 'accent';
 
 /** Maps domain status codes to a colored chip with a Spanish label (UI). */
 const STATUS_MAP: Record<string, { label: string; color: ChipColor }> = {
@@ -21,7 +21,8 @@ const STATUS_MAP: Record<string, { label: string; color: ChipColor }> = {
   // User / driver active flag
   ACTIVE: { label: 'Activo', color: 'success' },
   // Roles
-  ADMIN: { label: 'Administrador', color: 'primary' },
+  // Roles are badges, not actions: accent instead of the (interactive) primary.
+  ADMIN: { label: 'Administrador', color: 'accent' },
   OPERATOR: { label: 'Operador', color: 'info' },
   DRIVER: { label: 'Chofer', color: 'default' },
 };

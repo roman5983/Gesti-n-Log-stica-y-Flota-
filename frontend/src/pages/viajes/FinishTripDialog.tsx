@@ -73,7 +73,7 @@ export function FinishTripDialog({ open, trip, onClose, onSaved }: Props) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={submitting}>Cancelar</Button>
-        <Button variant="contained" color="error" onClick={handleFinish} disabled={submitting || invalid}>
+        <Button variant="contained" onClick={handleFinish} disabled={submitting || invalid}>
           Finalizar viaje
         </Button>
       </DialogActions>

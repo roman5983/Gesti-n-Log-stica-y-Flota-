@@ -424,7 +424,7 @@ Coincide con el valor por defecto del backend (§6.3.2). ✅ **Coordinación imp
 17   PENDING: { label: 'Pendiente', color: 'warning' },
 19   RESOLVED: { label: 'Resuelta', color: 'success' },
 21   ACTIVE: { label: 'Activo', color: 'success' },
-23   ADMIN: { label: 'Administrador', color: 'primary' },
+23   ADMIN: { label: 'Administrador', color: 'primary' },   // hoy 'accent' (ver nota)
 24   OPERATOR: { label: 'Operador', color: 'info' },
 25   DRIVER: { label: 'Chofer', color: 'default' },
 26 };
@@ -441,6 +441,11 @@ Coincide con el valor por defecto del backend (§6.3.2). ✅ **Coordinación imp
 ```tsx
 const entry = STATUS_MAP[status] ?? { label: status, color: 'default' as const };
 ```
+
+> **Actualización (23/09/2026, sistema de color — §18.6).** Los chips de color ya no son bloques
+> saturados: el tema los dibuja "suaves" (tinte del color + texto del mismo tono, con contraste AA).
+> `ADMIN` pasó de `primary` a `accent`: un rol es una insignia, no una acción, y el primario quedó
+> reservado para lo interactivo.
 
 💡 **Ante un estado desconocido, muestra el código crudo en gris** en vez de romperse o mostrar vacío. **Degradación elegante**: si el backend agrega `CANCELLED`, la interfaz muestra "CANCELLED" —feo pero funcional— hasta que alguien lo traduzca.
 
@@ -723,6 +728,10 @@ export function OperadorLayout() {
 108 </Tooltip>
 ```
 
+> **Actualización (23/09/2026).** El avatar usa `accent.main` (no es un control) y la barra superior
+> usa `background.default`, el neutro dominante; el ítem activo del menú lateral se pinta con el
+> primario, porque es un estado interactivo (§18.6).
+
 ✅ **Los tres `IconButton` tienen `aria-label`** — sin ellos, un lector de pantalla anunciaría solo "botón".
 
 **Línea 106 — la inicial del avatar**
@@ -816,6 +825,9 @@ async function handleLogout() {
 58   </BottomNavigation>
 59 </Paper>
 ```
+
+> **Actualización (23/09/2026).** El ítem activo usa `toneText(theme, 'primary')`, el tono del
+> primario legible como texto chico, y los inactivos `text.secondary` (§18.6).
 
 🔴 **Estructura completamente distinta: navegación INFERIOR, no lateral.**
 
