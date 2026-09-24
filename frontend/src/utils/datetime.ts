@@ -59,3 +59,18 @@ export function formatDateTime(iso: string): string {
 export function formatLocalDate(iso: string, options?: Intl.DateTimeFormatOptions): string {
   return new Date(iso).toLocaleDateString('es-AR', options);
 }
+
+/**
+ * Short, human reference to a recent instant in local time: "Hoy 10:32",
+ * "Ayer 17:42", and the full date for anything older (alert cards).
+ * `now` is injectable for tests.
+ */
+export function formatRelativeDay(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (days === 0) return `Hoy ${time}`;
+  if (days === 1) return `Ayer ${time}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${time}`;
+}

@@ -94,12 +94,16 @@ export const maintenancesService = {
       vehicleId: query.vehicleId,
       status: query.status,
       view: query.view,
+      maintenanceTypeId: query.maintenanceTypeId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     };
     const [items, total] = await Promise.all([
-      maintenancesRepository.findMany(filters, {
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
-      }),
+      maintenancesRepository.findMany(
+        filters,
+        { skip: (query.page - 1) * query.limit, take: query.limit },
+        { field: query.sortBy, order: query.sortOrder },
+      ),
       maintenancesRepository.count(filters),
     ]);
     return { items: items.map(toResponse), total };

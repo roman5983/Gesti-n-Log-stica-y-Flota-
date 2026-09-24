@@ -1,6 +1,6 @@
 import { prisma } from '../../database/prisma-client';
 import type { Alert } from '../../generated/prisma/client';
-import { EXPIRY_ALERT_LEAD_DAYS } from '../../config/constants';
+import { EXPIRY_ALERT_LEAD_DAYS, UNASSIGNED_TRIP_LEAD_MS } from '../../config/constants';
 import { ConflictError, NotFoundError, BusinessRuleError } from '../../shared/errors/app-error';
 import { utcStartOfToday } from '../../shared/utils/dates';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
@@ -77,7 +77,7 @@ function addDaysUtc(date: Date, days: number): Date {
  * exist. Pure reads; no writes. "Expiring" means due within
  * EXPIRY_ALERT_LEAD_DAYS (A-12: two weeks); "expired" means already past.
  */
-async function scanConditions(db: DbClient): Promise<Candidate[]> {
+export async function scanConditions(db: DbClient): Promise<Candidate[]> {
   const today = utcStartOfToday();
   const soon = addDaysUtc(today, EXPIRY_ALERT_LEAD_DAYS);
   const candidates: Candidate[] = [];
@@ -204,25 +204,27 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
       }
     }
   }
-const now = new Date();
-const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
-const trips = await db.trip.findMany({
-  where: {
-    status: 'PENDING_ASSIGNMENT',
-    departureAt: { lte: inOneHour },
-  },
-  select: { id: true, destination: true, departureAt: true },
-});
-for (const t of trips) {
-  candidates.push({
-    alertType: 'VOYAGE_NOT_ASSIGNED',
-    entityType: 'TRIP',
-    entityId: t.id,
-    description: `El viaje #${t.id} a ${t.destination} sale en menos de 1 hora y no tiene chofer/vehículo asignado`,
+
+  // Trips still waiting for a driver/vehicle that leave within the next hour
+  // (or should already have left). Note: with the daily evaluation this only
+  // fires on the 06:00 pass, on startup, or when "Evaluar alertas" is used.
+  const now = new Date();
+  const inOneHour = new Date(now.getTime() + UNASSIGNED_TRIP_LEAD_MS);
+  const unassignedTrips = await db.trip.findMany({
+    where: { status: 'PENDING_ASSIGNMENT', departureAt: { lte: inOneHour } },
+    select: { id: true, destination: true, departureAt: true },
   });
-}
-
-
+  for (const t of unassignedTrips) {
+    const overdue = t.departureAt < now;
+    candidates.push({
+      alertType: 'VOYAGE_NOT_ASSIGNED',
+      entityType: 'TRIP',
+      entityId: t.id,
+      description: overdue
+        ? `El viaje #${t.id} a ${t.destination} ya debía salir y no tiene chofer/vehículo asignado`
+        : `El viaje #${t.id} a ${t.destination} sale en menos de 1 hora y no tiene chofer/vehículo asignado`,
+    });
+  }
 
   return candidates;
 }
@@ -233,9 +235,16 @@ export const alertsService = {
       status: query.status,
       entityType: query.entityType,
       alertType: query.alertType,
+      vehicleId: query.vehicleId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     };
     const [alerts, total] = await Promise.all([
-      alertsRepository.findMany(filters, { skip: (query.page - 1) * query.limit, take: query.limit }),
+      alertsRepository.findMany(
+        filters,
+        { skip: (query.page - 1) * query.limit, take: query.limit },
+        { field: query.sortBy, order: query.sortOrder },
+      ),
       alertsRepository.count(filters),
     ]);
 

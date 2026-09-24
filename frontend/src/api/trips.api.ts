@@ -30,6 +30,8 @@ export interface ListTripsParams {
   vehicleId?: number;
   dateFrom?: string;
   dateTo?: string;
+  /** Driver name or destination (server-side, case/accent-insensitive). */
+  search?: string;
 }
 
 export interface CreateTripInput {

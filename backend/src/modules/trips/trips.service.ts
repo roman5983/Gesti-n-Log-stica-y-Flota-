@@ -82,6 +82,7 @@ export const tripsService = {
       vehicleId: query.vehicleId,
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
+      search: query.search,
     };
     // A driver only ever sees their own trips (current trip + history,
     // P-CH-2/P-CH-5), regardless of any driverId passed in the query.
@@ -349,11 +350,10 @@ export const tripsService = {
   },
 
   /**
-   * Cancel a trip (F-2): from PENDING_ASSIGNMENT or IN_PROGRESS. Unlike delete,
-   * the trip is kept as CANCELLED so its history survives. Cancelling an
-   * in-progress trip releases its vehicle (ON_TRIP → AVAILABLE) — the way out
-   * for a breakdown. No odometer change and no driver stats: nothing was
-   * completed. Serialized with assign/finish through the trip row lock.
+   * Cancel a trip (F-2): only from PENDING_ASSIGNMENT (since 24/09/2026, an
+   * IN_PROGRESS trip can no longer be cancelled; it can only be finished).
+   * Unlike delete, the trip is kept as CANCELLED so its history survives.
+   * Serialized with assign/finish through the trip row lock.
    */
   async cancel(id: number, actorId: number): Promise<TripResponse> {
     await getExistingOrFail(id);
@@ -372,7 +372,7 @@ export const tripsService = {
           entity: 'TRIP',
           entityId: id,
           previousData: { status: existing.status },
-          newData: { status: 'CANCELLED'},
+          newData: { status: 'CANCELLED' },
         },
         tx,
       );

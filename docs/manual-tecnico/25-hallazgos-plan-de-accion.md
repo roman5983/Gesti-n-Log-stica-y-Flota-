@@ -219,7 +219,7 @@ las capas elegidas. **Una jornada.**
 
 | Hallazgo | Consecuencia |
 |:--|:--|
-| ~~No existe cancelar un viaje (§12.9)~~ ✅ *resuelto 2026-09-21, §12.14* | ~~Un camión averiado deja viaje, vehículo y chofer **bloqueados permanentemente**~~ |
+| ~~No existe cancelar un viaje (§12.9)~~ ✅ *resuelto 2026-09-21, §12.14* — ⚠️ *reabierto en parte el 24/09/2026: ya no se cancelan viajes en curso (ver la nota al final de §12.14)* | ~~Un camión averiado deja viaje, vehículo y chofer **bloqueados permanentemente**~~ |
 | ~~No existe cancelar un mantenimiento (§13.9)~~ ✅ *resuelto 2026-09-21, §13.10* | ~~Uno programado por error bloquea el vehículo indefinidamente~~ |
 | ~~No hay forma de dar de baja a un chofer desde la interfaz (§22A)~~ ✅ *resuelto 2026-09-20, §22A* | ~~El endpoint existe; ninguna pantalla lo expone~~ |
 
@@ -373,6 +373,8 @@ altos** — casi un tercio del total, incluido el más grave del manual.
 ---
 
 ## 25.4 · El plan de acción
+
+> **Nota (24/09/2026).** Este plan es la foto del momento del análisis y no se actualiza: muchos puntos ya se resolvieron (ESLint, fechas centralizadas, evaluación automática de alertas, cancelación, entre otros). **Lo que falta hoy está únicamente en [`PENDIENTES.md`](../../PENDIENTES.md)**, que ya incluye los puntos de este plan que siguen abiertos.
 
 ### 25.4.1 · Fase 0 — La primera jornada
 

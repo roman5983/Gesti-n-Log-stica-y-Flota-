@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma-client';
 import type { Prisma, TripStatus } from '../../generated/prisma/client';
 import { utcEndOfDay, utcStartOfToday } from '../../shared/utils/dates';
+import { escapeLike } from '../../shared/utils/like';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
 const tripInclude = {
@@ -17,6 +18,8 @@ export interface TripFilters {
   vehicleId?: number;
   dateFrom?: Date;
   dateTo?: Date;
+  /** Substring of the driver's name or of the destination. */
+  search?: string;
 }
 
 interface PageArgs {
@@ -24,7 +27,8 @@ interface PageArgs {
   take: number;
 }
 
-function buildWhere(filters: TripFilters): Prisma.TripWhereInput {
+/** Exported for unit tests: the WHERE clause is where the filters combine. */
+export function buildTripWhere(filters: TripFilters): Prisma.TripWhereInput {
   const where: Prisma.TripWhereInput = {
     status: filters.status,
     driverId: filters.driverId,
@@ -38,6 +42,15 @@ function buildWhere(filters: TripFilters): Prisma.TripWhereInput {
       ...(filters.dateTo ? { lte: utcEndOfDay(filters.dateTo) } : {}),
     };
   }
+  if (filters.search) {
+    // One box, two fields: a trip matches if either contains the text. Trips
+    // still pending assignment have no driver and can only match by destination.
+    const term = escapeLike(filters.search);
+    where.OR = [
+      { destination: { contains: term } },
+      { driver: { user: { name: { contains: term } } } },
+    ];
+  }
   return where;
 }
 
@@ -48,7 +61,7 @@ export const tripsRepository = {
 
   findMany(filters: TripFilters, page: PageArgs): Promise<TripWithRelations[]> {
     return prisma.trip.findMany({
-      where: buildWhere(filters),
+      where: buildTripWhere(filters),
       include: tripInclude,
       orderBy: { departureAt: 'desc' },
       skip: page.skip,
@@ -57,7 +70,7 @@ export const tripsRepository = {
   },
 
   count(filters: TripFilters): Promise<number> {
-    return prisma.trip.count({ where: buildWhere(filters) });
+    return prisma.trip.count({ where: buildTripWhere(filters) });
   },
 
   create(data: Prisma.TripUncheckedCreateInput, db: DbClient = prisma) {

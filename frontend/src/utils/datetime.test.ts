@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateOnly, formatLocalDate, isoToLocalInput, localInputToIso } from './datetime';
+import { formatDateOnly, formatLocalDate, formatRelativeDay, isoToLocalInput, localInputToIso } from './datetime';
 
 describe('datetime helpers (datetime-local ↔ ISO)', () => {
   it('round-trips a local input value without drift', () => {
@@ -63,5 +63,24 @@ describe('formatLocalDate (instants shown as a day)', () => {
     expect(formatLocalDate('2026-03-15T15:00:00.000Z', { month: 'long', year: 'numeric' })).toMatch(
       /marzo/,
     );
+  });
+});
+
+describe('formatRelativeDay (alert card timestamps)', () => {
+  // Local wall-clock instants, so the test does not depend on the timezone.
+  const now = new Date(2026, 8, 23, 15, 0);
+
+  it('names today and yesterday, with the local time', () => {
+    expect(formatRelativeDay(new Date(2026, 8, 23, 10, 32).toISOString(), now)).toBe('Hoy 10:32');
+    expect(formatRelativeDay(new Date(2026, 8, 22, 17, 42).toISOString(), now)).toBe('Ayer 17:42');
+  });
+
+  it('right after midnight, 23:59 of last night is "Ayer"', () => {
+    const justAfterMidnight = new Date(2026, 8, 23, 0, 5);
+    expect(formatRelativeDay(new Date(2026, 8, 22, 23, 59).toISOString(), justAfterMidnight)).toBe('Ayer 23:59');
+  });
+
+  it('older instants show the full dd/mm/aaaa date', () => {
+    expect(formatRelativeDay(new Date(2026, 8, 20, 8, 5).toISOString(), now)).toBe('20/09/2026 08:05');
   });
 });

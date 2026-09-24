@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { paginationSchema } from '../../shared/schemas';
+import { paginationSchema, searchSchema } from '../../shared/schemas';
 import { utcStartOfToday } from '../../shared/utils/dates';
 
 /** RN: a trip's departure cannot be scheduled before today's calendar date. */
@@ -54,5 +54,7 @@ export const listTripsQuerySchema = paginationSchema.extend({
   vehicleId: z.coerce.number().int().positive().optional(),
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
+  /** Matches the assigned driver's name OR the destination (P-OP-3 search box). */
+  search: searchSchema,
 });
 export type ListTripsQuery = z.infer<typeof listTripsQuerySchema>;

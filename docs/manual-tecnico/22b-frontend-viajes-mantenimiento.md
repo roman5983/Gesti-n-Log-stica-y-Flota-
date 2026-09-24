@@ -1,5 +1,7 @@
 # Capítulo 22B — Las pantallas de viajes y mantenimiento
 
+> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+
 > **Archivos cubiertos** (11 archivos, 1.230 líneas)
 >
 > | Carpeta | Archivo | Líneas |
@@ -1036,6 +1038,12 @@ exacto: finalizar dispara cuatro efectos en cascada (§13 y §12.5.3) —el viaj
 se registra la auditoría— y RN-22 hace el resultado inmutable. No hay "deshacer".
 
 Discutible como convención de color, correcto como señal.
+
+> **Actualización (23/09/2026, sistema de color — §18.6).** Se resolvió la discusión a favor de la
+> convención: el rojo queda para errores y acciones destructivas, y "Finalizar viaje" pasó al color
+> primario (`variant="contained"` sin `color`), que es el de la acción principal. La irreversibilidad
+> ya la comunica el diálogo en sí: pide el kilometraje final y explica la condición antes de confirmar.
+> Lo mismo en el ícono de la tabla de Viajes y en "Cerrar hoja de ruta" del chofer.
 
 ### 22B.4.5 · `TripDetailDialog` (79 líneas) — la vista de solo lectura
 

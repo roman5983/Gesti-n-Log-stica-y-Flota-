@@ -607,3 +607,119 @@ valida el vencimiento antes de abrir el selector de archivos.
   usuario (tipeo, calendario año → mes → día, cambios externos, rangos, formulario bloqueado) y
   `date-input.test.ts` cubre la lógica pura;
 - tsc, ESLint y build limpios.
+
+---
+
+# Sistema de color (pendientes 31 y 33)
+
+**Qué pasaba.** Casi toda la interfaz usaba el mismo verde petróleo: botones, menú, avatar, insignia
+de rol, gráfico. Nada se distinguía de un vistazo, y el color no decía si algo era una acción, un
+estado o decoración. Además:
+- los chips de color eran bloques saturados con texto blanco; en éxito y advertencia no llegaba a
+  4.5:1;
+- el borde de los campos de formulario (gris de MUI al 23 %) quedaba por debajo del 3:1 que pide
+  WCAG 1.4.11;
+- "Finalizar viaje" era rojo, el color de los errores, aunque es la acción principal.
+
+**Qué se hizo.** Un sistema de color con la paleta que acordó el equipo, en dos archivos:
+- `theme-tokens.ts` tiene todos los hexadecimales, por modo, en cuatro grupos: primario `#2563EB`
+  (solo acciones y estados activos), acento violeta (insignias y métricas), neutros (fondo `#FFFFFF`,
+  contenedores `#F3F4F6`, texto `#1F2937`) y semánticos (éxito `#16A34A`, advertencia `#D97706`, error
+  `#DC2626`, información cian);
+- `theme.ts` los pasa a MUI e impone las reglas en todos los componentes: hover ~10 % más oscuro y
+  presionado ~20 %, deshabilitado gris, anillo de foco visible, chips suaves, contenedores con borde
+  neutro de 1 px en vez de sombra, borde de controles con ≥ 3:1, sin negro puro;
+- el modo oscuro tiene los mismos roles con valores propios.
+
+En las pantallas:
+- el menú lateral es gris muy oscuro, con el ítem activo en el primario;
+- el avatar y la insignia "Administrador" usan el acento (no son acciones);
+- los KPI del dashboard muestran el ícono en un círculo del color de su estado, y la fila de totales
+  del admin ganó íconos;
+- "Finalizar viaje" y "Cerrar hoja de ruta" pasaron al primario;
+- las pantallas del chofer usan `StatusChip`, igual que el resto.
+
+**Gráfico del dashboard (pendiente 31).** Cada barra tiene su tono: el mes con más viajes es el más
+claro y el de menos, el más oscuro (`scaleColor`, un `<Cell>` por barra). El número se escribe sobre
+cada barra, así el color no es la única forma de leer el dato. Como el color de la interfaz pasó a ser
+el azul, la escala es de azules; si se la quiere verde, se cambian `chart.low` y `chart.high`.
+
+**Verificación.**
+- `theme-tokens.test.ts` (45 tests) comprueba, en los dos modos, cada par de colores que la UI
+  dibuja: texto, texto sobre cada color en sus tres estados, chips sobre fondo y contenedor, menú,
+  tooltip, bordes de controles y toda la escala del gráfico;
+- el test encontró un problema que la paleta de referencia no mostraba: el paso 700 de éxito,
+  advertencia e información cae a ~4.0:1 sobre su propio tinte en un contenedor gris. Para texto se
+  usa el 800;
+- 81 tests del frontend, tsc, ESLint y build limpios.
+
+---
+
+# Mejoras de UX pedidas (pendientes 26 a 31)
+
+Seis pedidos de Román del 23/09/2026. Tres de ellos tenían decisiones abiertas que se acordaron antes de empezar: el buscador de Viajes es un solo campo para chofer y destino; en la estructura del frontend se traduce solo el código, no la interfaz; y el estándar de carpetas se adapta al stack.
+
+**26 · Buscador en Viajes.** Una caja con lupa (`SearchField`) busca a la vez en el nombre del chofer y en el destino. La búsqueda se hace en el servidor (`GET /trips?search=`, `buildTripWhere` arma un `OR`), así funciona junto con la paginación y los demás filtros. MySQL compara con la collation de la columna: no distingue mayúsculas ni tildes. El campo espera 350 ms después de la última tecla antes de buscar, y Enter busca en el momento. Vehículos y Choferes, que ya tenían búsqueda con un botón "Buscar", pasaron al mismo componente. `usePaginatedList` ahora descarta respuestas viejas: sin eso, una búsqueda lenta que llega tarde pisaba el resultado de la última.
+
+**27 · Filtrar y ordenar en Mantenimiento y Alertas.**
+- Mantenimiento se filtra por vehículo, tipo y período. Se ordena por fecha programada, fecha de finalización, tipo, patente o kilometraje, con el control "Ordenar por" o tocando el encabezado de la columna.
+- Alertas se filtra por tipo (agrupados por categoría), vehículo y período, y se ordena por fecha o tipo. `DateRangeFilter` sumó el atajo "Esta semana" (lunes a domingo).
+- En el backend: `sortBy` / `sortOrder` en `GET /maintenances` y `GET /alerts`, con listas cerradas de campos, y un desempate por `id` para que la paginación no repita ni saltee filas. El filtro por vehículo en Mantenimiento también resuelve el pendiente 15 ("historial de mantenimientos por vehículo" en la interfaz).
+
+**29 · Evaluación de alertas una vez al día.** El job pasó de correr cada 10 minutos a una vez al día a la hora `ALERTS_EVAL_TIME` (06:00 por defecto), en la zona horaria de la empresa (`ALERTS_EVAL_TIMEZONE`). También corre 15 s después de cada arranque, porque en Render el servicio se duerme y a las 06:00 puede estar dormido. "Evaluar alertas" sigue igual. `ALERTS_EVAL_INTERVAL_MIN` desaparece: si quedó en un `.env`, se ignora.
+
+**30 · Carteles cuando algo no se puede.** Antes, un error de una acción de fila aparecía arriba de la tabla, a veces fuera de la vista, y cada pantalla lo manejaba distinto. Ahora hay una regla para todas:
+- una acción confirmada en un diálogo que el servidor rechaza deja el diálogo abierto con el motivo adentro;
+- una acción de un clic (activar, iniciar un mantenimiento) muestra el motivo en un cartel emergente (`NotificationProvider` + `useNotify`);
+- toda acción que sale bien muestra un cartel verde de confirmación.
+
+Además, `apiErrorMessage` explica en castellano los errores sin mensaje del servidor: sin conexión, sesión vencida, permisos, 429, y el servidor iniciándose (502/503/504, lo que pasa al despertar Render). En los errores de validación nombra el campo en castellano. En Reportes, el botón deshabilitado dice qué falta elegir.
+
+**31 · Alertas como tarjetas.** `AlertCard` reemplaza la tabla. El ícono dice de qué trata la alerta (licencia, documento, seguro, mantenimiento, vehículo) y el color dice qué tan urgente es (rojo vencida, ámbar por vencer, cian informativa). Un borde lateral del mismo color permite recorrer la lista por urgencia, y una etiqueta ("Vencida", "Por vencer") lo repite en palabras. La fecha se lee "Hoy 10:32" / "Ayer 17:42". Un tipo que el frontend todavía no conoce se muestra igual, con una campana.
+
+**28 · Una carpeta por componente, código en inglés.** Cada componente tiene su carpeta con `.tsx`, `.types.ts`, `.const.ts`, `.data.ts`, `.helpers.ts`, `.styles.ts` y sus tests (solo los que hacen falta), y el código quedó en inglés. La interfaz y las URLs siguen en castellano. Los imports usan el alias `@/`. La migración la hizo un script reproducible y se verificó con tsc, ESLint, los tests y el build. Detalle y tabla de rutas anteriores → actuales en `docs/manual-tecnico/21b-frontend-estructura.md`. De paso:
+- `IconBadge` reemplaza el círculo con ícono que estaba copiado en KPIs y alertas;
+- la clave de Maps se define una sola vez;
+- se eliminó el último warning de ESLint (pendiente 24).
+
+**Verificación.** Backend: 91 tests (27 nuevos), tsc, ESLint y build. Frontend: 102 tests (21 nuevos), tsc, ESLint sin warnings y build.
+
+---
+
+# Revisión de lo implementado (23/09/2026)
+
+Se revisó todo lo de las entradas anteriores buscando fallas que tsc, ESLint y los tests unitarios no detectan.
+
+**Cómo se revisó.**
+- **SQL generado.** Prisma 7 arma el SQL en JavaScript, así que se lo puede inspeccionar con un adaptador falso, sin base. Se revisaron las consultas nuevas (búsqueda con `JOIN` a chofer y usuario, orden por nombre de tipo y por patente, `completedAt` con nulos al final, filtros de alertas por vehículo y período). Todo es SQL válido de MySQL.
+- **Capa HTTP.** Se levantó la app Express y se llamaron los endpoints nuevos con un token real: `search`, `sortBy`, `sortOrder` y los filtros. Responden 200, y 400 con el mensaje en castellano ante un valor inválido.
+- **Pantallas.** Un smoke test nuevo (`App/App.smoke.test.tsx`) levanta la app completa (router, guards, layouts, tema, providers) contra una API simulada y abre cada pantalla de cada rol, en modo claro y oscuro. Falla si una pantalla no carga o si React escribe algo en `console.error`. Otros seis tests prueban que los controles nuevos llegan a la API (búsqueda, orden por encabezado, parámetros de alertas) y que los carteles se muestran como corresponde: rechazo en un clic, rechazo dentro del diálogo, confirmación.
+
+**Lo que apareció y se corrigió.**
+- **Búsquedas con `%` o `_`.** El `contains` de Prisma se traduce en `LIKE CONCAT('%', ?, '%')` sin escapar nada: buscar "50%" traía todas las filas, y "_" coincidía con cualquier carácter. `escapeLike` (`shared/utils/like.ts`) ahora escapa esos caracteres en las cuatro búsquedas: viajes y, desde antes, vehículos, choferes y usuarios.
+- **Aviso de React en "Mi documentación".** El tema forzaba `elevation: 1` en todas las `Card`, y "Mi documentación" usa `variant="outlined"`. MUI avisaba en consola que la combinación no tiene efecto. Se quitó el valor por defecto; `Card` ya tiene elevación 1 sin él.
+- **Chip `outlined` con color `secondary`.** El tema se rompía con esa combinación (ninguna pantalla la usa hoy). Ahora cae en el estilo por defecto.
+- **Capítulo 2 del manual.** Seguía diciendo que las carpetas de páginas están en castellano. Se actualizó.
+
+**Lo que no se pudo probar acá.** Una base MySQL real: el entorno de trabajo no permite instalarla. El SQL se validó por su forma, no ejecutándolo. Queda cubierto con la guía E2E (§3.5) contra la base local.
+
+**Estado.** Backend: 94 tests, tsc, ESLint y build limpios. Frontend: 144 tests, tsc, ESLint sin warnings y build limpios.
+
+---
+
+## Merge de `justino-actualizacion-pendientes` y revisión (24/09/2026)
+
+**Qué trajo Justino.** Una alerta nueva, `VOYAGE_NOT_ASSIGNED`: viaje pendiente de asignación que sale en menos de 1 hora o ya debía salir, sobre la entidad `TRIP`. También cambió la regla de cancelación: solo se cancelan viajes pendientes, ya no los que están en curso. Además bajó el tamaño de lote del seed de 200 a 40.
+
+**Adaptaciones al mezclar.** Su cambio en la pantalla de Alertas tocaba el archivo viejo (`pages/alertas/AlertasPage.tsx`), que la reorganización de carpetas ya había eliminado. Sus dos cambios se pasaron a los archivos nuevos: la etiqueta, una categoría "Viajes" con su propio ícono y el link "ir al origen" hacia `/viajes`. En Viajes se sacaron el botón y el texto de "Cancelar" para viajes en curso, porque el servidor ahora rechaza esa acción.
+
+**Revisión posterior.**
+- **"Ir al origen" con alertas viejas.** Como la evaluación es diaria, una alerta puede quedar abierta cuando el viaje ya se asignó. En ese caso, en lugar del diálogo de asignación se abre el detalle del viaje con un aviso. El parámetro `highlight` se borra de la URL, igual que en Choferes, para que recargar no vuelva a abrir el diálogo.
+- **Backend.** Se corrigieron el formato y la sangría del bloque de la alerta. La ventana de 1 hora pasó a una constante (`UNASSIGNED_TRIP_LEAD_MS`), y un viaje atrasado ahora dice "ya debía salir" en vez de "sale en menos de 1 hora". Se actualizaron los comentarios de `trips.service.ts` y `trips.routes.ts`, que todavía decían que se podía cancelar un viaje en curso.
+- **Decisiones del equipo (Román).** Se mantiene la ventana de 1 hora aunque la evaluación sea diaria, y se mantiene la regla de cancelación de Justino. Las dos consecuencias quedaron en `PENDIENTES.md` (puntos 18 y 19): el camión averiado solo puede "finalizarse", y la alerta casi nunca salta sola.
+- **Un solo archivo de pendientes.** `PENDIENTES.md` se reescribió con lo que falta hoy, incluidos los puntos todavía abiertos del plan del capítulo 25: timeout de Axios, auditoría de login y logout, campos de configuración sin uso y `multer` 2.x. El capítulo 25 ahora aclara que su plan es una foto del momento y remite a `PENDIENTES.md`.
+- **Documentación.** Se agregaron notas en §12.14 (cancelación) y al final del capítulo 14 (noveno tipo de alerta), y se actualizaron `PLAN-DE-PRUEBAS.md` y la cantidad de tests en el README.
+
+**Tests nuevos.** `alerts.service.test.ts` (3 casos: consulta, alerta generada y viaje atrasado), `AlertsPage.helpers.test.ts` (3) y dos casos en el smoke test para "ir al origen", con el viaje pendiente y con el viaje ya asignado.
+
+**Verificación** (en copias temporales): backend con 97 tests y `tsc`, ESLint y build limpios; frontend con 149 tests, `tsc`, ESLint y `vite build` limpios.

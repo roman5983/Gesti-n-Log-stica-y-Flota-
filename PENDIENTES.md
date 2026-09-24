@@ -1,8 +1,8 @@
 # Pendientes — Sistema de Gestión Logística y Flota
 
-Documento único de pendientes del proyecto. Reemplaza a `PENDIENTES-EQUIPO.md`, `PENDIENTES-EQUIPO.pdf` y a la versión anterior de este mismo archivo, que quedaron desactualizados y duplicados entre sí.
+Único documento de pendientes del proyecto: todo lo que falta está acá y en ningún otro archivo. Cuando algo se resuelve, se borra de esta lista (el detalle queda en `docs/DEVLOG.md`). El plan de acción del capítulo 25 del manual técnico es una foto del análisis original; los puntos de ese plan que siguen abiertos ya están incluidos acá.
 
-**Estado al 23/09/2026.** Ya resuelto y no aparece en esta lista: build de producción del backend, preparación para Vercel + Render, archivos subidos guardados en MySQL, y el selector de fecha único (dd/mm/aaaa, tipeo o calendario).
+**Estado al 24/09/2026.** Ya resuelto y no aparece en esta lista: build de producción del backend, preparación para Vercel + Render, archivos subidos guardados en MySQL, el selector de fecha único, el sistema de color con contraste WCAG AA, todas las mejoras de UX pedidas (buscador en Viajes, filtros y orden en Alertas y Mantenimiento, alertas como tarjetas, evaluación diaria, carteles aclaratorios, frontend en una carpeta por componente con el código en inglés) y lo que trajo Justino: la alerta de viaje sin asignar y la regla de que solo se cancelan viajes pendientes.
 
 ---
 
@@ -12,74 +12,51 @@ Documento único de pendientes del proyecto. Reemplaza a `PENDIENTES-EQUIPO.md`,
 2. **Crear los servicios** siguiendo el README (sección "Deploy"): el backend en Render con `render.yaml` y el frontend en Vercel. Después, cargar el seed de demostración desde la terminal (*Shell*) del servicio en Render.
 3. **Calibrar `TRUST_PROXY`** una vez desplegado, con los logs de Render (está explicado en el README).
 4. **Revisar la URL del backend en `frontend/vercel.json`.** Si Render le asigna al servicio un nombre distinto de `gestion-logistica-api`, hay que actualizarla ahí.
+5. **Actualizar `multer` a la versión 2.x antes de producción.** Hoy está en 1.4.5, con vulnerabilidades conocidas (capítulo 25, punto 27).
 
 ## 🟠 Falta para cumplir la consigna (aprobación)
 
-5. **Test de integración del backend contra una base real.** Por ejemplo: crear, asignar y finalizar un viaje con supertest.
-6. **Test E2E automatizado** con Playwright o Cypress. La guía E2E actual es manual.
-7. **Documentación de la API** con Swagger/OpenAPI.
-8. **Video de demostración.**
-9. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` sigue diciendo "23 / 5 tests"; hoy son 64 en el backend y 36 en el frontend.
-10. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
-11. **Links a los pull requests en `proposal.md`.** Ya se piden para la regularidad.
-12. **Participación:** cada integrante tiene que tener commits propios y al menos un test de su autoría. Hoy Santiago no tiene commits en el repo oficial.
-13. **Links del deploy y credenciales** para la entrega, cuando esté online.
+6. **Test de integración del backend contra una base real.** Por ejemplo: crear, asignar y finalizar un viaje con supertest. Conviene incluir las carreras de concurrencia del capítulo 23.
+7. **Test E2E automatizado** con Playwright o Cypress. La guía E2E actual es manual.
+8. **Documentación de la API** con Swagger/OpenAPI.
+9. **Video de demostración.**
+10. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` sigue diciendo "23 / 5 tests"; hoy son 97 en el backend y 149 en el frontend.
+11. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
+12. **Links a los pull requests en `proposal.md`.** Ya se piden para la regularidad.
+13. **Participación:** cada integrante tiene que tener commits propios y al menos un test de su autoría. Hoy Santiago no tiene commits en el repo oficial.
+14. **Links del deploy y credenciales** para la entrega, cuando esté online.
 
 ## 🟠 Diferencias entre la propuesta y lo implementado
 
-14. **Vista de detalle de Vehículo.** La consigna exige un detalle al seleccionar un elemento de cada listado. Choferes, Usuarios y Alertas tampoco tienen vista de detalle.
-15. **"Historial de mantenimientos por vehículo" en la interfaz.** El backend ya acepta filtrar por vehículo; falta el filtro en la pantalla de Mantenimiento.
+15. **Vista de detalle de Vehículo.** La consigna exige un detalle al seleccionar un elemento de cada listado. Choferes, Usuarios y Alertas tampoco tienen vista de detalle.
 16. **Dashboard:** faltan "Kilometraje total por vehículo" y "Alertas abiertas por tipo".
 17. **Reescribir "CRUD Auditoría" y "CRUD Alerta" en la propuesta.** La auditoría no se edita a propósito, y las alertas solo se crean y se resuelven. Así escrito, parece que falta algo.
 
+## 🟠 Decisiones de producto
+
+18. **Qué hacer con un camión que se rompe en ruta.** Desde el 24/09 un viaje en curso ya no se puede cancelar, así que la única forma de cerrarlo es "Finalizar", que lo cuenta como completado y suma los km y el viaje al chofer. Opciones: volver a permitir cancelar viajes en curso, o agregar una acción "interrumpir viaje" que libere el vehículo sin sumar estadísticas.
+19. **Alerta de viaje sin asignar y evaluación diaria.** La alerta avisa de viajes que salen en menos de 1 hora, pero la evaluación automática corre una vez al día (06:00) y al arrancar. Para los viajes que salen en otro horario, hoy hay que tocar "Evaluar alertas". Se decidió dejarlo así por ahora. Si molesta, se puede ampliar la ventana o evaluar esta alerta cada hora.
+20. **Configuración de la empresa:** zona horaria, idioma y formato de fecha se guardan, pero la app no los usa. Hay que decidir si se aplican o se quitan de la pantalla (capítulo 25, punto 19).
+
 ## 🟡 Bugs a corregir
 
-18. **Se puede eliminar un chofer con un viaje en curso.** Desactivarlo está bloqueado, pero eliminarlo no.
-19. **Carrera en la baja de vehículos y de choferes.** Falta el bloqueo de fila que ya usan viajes y mantenimientos. Sin él, si la baja coincide con una asignación, puede quedar un vehículo inactivo con un viaje en curso.
+21. **Se puede eliminar un chofer con un viaje en curso.** Desactivarlo está bloqueado, pero eliminarlo no.
+22. **Carrera en la baja de vehículos y de choferes.** Falta el bloqueo de fila que ya usan viajes y mantenimientos. Sin él, si la baja coincide con una asignación, puede quedar un vehículo inactivo con un viaje en curso.
+23. **Las peticiones del frontend no tienen tiempo límite.** Si el servidor no responde, la pantalla queda cargando para siempre. Falta un `timeout` en el cliente Axios (capítulo 19).
 
 ## 🟢 Menores / prolijidad
 
-20. **Vulnerabilidades de dependencias:** 18 en el backend y 8 en el frontend. Varias se arreglan con actualizaciones menores. Prisma y Vite requieren cambio de versión mayor, y en ningún caso hay que correr `npm audit fix --force`.
-21. **El frontend se carga en un solo archivo de 1,2 MB.** Se puede partir por pantalla con `React.lazy`.
-22. **Documentación desactualizada:** el README dice 57 endpoints y son 60. Algunos capítulos del manual técnico dicen que no hay tests de componentes ni de servicios, y ya los hay.
-23. **Limpiar la raíz del repo:** `Backend-Gestion-Logistica.docx` (la cátedra no acepta `.docx`) y `CRUD-proposal-ubicacion-codigo.pdf` si ya cumplió su propósito.
-24. **Warning de lint pendiente** en `auth/guards.tsx`.
-25. **Lockfile del frontend:** con npm 10, `npm ci` lo marca desincronizado. Conviene regenerarlo con la versión de npm que use el equipo.
+24. **El login y el logout no quedan en la auditoría** (capítulo 15).
+25. **Vulnerabilidades de dependencias:** 18 en el backend y 8 en el frontend (conteo anterior; conviene volver a correr `npm audit`). Varias se arreglan con actualizaciones menores. Prisma y Vite requieren cambio de versión mayor, y en ningún caso hay que correr `npm audit fix --force`.
+26. **El frontend se carga en un solo archivo de 1,3 MB.** Se puede partir por pantalla con `React.lazy`.
+27. **Documentación desactualizada:** el README dice 57 endpoints y son 60. Algunos capítulos del manual técnico dicen que no hay tests de componentes ni de servicios, y ya los hay. El capítulo 14 habla de "ocho tipos de alerta" y hoy son nueve (hay una nota al final del capítulo). Los capítulos 18 a 22C citan las rutas del frontend anteriores a la reorganización; la equivalencia está en §21B. Falta tabular los hallazgos de los capítulos 02 a 07 (capítulo 25, punto 28).
+28. **Limpiar la raíz del repo:** `Backend-Gestion-Logistica.docx` (la cátedra no acepta `.docx`).
+29. **Lockfile del frontend:** con npm 10, `npm ci` lo marca desincronizado y falla. Conviene regenerarlo con la versión de npm que use el equipo.
 
-## 🔵 Mejoras de UX pedidas (Román, 23/09/2026)
+## ⚪ Solo si el proyecto sigue después de la entrega
 
-26. **Buscador en Viajes (chofer y destino).** Ícono de lupa que filtre por nombre del chofer asignado y por destino. A definir: un campo único o dos separados, y si la búsqueda es server-side (nuevo parámetro en `GET /trips`, preferible por consistencia con los demás filtros) o client-side.
-
-27. **Ordenamiento en Alertas y Mantenimiento.** Hoy ambas pantallas solo filtran, no ordenan.
-    - Mantenimiento: por tipo de mantenimiento, por vehículo, por período (fecha programada / finalización), y otros criterios útiles (ej. kilómetro).
-    - Alertas: por tipo de alerta, por vehículo, por período (semanal u otro rango).
-    - Implica un parámetro `sortBy`/`sortOrder` en `GET /maintenances` y `GET /alerts` (hoy ordenan fijo) y el control en la UI.
-
-28. **Reorganización del frontend por componente + código en inglés.** Cambio de fondo, no cosmético: toca casi todos los archivos del frontend. Conviene una rama propia y discutirlo en equipo antes de arrancar.
-    - **Carpeta por componente**, según el estándar de referencia:
-      ```
-      ComponentName/
-      ├─ ComponentName.tsx          # Componente, JSX, hooks, manejadores de eventos
-      ├─ ComponentName.scss         # Estilos
-      ├─ ComponentName.types.ts     # Props, formas de estado local, enums internos
-      ├─ ComponentName.data.ts      # Arrays/objetos fijos (named exports)
-      ├─ ComponentName.const.ts     # Constantes primitivas (SCREAMING_SNAKE_CASE)
-      ├─ ComponentName.helpers.ts   # Funciones TS puras — sin React, sin hooks
-      └─ ComponentName.server.ts    # Llamadas a la API, con callbacks onSuccess/onError
-      ```
-      Hoy el proyecto usa MUI con `sx` (no SCSS) y `axios`/`async-await` (no callbacks `onSuccess`/`onError`) — definir si se adopta el patrón tal cual o se adapta a esas convenciones (ej. `.styles.ts` en vez de `.scss`, `.api.ts` en vez de `.server.ts`).
-    - **Todo el código en inglés**: identificadores, comentarios y nombres de archivo hoy en castellano (`pages/viajes/`, `pages/choferes/`, variables como `chofer`, `vehiculo`). Definir el alcance antes de tocar nada: ¿incluye los **textos que ve el usuario** (labels, mensajes, botones) o solo identificadores/comentarios/nombres de archivo? Los textos de UI están en castellano a propósito, para una empresa argentina — traducirlos cambia la experiencia del usuario final. Confirmar también si el backend (ya en inglés, con mensajes de error en castellano por diseño) sigue el mismo criterio.
-
-29. **Evaluación de alertas: automática una vez al día + botón manual siempre disponible.** Hoy corre cada `ALERTS_EVAL_INTERVAL_MIN` minutos (10 por defecto). Pasarlo a una vez al día (ej. `ALERTS_EVAL_INTERVAL_HOURS` o fijo a 24h en `alerts.scheduler.ts`, actualizar `.env.example`/README) y dejar el botón "Evaluar alertas" (`POST /alerts/evaluate`) sin cambios, para uso manual del Admin/Operador en cualquier momento.
-
-30. **Carteles aclaratorios cuando una acción no se puede hacer.** Reforzar los mensajes visibles al usuario cuando el sistema rechaza algo (ejemplo dado: login con contraseña incorrecta, que ya muestra "Credenciales inválidas"). Revisar que el mismo patrón sea consistente en todo el sistema: reglas de negocio bloqueadas, permisos insuficientes, validaciones de formulario. Definir si alcanza el `Alert` actual o hace falta algo más visible (Snackbar/Toast) para errores hoy silenciosos, relevando pantalla por pantalla.
-
-31. **Gráfico del dashboard: barras en distintos tonos de verde según el valor.** Hoy las 6 barras de "viajes por mes" usan un único color fijo (`theme.palette.primary.main`, en `DashboardPage.tsx`). Pasar a una escala de tonos del verde de la UI: más claro cuanto menor es el valor del mes, más oscuro cuanto mayor. Implica una función que mapee cada valor (mínimo → máximo de la serie) a un tono entre `primary.light` y `primary.dark` (o una escala propia), y pasarlo por barra con la prop `fill` de cada celda (`<Cell>` de Recharts) en vez de un `fill` único para todo el `<Bar>`. Tener en cuenta el modo oscuro: la escala tiene que seguir siendo legible ahí también.
-
-32. **Rediseño de Alertas: tarjetas con ícono y color por tipo, no una tabla plana.** Hoy `AlertasPage.tsx` renderiza cada alerta como fila de `DataTable` (texto plano, todas iguales visualmente). Cambiar a tarjetas tipo lista (una por alerta) con: ícono identificable por tipo (ej. documento para vencimientos, llave para mantenimiento, persona para disponibilidad de chofer) y color de fondo/acento distinto según severidad o tipo (rojo para vencimientos urgentes, naranja para mantenimiento pendiente, amarillo para disponibilidad, etc. — ver mockup de referencia adjunto por Román el 23/09). Objetivo: que se puedan diferenciar de un vistazo, no solo leyendo el texto. Implica un componente nuevo (`AlertCard` o similar) y un mapeo `alertType`/`severity` → `{ icon, color }`.
-
-33. **Sistema de color ampliado en toda la aplicación (no monocromático).** Hoy casi todo usa el mismo verde institucional (`primary.main`) para botones, estados, gráficos y acentos, lo que dificulta diferenciar elementos a simple vista. Definir una paleta secundaria (estados: éxito/alerta/error/info; categorías: por tipo de vehículo, de alerta, de mantenimiento) y aplicarla de forma consistente como sistema de diseño (tokens de color reutilizables, no valores sueltos por pantalla). Encarar como una auditoría completa del frontend contra buenas prácticas de diseño de interacción: heurísticas de usabilidad (Nielsen), leyes de UX (Fitts, Hick, Jakob, etc.), accesibilidad (contraste WCAG AA como mínimo, no depender solo del color para transmitir estado), consistencia "pixel perfect" entre pantallas, y los elementos de la experiencia de usuario (estrategia → alcance → estructura → esqueleto → superficie). Por el volumen de pantallas afectadas, conviene una rama propia y acordar la paleta en equipo antes de tocar código (relacionado con el punto 31, que ya toca el color del gráfico del dashboard, y con el punto 32, que necesita esta paleta para los íconos de alerta).
+30. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
 
 ---
 
-**Prioridad sugerida** (primera entrega: 12 al 16 de octubre): primero el deploy (1 a 4), después los tests de integración y E2E junto con la documentación de la API (5 a 7), y después la vista de detalle (14), por ser un requisito explícito de la consigna. Los puntos 26 a 30 son mejoras de UX sin fecha límite de la cátedra — encajan después de lo anterior, o en paralelo si hay integrantes libres.
+**Prioridad sugerida** (primera entrega: 12 al 16 de octubre): primero el deploy (1 a 5), después los tests de integración y E2E junto con la documentación de la API (6 a 8), y después la vista de detalle (15), por ser un requisito explícito de la consigna. Las decisiones de producto (18 a 20) conviene charlarlas en equipo antes de tocar código.

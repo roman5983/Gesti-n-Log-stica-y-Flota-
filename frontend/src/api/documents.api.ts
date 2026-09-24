@@ -1,5 +1,5 @@
 import { api } from './axios';
-import { openBlobInNewTab } from '../utils/blob';
+import { openBlobInNewTab } from '@/utils/blob';
 import type { ApiResponse } from './types';
 
 export type DocumentType = 'DNI' | 'LICENSE' | 'ART' | 'PSYCHOPHYSICAL';

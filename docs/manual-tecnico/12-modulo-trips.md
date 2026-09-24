@@ -1429,6 +1429,8 @@ ORDER BY accumulated_km ASC LIMIT 1 FOR UPDATE SKIP LOCKED
 **Verificación:** `tsc` limpio. Contra el backend real y la base local: cancelar el viaje en curso de María Gómez → `CANCELLED`, vehículo DDD444 `AVAILABLE`, `completedTrips`/`avgKm` sin cambios, entrada `CANCEL` en auditoría; cancelar de nuevo o cancelar uno `COMPLETED` → 422; un viaje pendiente cancelado ya no se puede editar ni eliminar; `?status=CANCELLED` lo lista. Los datos de prueba se restauraron. **Archivos:** `backend/prisma/schema.prisma`, `backend/prisma/migrations/20260921120000_add_cancelled_status/`, `backend/src/modules/trips/trips.{service,controller,routes,schemas}.ts`, `backend/src/modules/audit-logs/audit-logs.service.ts`. La interfaz está en §22B.11.
 
 
+> **Actualización (24/09/2026) — solo se cancelan viajes pendientes.** Por decisión del equipo (cambio de Justino, rama `justino-actualizacion-pendientes`), `cancel` ahora acepta **solo `PENDING_ASSIGNMENT`**; un viaje `IN_PROGRESS` → **422** *"Solo se pueden cancelar viajes pendientes"*. Se quitó la liberación del vehículo y el botón "Cancelar" de los viajes en curso en la pantalla de Viajes. Consecuencia: los pasos 3 y 4 de arriba ya no aplican a viajes en curso, y **el camión averiado vuelve a no tener salida limpia**: la única forma de cerrar su viaje es "Finalizar", que cuenta el viaje y los km como completados. Qué hacer con una avería quedó anotado en `PENDIENTES.md`.
+
 ---
 
 **Anterior:** [Capítulo 11 — Choferes y documentación](11-modulo-drivers-documents.md) · **Siguiente:** Capítulo 13 — Mantenimiento *(pendiente)*

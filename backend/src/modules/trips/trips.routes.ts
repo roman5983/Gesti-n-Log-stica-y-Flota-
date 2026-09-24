@@ -62,7 +62,7 @@ tripsRoutes.post(
   tripsController.finish,
 );
 
-// Cancel: pending or in-progress trips, operator/admin (F-2).
+// Cancel: pending trips only, operator/admin (F-2).
 tripsRoutes.post(
   '/:id/cancel',
   authorize('ADMIN', 'OPERATOR'),

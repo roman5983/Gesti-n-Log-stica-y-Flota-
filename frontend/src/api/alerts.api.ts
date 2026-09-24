@@ -22,7 +22,18 @@ export interface ListAlertsParams {
   limit: number;
   status?: AlertStatus;
   entityType?: string;
+  alertType?: string;
+  /** Alerts about one vehicle. */
+  vehicleId?: number;
+  /** Period on the date the alert was raised, 'YYYY-MM-DD' (inclusive). */
+  dateFrom?: string;
+  dateTo?: string;
+  /** Omitted → inbox order (pending first, newest first). */
+  sortBy?: AlertSortField;
+  sortOrder?: 'asc' | 'desc';
 }
+
+export type AlertSortField = 'raisedAt' | 'alertType';
 
 export const alertsApi = {
   async list(params: ListAlertsParams): Promise<{ items: Alert[]; total: number }> {

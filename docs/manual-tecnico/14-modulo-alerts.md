@@ -1090,7 +1090,7 @@ El resultado se expone como `linkedDriverId?: number` en `AlertResponse`, presen
 |:--|:--|
 | `setTimeout` encadenado, no `setInterval` | Una pasada lenta nunca se solapa con la siguiente |
 | `timer.unref()` | El temporizador no mantiene vivo el proceso al apagar |
-| Primera pasada a los 15 s del arranque, luego cada `ALERTS_EVAL_INTERVAL_MIN` (10 por defecto, `0` = desactivado) | Alertas al día tras un reinicio, sin competir con el arranque |
+| Primera pasada a los 15 s del arranque, luego cada `ALERTS_EVAL_INTERVAL_MIN` (10 por defecto, `0` = desactivado) — *reemplazado el 23/09/2026 por una pasada diaria, ver abajo* | Alertas al día tras un reinicio, sin competir con el arranque |
 | Actor = primer ADMIN activo (`findFirst`, orden por `id`) | `audit_logs.user_id` es NOT NULL; evita migrar el esquema. Una consulta indexada (`idx_users_role_active`) por pasada; si no hay admin, no hace nada |
 | `ConflictError` (lock ocupado) se ignora en silencio | Otra instancia ya está evaluando (§14.4.5) |
 | Solo se loguea cuando hay cambios (`created`/`autoResolved` > 0) | Sin ruido en los logs; la auditoría ya era condicional (§14.5) |
@@ -1106,3 +1106,17 @@ El resultado se expone como `linkedDriverId?: number` en `AlertResponse`, presen
 ---
 
 **Anterior:** [Capítulo 13 — Mantenimiento](13-modulo-maintenance.md) · **Siguiente:** Capítulo 15 — Auditoría *(pendiente)*
+
+> **Actualización (23/09/2026, pendiente 29) — evaluación una vez al día.** Los vencimientos cambian de un día para otro, no de un minuto a otro: evaluar cada 10 minutos era trabajo repetido. El job ahora corre:
+>
+> - **una vez al día**, a la hora `ALERTS_EVAL_TIME` (`06:00` por defecto, `off` la desactiva) en la zona `ALERTS_EVAL_TIMEZONE` (`America/Argentina/Buenos_Aires`). `msUntilNextRun` calcula cuánto falta con `Intl.DateTimeFormat`, así la hora es la de la empresa aunque el servidor esté en UTC; se recalcula en cada vuelta, por eso no se desfasa;
+> - **y una vez 15 s después de cada arranque**, como antes. En el plan gratuito de Render el servicio se duerme: si estaba dormido a las 06:00, quien lo despierta recibe igual las alertas al día. Como la evaluación reconcilia contra las pendientes, una pasada de más no duplica nada.
+>
+> El botón "Evaluar alertas" (`POST /alerts/evaluate`) sigue igual, para evaluar en cualquier momento. `ALERTS_EVAL_INTERVAL_MIN` dejó de existir: si quedó en un `.env`, se ignora. Tests: `alerts.scheduler.test.ts` (próxima corrida en la zona horaria correcta, la corrida diaria tras una pasada fallida, `off`).
+
+
+> **Actualización (24/09/2026) — noveno tipo: `VOYAGE_NOT_ASSIGNED`.** Agregado por Justino. `scanConditions` busca viajes `PENDING_ASSIGNMENT` cuya salida es dentro de la próxima hora **o ya pasó** (`departureAt <= ahora + 1 h`, constante `UNASSIGNED_TRIP_LEAD_MS` en `config/constants.ts`) y genera una alerta por viaje sobre la entidad nueva `TRIP` (`ENTITY_TYPES` la incluye; `alert_type` y `entity_type` son `VARCHAR`, así que no hizo falta migración). El texto distingue "sale en menos de 1 hora" de "ya debía salir". Se resuelve sola en la siguiente evaluación si el viaje se asignó, canceló o eliminó.
+>
+> **Límite conocido, aceptado por el equipo:** como la evaluación automática corre una vez al día (06:00) y al arrancar, esta alerta solo aparece sola para viajes que salen cerca de esa hora; para el resto hay que usar el botón "Evaluar alertas". Quedó anotado en `PENDIENTES.md`.
+>
+> **Frontend.** En las tarjetas tiene categoría propia "Viajes" (ícono de camión, tono rojo, etiqueta "Sin asignar"). "Ir al origen" lleva a `/viajes?highlight=<id>`: si el viaje sigue pendiente se abre el diálogo de asignación; si ya se asignó o canceló (la alerta puede tener hasta un día), se abre su detalle con un aviso. Tests: `alerts.service.test.ts` (backend), `AlertsPage.helpers.test.ts` y dos casos del smoke test (frontend).

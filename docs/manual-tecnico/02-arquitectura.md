@@ -402,10 +402,10 @@ El frontend replica deliberadamente la estructura del backend (`docs/etapa-1-arq
 
 | Backend | Frontend | Relación |
 |:--|:--|:--|
-| `modules/vehicles/` | `pages/vehiculos/` + `api/vehicles.api.ts` | 1 a 1 |
-| `modules/trips/` | `pages/viajes/` + `api/trips.api.ts` | 1 a 1 |
+| `modules/vehicles/` | `pages/vehicles/` + `api/vehicles.api.ts` | 1 a 1 |
+| `modules/trips/` | `pages/trips/` + `api/trips.api.ts` | 1 a 1 |
 | `middlewares/authenticate` | `api/axios.ts` (interceptor) | Simétrico: uno pone el token, el otro lo verifica |
-| `middlewares/authorize` | `auth/guards.tsx` | Simétrico: uno oculta la pantalla, el otro bloquea el endpoint |
+| `middlewares/authorize` | `auth/guards/guards.tsx` | Simétrico: uno oculta la pantalla, el otro bloquea el endpoint |
 
 🔴 **Simetría no significa redundancia inútil, pero tampoco confianza.** El guard del frontend impide que el chofer *vea* la pantalla de usuarios. El `authorize` del backend impide que la *use*. **El del frontend es comodidad; el del backend es seguridad.** Quitar el guard del frontend es feo. Quitar el `authorize` del backend es una vulnerabilidad: cualquiera con `curl` y un token de chofer podría borrar usuarios.
 
@@ -839,13 +839,13 @@ En la práctica, el código evolucionó hacia:
 | Módulos del backend | Inglés | `modules/vehicles/`, `modules/trips/` |
 | Comentarios del backend | Inglés | `/** Soft-delete convention (RN-20)… */` |
 | **Rutas del frontend** | **Español** | `/vehiculos`, `/viajes`, `/mi-viaje` |
-| **Carpetas de páginas** | **Español** | `pages/vehiculos/`, `pages/choferes/` |
+| Carpetas y código del frontend | Inglés (desde el 23/09/2026, §21B) | `pages/vehicles/VehiclesPage/`, `pages/drivers/` |
 | **Texto visible al usuario** | **Español** | *"Ocurrió un error"*, *"Tus credenciales de acceso"* |
 | Identificadores de reglas | Neutro | `RN-1`, `A-9`, `F-9`, `DOC-5` |
 
 ⚠️ **Observación honesta.** Esto se desvía de lo planificado: el documento de arquitectura proponía dominio en español también en el backend (`/api/v1/viajes`, `kmInicial`), pero el código quedó en inglés. La frontera terminó estando entre backend (inglés) y frontend (español), no entre dominio e infraestructura.
 
-**¿Es un problema?** La frontera es **consistente** y por lo tanto predecible, que es lo que realmente importa. El costo es un salto mental al cruzar: `pages/vehiculos/VehiculosPage.tsx` llama a `api/vehicles.api.ts`. El capítulo 25 lo registra como deuda menor.
+**¿Es un problema?** La frontera es **consistente** y por lo tanto predecible, que es lo que realmente importa. El costo era un salto mental al cruzar: `pages/vehiculos/VehiculosPage.tsx` llamaba a `api/vehicles.api.ts`. El capítulo 25 lo registraba como deuda menor. **Resuelto el 23/09/2026 (§21B):** todo el código del frontend pasó a inglés (`pages/vehicles/VehiclesPage/VehiclesPage.tsx`). La frontera quedó entre *código* (inglés, en todo el sistema) y *lo que ve el usuario* (castellano: textos y rutas como `/vehiculos`).
 
 💡 **Lo que sí funciona muy bien: los identificadores de regla.** Ver `RN-20` en un comentario del repositorio (`vehicles.repository.ts:15`) permite buscar esa regla exacta en `docs/analisis-funcional-gestion-logistica.md` y leer su enunciado original. Es trazabilidad completa entre requisito y código, con dos caracteres.
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { paginationSchema } from '../../shared/schemas';
+import { paginationSchema, sortOrderSchema } from '../../shared/schemas';
 
 /**
  * A maintenance is registered as PENDING (scheduled). The vehicle only moves
@@ -66,10 +66,20 @@ export const attachmentParamsSchema = z.object({
 });
 export type AttachmentParams = z.infer<typeof attachmentParamsSchema>;
 
+/** Columns the maintenance list can be sorted by (P-OP-6 sort control). */
+export const MAINTENANCE_SORT_FIELDS = ['scheduledAt', 'completedAt', 'type', 'vehicle', 'km'] as const;
+export type MaintenanceSortField = (typeof MAINTENANCE_SORT_FIELDS)[number];
+
 export const listMaintenancesQuerySchema = paginationSchema.extend({
   vehicleId: z.coerce.number().int().positive().optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
   /** C-6 views: "scheduled" = PENDING + IN_PROGRESS, "history" = COMPLETED + CANCELLED. */
   view: z.enum(['scheduled', 'history']).optional(),
+  maintenanceTypeId: z.coerce.number().int().positive().optional(),
+  /** Period, on the scheduled date (inclusive, same semantics as trips). */
+  dateFrom: z.coerce.date().optional(),
+  dateTo: z.coerce.date().optional(),
+  sortBy: z.enum(MAINTENANCE_SORT_FIELDS).default('scheduledAt'),
+  sortOrder: sortOrderSchema,
 });
 export type ListMaintenancesQuery = z.infer<typeof listMaintenancesQuerySchema>;
