@@ -19,7 +19,7 @@ Documento único de pendientes del proyecto. Reemplaza a `PENDIENTES-EQUIPO.md`,
 6. **Test E2E automatizado** con Playwright o Cypress. La guía E2E actual es manual.
 7. **Documentación de la API** con Swagger/OpenAPI.
 8. **Video de demostración.**
-9. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` sigue diciendo "23 / 5 tests"; hoy son 91 en el backend y 102 en el frontend.
+9. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` sigue diciendo "23 / 5 tests"; hoy son 94 en el backend y 144 en el frontend.
 10. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
 11. **Links a los pull requests en `proposal.md`.** Ya se piden para la regularidad.
 12. **Participación:** cada integrante tiene que tener commits propios y al menos un test de su autoría. Hoy Santiago no tiene commits en el repo oficial.

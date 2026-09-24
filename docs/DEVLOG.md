@@ -683,3 +683,24 @@ Además, `apiErrorMessage` explica en castellano los errores sin mensaje del ser
 - se eliminó el último warning de ESLint (pendiente 24).
 
 **Verificación.** Backend: 91 tests (27 nuevos), tsc, ESLint y build. Frontend: 102 tests (21 nuevos), tsc, ESLint sin warnings y build.
+
+---
+
+# Revisión de lo implementado (23/09/2026)
+
+Se revisó todo lo de las entradas anteriores buscando fallas que tsc, ESLint y los tests unitarios no detectan.
+
+**Cómo se revisó.**
+- **SQL generado.** Prisma 7 arma el SQL en JavaScript, así que se lo puede inspeccionar con un adaptador falso, sin base. Se revisaron las consultas nuevas (búsqueda con `JOIN` a chofer y usuario, orden por nombre de tipo y por patente, `completedAt` con nulos al final, filtros de alertas por vehículo y período). Todo es SQL válido de MySQL.
+- **Capa HTTP.** Se levantó la app Express y se llamaron los endpoints nuevos con un token real: `search`, `sortBy`, `sortOrder` y los filtros. Responden 200, y 400 con el mensaje en castellano ante un valor inválido.
+- **Pantallas.** Un smoke test nuevo (`App/App.smoke.test.tsx`) levanta la app completa (router, guards, layouts, tema, providers) contra una API simulada y abre cada pantalla de cada rol, en modo claro y oscuro. Falla si una pantalla no carga o si React escribe algo en `console.error`. Otros seis tests prueban que los controles nuevos llegan a la API (búsqueda, orden por encabezado, parámetros de alertas) y que los carteles se muestran como corresponde: rechazo en un clic, rechazo dentro del diálogo, confirmación.
+
+**Lo que apareció y se corrigió.**
+- **Búsquedas con `%` o `_`.** El `contains` de Prisma se traduce en `LIKE CONCAT('%', ?, '%')` sin escapar nada: buscar "50%" traía todas las filas, y "_" coincidía con cualquier carácter. `escapeLike` (`shared/utils/like.ts`) ahora escapa esos caracteres en las cuatro búsquedas: viajes y, desde antes, vehículos, choferes y usuarios.
+- **Aviso de React en "Mi documentación".** El tema forzaba `elevation: 1` en todas las `Card`, y "Mi documentación" usa `variant="outlined"`. MUI avisaba en consola que la combinación no tiene efecto. Se quitó el valor por defecto; `Card` ya tiene elevación 1 sin él.
+- **Chip `outlined` con color `secondary`.** El tema se rompía con esa combinación (ninguna pantalla la usa hoy). Ahora cae en el estilo por defecto.
+- **Capítulo 2 del manual.** Seguía diciendo que las carpetas de páginas están en castellano. Se actualizó.
+
+**Lo que no se pudo probar acá.** Una base MySQL real: el entorno de trabajo no permite instalarla. El SQL se validó por su forma, no ejecutándolo. Queda cubierto con la guía E2E (§3.5) contra la base local.
+
+**Estado.** Backend: 94 tests, tsc, ESLint y build limpios. Frontend: 144 tests, tsc, ESLint sin warnings y build limpios.

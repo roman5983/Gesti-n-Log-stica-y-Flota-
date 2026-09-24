@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma-client';
 import type { Prisma, TripStatus } from '../../generated/prisma/client';
 import { utcEndOfDay, utcStartOfToday } from '../../shared/utils/dates';
+import { escapeLike } from '../../shared/utils/like';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
 const tripInclude = {
@@ -44,9 +45,10 @@ export function buildTripWhere(filters: TripFilters): Prisma.TripWhereInput {
   if (filters.search) {
     // One box, two fields: a trip matches if either contains the text. Trips
     // still pending assignment have no driver and can only match by destination.
+    const term = escapeLike(filters.search);
     where.OR = [
-      { destination: { contains: filters.search } },
-      { driver: { user: { name: { contains: filters.search } } } },
+      { destination: { contains: term } },
+      { driver: { user: { name: { contains: term } } } },
     ];
   }
   return where;

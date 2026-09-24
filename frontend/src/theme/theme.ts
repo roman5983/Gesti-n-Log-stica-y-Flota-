@@ -186,6 +186,7 @@ export function buildTheme(mode: PaletteMode): Theme {
             const color = ownerState.color;
             if (ownerState.variant === 'outlined') {
               if (!color || color === 'default') return { borderColor: n.border };
+              if (!TONES.includes(color as Tone)) return {};
               const t = tk[color as Tone];
               return { borderColor: t.main, color: t.text };
             }
@@ -211,9 +212,6 @@ export function buildTheme(mode: PaletteMode): Theme {
           // Menus and dialogs keep their shadow: they float above the page.
           elevation1: { boxShadow: 'none', border: `1px solid ${n.border}` },
         },
-      },
-      MuiCard: {
-        defaultProps: { elevation: 1 },
       },
       MuiDialog: {
         styleOverrides: {

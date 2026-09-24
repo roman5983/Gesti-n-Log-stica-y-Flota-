@@ -20,6 +20,11 @@ describe('buildTripWhere — trips search box (driver or destination)', () => {
     ]);
   });
 
+  it('treats % and _ as literal characters, not LIKE wildcards', () => {
+    const where = buildTripWhere({ search: '50%_' });
+    expect(where.OR?.[0]).toEqual({ destination: { contains: '50\\%\\_' } });
+  });
+
   it('combines with the other filters (logical AND)', () => {
     const where = buildTripWhere({ search: 'Pérez', status: 'IN_PROGRESS' });
     expect(where.status).toBe('IN_PROGRESS');

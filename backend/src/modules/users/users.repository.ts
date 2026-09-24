@@ -2,6 +2,7 @@ import { prisma } from '../../database/prisma-client';
 import { Prisma } from '../../generated/prisma/client';
 import type { Role, User } from '../../generated/prisma/client';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
+import { escapeLike } from '../../shared/utils/like';
 
 export interface UserFilters {
   /** One or more roles; matched with an IN clause. */
@@ -23,7 +24,7 @@ function buildWhere(filters: UserFilters): Prisma.UserWhereInput {
     isActive: filters.isActive,
     ...(filters.search
       ? {
-          OR: [{ name: { contains: filters.search } }, { email: { contains: filters.search } }],
+          OR: [{ name: { contains: escapeLike(filters.search) } }, { email: { contains: escapeLike(filters.search) } }],
         }
       : {}),
   };

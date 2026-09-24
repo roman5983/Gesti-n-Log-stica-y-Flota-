@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma-client';
 import type { Prisma } from '../../generated/prisma/client';
 import { utcStartOfToday } from '../../shared/utils/dates';
+import { escapeLike } from '../../shared/utils/like';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
 /**
@@ -30,8 +31,8 @@ function buildWhere(filters: DriverFilters): Prisma.DriverWhereInput {
   };
   if (filters.search) {
     where.OR = [
-      { dni: { contains: filters.search } },
-      { user: { is: { name: { contains: filters.search }, deletedAt: null } } },
+      { dni: { contains: escapeLike(filters.search) } },
+      { user: { is: { name: { contains: escapeLike(filters.search) }, deletedAt: null } } },
     ];
   }
   if (filters.available === true) {

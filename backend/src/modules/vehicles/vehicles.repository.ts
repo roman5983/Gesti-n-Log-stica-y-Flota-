@@ -1,6 +1,7 @@
 import { prisma } from '../../database/prisma-client';
 import type { Prisma, Vehicle, VehicleStatus } from '../../generated/prisma/client';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
+import { escapeLike } from '../../shared/utils/like';
 
 export interface VehicleFilters {
   status?: VehicleStatus;
@@ -20,8 +21,8 @@ function buildWhere(filters: VehicleFilters): Prisma.VehicleWhereInput {
     ...(filters.search
       ? {
           OR: [
-            { licensePlate: { contains: filters.search } },
-            { model: { contains: filters.search } },
+            { licensePlate: { contains: escapeLike(filters.search) } },
+            { model: { contains: escapeLike(filters.search) } },
           ],
         }
       : {}),
