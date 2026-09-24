@@ -94,7 +94,7 @@ Cada caso: acción → resultado esperado. ✅ = probar contra la app real.
 - Asignar cuando no hay vehículos disponibles → 409.
 - Finalizar (Operador o Chofer): km de llegada ≤ km de salida → error; km mayor → viaje "Finalizado", vehículo liberado a Disponible con odómetro actualizado, y suben `viajes_realizados`/`promedio_km` del chofer.
 - Doble finalización simultánea (Chofer y Operador a la vez) → solo una aplica; la otra recibe "Only in-progress trips can be finished" (lock de fila).
-- Eliminar un viaje pendiente → OK; eliminar uno asignado o finalizado → 422 (RN-15). *(2026-09-21: RN-14 derogada; un viaje pendiente o en curso se puede cancelar con `POST /trips/:id/cancel`, uno finalizado o ya cancelado → 422.)*
+- Eliminar un viaje pendiente → OK; eliminar uno asignado o finalizado → 422 (RN-15). *(2026-09-21: RN-14 derogada; un viaje pendiente o en curso se puede cancelar con `POST /trips/:id/cancel`, uno finalizado o ya cancelado → 422. 2026-09-24: ahora solo se cancelan viajes pendientes; uno en curso también → 422.)*
 
 ### 3.8 Alertas
 - `POST /alerts/evaluate` (Admin) sobre el seed → crea varias: licencia por vencer (Carlos) y vencida (Lucía), documento por vencer/vencido, seguro por vencer (BBB222) y vencido (CCC333), km de mantenimiento superado (BBB222), vehículo inactivo (CCC333).

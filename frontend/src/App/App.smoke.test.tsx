@@ -247,6 +247,23 @@ describe('wiring — the new controls reach the API and explain rejections', () 
     expect(screen.getByRole('heading', { name: 'SOMETHING_NEW' })).toBeTruthy();
   });
 
+  it('"ir al origen" of an unassigned-trip alert opens the assign dialog', async () => {
+    overrides['GET /trips/41'] = { data: { ...trip, status: 'PENDING_ASSIGNMENT', driver: null, vehicle: null } };
+    renderApp('OPERATOR', '/viajes?highlight=41');
+    expect(await screen.findByRole('dialog', { name: 'Asignar viaje' })).toBeTruthy();
+    await waitFor(() => expect(window.location.search).toBe(''));
+  });
+
+  it('"ir al origen" of a trip that was already assigned shows its detail instead', async () => {
+    overrides['GET /trips/41'] = { data: trip };
+    renderApp('OPERATOR', '/viajes?highlight=41');
+    // The open detail dialog marks the rest of the page aria-hidden, notice included.
+    const notice = await screen.findByRole('alert', { hidden: true });
+    expect(notice.textContent).toContain('ya no está pendiente de asignación');
+    expect(screen.queryByRole('dialog', { name: 'Asignar viaje' })).toBeNull();
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+  });
+
   it('a rejected one-click action shows the server reason in a pop-up notice', async () => {
     overrides['GET /maintenances'] = list([{ ...maintenance, status: 'PENDING', completedAt: null }]);
     overrides['POST /maintenances/5/start'] = { fail: 409, message: 'El vehículo AB123CD está en viaje' };

@@ -123,4 +123,4 @@ La migración fue mecánica y reproducible. Un script movió los archivos, renom
 - la clave de Google Maps pasó a estar definida una sola vez, en `lib/google-maps.ts`;
 - la carga de sesión al arrancar pasó de `App.tsx` a su propio hook, `useBootstrapSession`.
 
-**Verificación:** los tests del frontend (102 en ese momento; 144 con el smoke test agregado en la revisión posterior), `tsc`, ESLint (sin errores ni warnings) y `vite build` pasan. El comportamiento no cambió.
+**Verificación:** los tests del frontend (102 en ese momento; 144 con el smoke test agregado en la revisión posterior; 149 tras el merge del 24/09/2026), `tsc`, ESLint (sin errores ni warnings) y `vite build` pasan. El comportamiento no cambió.

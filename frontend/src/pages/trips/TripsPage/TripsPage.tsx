@@ -28,7 +28,7 @@ import { STATUS_OPTIONS } from './TripsPage.data';
 import { statusFromParams } from './TripsPage.helpers';
 
 export function TripsPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<TripStatus | ''>(() =>
     statusFromParams(searchParams.get('estado')),
   );
@@ -62,15 +62,35 @@ export function TripsPage() {
   const [busy, setBusy] = useState(false);
   const notify = useNotify();
 
-  // Deep link from Alertas ("ir al origen"): open the assign dialog straight away.
+  // Deep link from Alertas ("ir al origen"): open the assign dialog straight
+  // away. Alerts are re-evaluated once a day, so the trip may already be
+  // assigned or cancelled by now: then show its detail instead.
   const highlight = searchParams.get('highlight');
   useEffect(() => {
     if (!highlight) return;
     tripsApi
       .getById(Number(highlight))
-      .then((t) => setAssignTrip(t))
-      .catch(() => notify.warning('No se encontró el viaje indicado. Puede haber sido eliminado.'));
-  }, [highlight, notify]);
+      .then((t) => {
+        if (t.status === 'PENDING_ASSIGNMENT') {
+          setAssignTrip(t);
+        } else {
+          setDetailTrip(t);
+          notify.info('Este viaje ya no está pendiente de asignación.');
+        }
+      })
+      .catch(() => notify.warning('No se encontró el viaje indicado. Puede haber sido eliminado.'))
+      .finally(() => {
+        // Drop the param so a reload doesn't reopen the dialog.
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('highlight');
+            return next;
+          },
+          { replace: true },
+        );
+      });
+  }, [highlight, notify, setSearchParams]);
 
   // Confirmed actions: success → close + notice; rejected → the dialog stays
   // open and shows the reason where the user acted (same rule in every list).

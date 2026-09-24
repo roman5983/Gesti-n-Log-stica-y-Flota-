@@ -704,3 +704,22 @@ Se revisó todo lo de las entradas anteriores buscando fallas que tsc, ESLint y 
 **Lo que no se pudo probar acá.** Una base MySQL real: el entorno de trabajo no permite instalarla. El SQL se validó por su forma, no ejecutándolo. Queda cubierto con la guía E2E (§3.5) contra la base local.
 
 **Estado.** Backend: 94 tests, tsc, ESLint y build limpios. Frontend: 144 tests, tsc, ESLint sin warnings y build limpios.
+
+---
+
+## Merge de `justino-actualizacion-pendientes` y revisión (24/09/2026)
+
+**Qué trajo Justino.** Una alerta nueva, `VOYAGE_NOT_ASSIGNED`: viaje pendiente de asignación que sale en menos de 1 hora o ya debía salir, sobre la entidad `TRIP`. También cambió la regla de cancelación: solo se cancelan viajes pendientes, ya no los que están en curso. Además bajó el tamaño de lote del seed de 200 a 40.
+
+**Adaptaciones al mezclar.** Su cambio en la pantalla de Alertas tocaba el archivo viejo (`pages/alertas/AlertasPage.tsx`), que la reorganización de carpetas ya había eliminado. Sus dos cambios se pasaron a los archivos nuevos: la etiqueta, una categoría "Viajes" con su propio ícono y el link "ir al origen" hacia `/viajes`. En Viajes se sacaron el botón y el texto de "Cancelar" para viajes en curso, porque el servidor ahora rechaza esa acción.
+
+**Revisión posterior.**
+- **"Ir al origen" con alertas viejas.** Como la evaluación es diaria, una alerta puede quedar abierta cuando el viaje ya se asignó. En ese caso, en lugar del diálogo de asignación se abre el detalle del viaje con un aviso. El parámetro `highlight` se borra de la URL, igual que en Choferes, para que recargar no vuelva a abrir el diálogo.
+- **Backend.** Se corrigieron el formato y la sangría del bloque de la alerta. La ventana de 1 hora pasó a una constante (`UNASSIGNED_TRIP_LEAD_MS`), y un viaje atrasado ahora dice "ya debía salir" en vez de "sale en menos de 1 hora". Se actualizaron los comentarios de `trips.service.ts` y `trips.routes.ts`, que todavía decían que se podía cancelar un viaje en curso.
+- **Decisiones del equipo (Román).** Se mantiene la ventana de 1 hora aunque la evaluación sea diaria, y se mantiene la regla de cancelación de Justino. Las dos consecuencias quedaron en `PENDIENTES.md` (puntos 18 y 19): el camión averiado solo puede "finalizarse", y la alerta casi nunca salta sola.
+- **Un solo archivo de pendientes.** `PENDIENTES.md` se reescribió con lo que falta hoy, incluidos los puntos todavía abiertos del plan del capítulo 25: timeout de Axios, auditoría de login y logout, campos de configuración sin uso y `multer` 2.x. El capítulo 25 ahora aclara que su plan es una foto del momento y remite a `PENDIENTES.md`.
+- **Documentación.** Se agregaron notas en §12.14 (cancelación) y al final del capítulo 14 (noveno tipo de alerta), y se actualizaron `PLAN-DE-PRUEBAS.md` y la cantidad de tests en el README.
+
+**Tests nuevos.** `alerts.service.test.ts` (3 casos: consulta, alerta generada y viaje atrasado), `AlertsPage.helpers.test.ts` (3) y dos casos en el smoke test para "ir al origen", con el viaje pendiente y con el viaje ya asignado.
+
+**Verificación** (en copias temporales): backend con 97 tests y `tsc`, ESLint y build limpios; frontend con 149 tests, `tsc`, ESLint y `vite build` limpios.

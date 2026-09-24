@@ -1114,3 +1114,9 @@ El resultado se expone como `linkedDriverId?: number` en `AlertResponse`, presen
 >
 > El botón "Evaluar alertas" (`POST /alerts/evaluate`) sigue igual, para evaluar en cualquier momento. `ALERTS_EVAL_INTERVAL_MIN` dejó de existir: si quedó en un `.env`, se ignora. Tests: `alerts.scheduler.test.ts` (próxima corrida en la zona horaria correcta, la corrida diaria tras una pasada fallida, `off`).
 
+
+> **Actualización (24/09/2026) — noveno tipo: `VOYAGE_NOT_ASSIGNED`.** Agregado por Justino. `scanConditions` busca viajes `PENDING_ASSIGNMENT` cuya salida es dentro de la próxima hora **o ya pasó** (`departureAt <= ahora + 1 h`, constante `UNASSIGNED_TRIP_LEAD_MS` en `config/constants.ts`) y genera una alerta por viaje sobre la entidad nueva `TRIP` (`ENTITY_TYPES` la incluye; `alert_type` y `entity_type` son `VARCHAR`, así que no hizo falta migración). El texto distingue "sale en menos de 1 hora" de "ya debía salir". Se resuelve sola en la siguiente evaluación si el viaje se asignó, canceló o eliminó.
+>
+> **Límite conocido, aceptado por el equipo:** como la evaluación automática corre una vez al día (06:00) y al arrancar, esta alerta solo aparece sola para viajes que salen cerca de esa hora; para el resto hay que usar el botón "Evaluar alertas". Quedó anotado en `PENDIENTES.md`.
+>
+> **Frontend.** En las tarjetas tiene categoría propia "Viajes" (ícono de camión, tono rojo, etiqueta "Sin asignar"). "Ir al origen" lleva a `/viajes?highlight=<id>`: si el viaje sigue pendiente se abre el diálogo de asignación; si ya se asignó o canceló (la alerta puede tener hasta un día), se abre su detalle con un aviso. Tests: `alerts.service.test.ts` (backend), `AlertsPage.helpers.test.ts` y dos casos del smoke test (frontend).
