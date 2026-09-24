@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -61,6 +61,16 @@ export function TripsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const notify = useNotify();
+
+  // Deep link from Alertas ("ir al origen"): open the assign dialog straight away.
+  const highlight = searchParams.get('highlight');
+  useEffect(() => {
+    if (!highlight) return;
+    tripsApi
+      .getById(Number(highlight))
+      .then((t) => setAssignTrip(t))
+      .catch(() => notify.warning('No se encontró el viaje indicado. Puede haber sido eliminado.'));
+  }, [highlight, notify]);
 
   // Confirmed actions: success → close + notice; rejected → the dialog stays
   // open and shows the reason where the user acted (same rule in every list).
@@ -146,18 +156,11 @@ export function TripsPage() {
               </>
             )}
             {t.status === 'IN_PROGRESS' && (
-              <>
-                <Tooltip title="Cancelar viaje">
-                  <IconButton size="small" onClick={() => setToCancel(t)}>
-                    <CancelIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Finalizar">
-                  <IconButton size="small" color="primary" onClick={() => setFinishTrip(t)}>
-                    <FlagIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </>
+              <Tooltip title="Finalizar">
+                <IconButton size="small" color="primary" onClick={() => setFinishTrip(t)}>
+                  <FlagIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             )}
           </Stack>
         ),
@@ -248,11 +251,7 @@ export function TripsPage() {
       <ConfirmDialog
         open={toCancel !== null}
         title="Cancelar viaje"
-        message={
-          toCancel?.status === 'IN_PROGRESS'
-            ? `¿Cancelar el viaje a ${toCancel.destination}? Se libera el vehículo ${toCancel.vehicle?.licensePlate ?? ''} y el viaje queda como cancelado (no suma kilómetros ni viajes al chofer).`
-            : `¿Cancelar el viaje a ${toCancel?.destination}? Queda registrado como cancelado.`
-        }
+        message={`¿Cancelar el viaje a ${toCancel?.destination}? Solo se pueden cancelar viajes pendientes de asignación. Queda registrado como cancelado.`}
         confirmLabel="Cancelar viaje"
         confirmColor="error"
         cancelLabel="Volver"

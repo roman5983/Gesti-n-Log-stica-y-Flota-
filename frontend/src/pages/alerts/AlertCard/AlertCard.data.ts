@@ -4,6 +4,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import ShieldIcon from '@mui/icons-material/Shield';
 import BuildIcon from '@mui/icons-material/Build';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import type { AlertCategory, AlertPresentation } from './AlertCard.types';
 
@@ -13,6 +14,7 @@ export const ICONS: Record<AlertCategory, SvgIconComponent> = {
   insurance: ShieldIcon,
   maintenance: BuildIcon,
   vehicle: PauseCircleIcon,
+  trip: LocalShippingIcon,
   other: NotificationsIcon,
 };
 
@@ -23,6 +25,7 @@ export const CATEGORY_LABELS: Record<AlertCategory, string> = {
   insurance: 'Seguros',
   maintenance: 'Mantenimiento',
   vehicle: 'Vehículos',
+  trip: 'Viajes',
   other: 'Otras',
 };
 
@@ -40,6 +43,12 @@ export const TYPES: Record<string, Omit<AlertPresentation, 'icon'>> = {
     tag: 'Requiere service',
   },
   VEHICLE_INACTIVE: { label: 'Vehículo inactivo', category: 'vehicle', tone: 'info' },
+  VOYAGE_NOT_ASSIGNED: {
+    label: 'Viaje no asignado',
+    category: 'trip',
+    tone: 'error',
+    tag: 'Sin asignar',
+  },
 };
 
 /** Alert types in the order they are offered in the filter (grouped by category). */

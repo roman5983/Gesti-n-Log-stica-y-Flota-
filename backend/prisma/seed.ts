@@ -41,7 +41,7 @@ import {
 } from './seed-history';
 
 const BCRYPT_ROUNDS = 10;
-const BATCH = 200;
+const BATCH = 40;
 
 const DOC_TITLES: Record<DocType, string> = {
   DNI: 'Documento Nacional de Identidad',

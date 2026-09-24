@@ -15,9 +15,10 @@ export const ALERT_TYPES = [
   'INSURANCE_EXPIRED',
   'MAINTENANCE_KM_EXCEEDED',
   'VEHICLE_INACTIVE',
+  'VOYAGE_NOT_ASSIGNED',
 ] as const;
 
-export const ENTITY_TYPES = ['DRIVER', 'VEHICLE', 'DRIVER_DOCUMENT'] as const;
+export const ENTITY_TYPES = ['DRIVER', 'VEHICLE', 'DRIVER_DOCUMENT', 'TRIP'] as const;
 
 /** Fields the alert list can be sorted by. */
 export const ALERT_SORT_FIELDS = ['raisedAt', 'alertType'] as const;

@@ -257,16 +257,19 @@ describe('wiring — the new controls reach the API and explain rejections', () 
   });
 
   it('a rejected confirmed action keeps its dialog open with the reason inside', async () => {
-    overrides['POST /trips/41/cancel'] = { fail: 409, message: 'No se puede cancelar un viaje finalizado' };
+    // Only pending trips can be cancelled.
+    overrides['GET /trips'] = list([{ ...trip, status: 'PENDING_ASSIGNMENT' }]);
+    overrides['POST /trips/41/cancel'] = { fail: 409, message: 'No se puede cancelar un viaje asignado' };
     renderApp('OPERATOR', '/viajes');
     fireEvent.click(await screen.findByRole('button', { name: 'Cancelar viaje' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar viaje' }));
-    await waitFor(() => expect(within(dialog).getByText('No se puede cancelar un viaje finalizado')).toBeTruthy());
+    await waitFor(() => expect(within(dialog).getByText('No se puede cancelar un viaje asignado')).toBeTruthy());
     expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
   it('a successful action confirms it with a notice', async () => {
+    overrides['GET /trips'] = list([{ ...trip, status: 'PENDING_ASSIGNMENT' }]);
     renderApp('OPERATOR', '/viajes');
     fireEvent.click(await screen.findByRole('button', { name: 'Cancelar viaje' }));
     const dialog = await screen.findByRole('dialog');

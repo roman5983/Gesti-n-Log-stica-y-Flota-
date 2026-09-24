@@ -3,7 +3,7 @@ import type { Tone } from '@/theme/theme.types';
 import type { ReactNode } from 'react';
 import type { Alert } from '@/api/alerts.api';
 
-export type AlertCategory = 'license' | 'document' | 'insurance' | 'maintenance' | 'vehicle' | 'other';
+export type AlertCategory = 'license' | 'document' | 'insurance' | 'maintenance' | 'vehicle' | 'trip' | 'other';
 
 export interface AlertPresentation {
   label: string;

@@ -204,6 +204,25 @@ async function scanConditions(db: DbClient): Promise<Candidate[]> {
       }
     }
   }
+const now = new Date();
+const inOneHour = new Date(now.getTime() + 60 * 60 * 1000);
+const trips = await db.trip.findMany({
+  where: {
+    status: 'PENDING_ASSIGNMENT',
+    departureAt: { lte: inOneHour },
+  },
+  select: { id: true, destination: true, departureAt: true },
+});
+for (const t of trips) {
+  candidates.push({
+    alertType: 'VOYAGE_NOT_ASSIGNED',
+    entityType: 'TRIP',
+    entityId: t.id,
+    description: `El viaje #${t.id} a ${t.destination} sale en menos de 1 hora y no tiene chofer/vehículo asignado`,
+  });
+}
+
+
 
   return candidates;
 }

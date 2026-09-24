@@ -43,6 +43,7 @@ describe('alertPresentation (alert cards)', () => {
         'LICENSE_EXPIRING',
         'MAINTENANCE_KM_EXCEEDED',
         'VEHICLE_INACTIVE',
+        'VOYAGE_NOT_ASSIGNED',
       ].sort(),
     );
   });
