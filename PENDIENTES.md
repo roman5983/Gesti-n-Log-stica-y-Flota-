@@ -49,13 +49,12 @@
 24. **El login y el logout no quedan en la auditoría** (capítulo 15).
 25. **Vulnerabilidades de dependencias:** 18 en el backend y 8 en el frontend (conteo anterior; conviene volver a correr `npm audit`). Varias se arreglan con actualizaciones menores. Prisma y Vite requieren cambio de versión mayor, y en ningún caso hay que correr `npm audit fix --force`.
 26. **El frontend se carga en un solo archivo de 1,3 MB.** Se puede partir por pantalla con `React.lazy`.
-27. **Documentación desactualizada:** el README dice 57 endpoints y son 60. Algunos capítulos del manual técnico dicen que no hay tests de componentes ni de servicios, y ya los hay. El capítulo 14 habla de "ocho tipos de alerta" y hoy son nueve (hay una nota al final del capítulo). Los capítulos 18 a 22C citan las rutas del frontend anteriores a la reorganización; la equivalencia está en §21B. Falta tabular los hallazgos de los capítulos 02 a 07 (capítulo 25, punto 28).
-28. **Limpiar la raíz del repo:** `Backend-Gestion-Logistica.docx` (la cátedra no acepta `.docx`).
-29. **Lockfile del frontend:** con npm 10, `npm ci` lo marca desincronizado y falla. Conviene regenerarlo con la versión de npm que use el equipo.
+27. **Documentación desactualizada:** algunos capítulos del manual técnico dicen que no hay tests de componentes ni de servicios, y ya los hay. El capítulo 14 habla de "ocho tipos de alerta" y hoy son nueve (hay una nota al final del capítulo). Los capítulos 18 a 22C citan las rutas del frontend anteriores a la reorganización; la equivalencia está en §21B. Falta tabular los hallazgos de los capítulos 02 a 07 (capítulo 25, punto 28).
+28. **Lockfile del frontend:** con npm 10, `npm ci` lo marca desincronizado y falla. Conviene regenerarlo con la versión de npm que use el equipo.
 
 ## ⚪ Solo si el proyecto sigue después de la entrega
 
-30. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
+29. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
 
 ---
 
