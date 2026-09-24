@@ -4,6 +4,7 @@ Punto de entrada a toda la documentación del proyecto, según lo pedido en [../
 
 ## Propuesta y planificación
 - [../proposal.md](../proposal.md) — propuesta del TP (integrantes, alcance funcional).
+- [../Backend-Gestion-Logistica.md](../Backend-Gestion-Logistica.md) — resumen técnico del backend (stack, arquitectura, decisiones destacadas).
 - [DEVLOG.md](DEVLOG.md) — bitácora de desarrollo: decisiones técnicas etapa por etapa.
 - [manual-tecnico/_PLAN-CONTINUACION.md](manual-tecnico/_PLAN-CONTINUACION.md) — plan de continuación del trabajo en equipo.
 

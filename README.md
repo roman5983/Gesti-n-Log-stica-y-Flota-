@@ -31,7 +31,7 @@ Trabajo práctico de Desarrollo de Software (DSW). Full-stack con backend REST y
 
 ```
 .
-├── backend/          API REST (Node + Express + Prisma). 13 módulos, 57 endpoints.
+├── backend/          API REST (Node + Express + Prisma). 13 módulos, 60 endpoints.
 │   ├── src/
 │   │   ├── modules/  un módulo por entidad (routes / controller / service / repository / schemas)
 │   │   ├── middlewares/  auth, validación, manejo de errores, rate limiting, uploads

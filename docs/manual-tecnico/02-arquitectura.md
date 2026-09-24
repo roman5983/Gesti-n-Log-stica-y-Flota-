@@ -653,7 +653,7 @@ El beneficio principal (aislar la lógica de negocio de la tecnología de persis
 DSWTP/
 ├── README.md                       Presentación, stack, cómo levantar, credenciales del seed.
 ├── GUIA-PRUEBAS-E2E.md             Guion manual de pruebas por rol.
-├── Backend-Gestion-Logistica.docx  Entregable de la cátedra.
+├── Backend-Gestion-Logistica.md    Resumen técnico del backend.
 ├── .gitignore                      Excluye node_modules, dist, .env, generated, uploads.
 ├── docs/                           Documentación de diseño (7 archivos).
 ├── backend/                        Aplicación servidor.
