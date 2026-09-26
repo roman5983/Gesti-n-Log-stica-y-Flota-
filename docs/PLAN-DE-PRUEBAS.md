@@ -8,16 +8,37 @@ seed corriendo). Fuente de verdad: `analisis-funcional-gestion-logistica.md`.
 
 Corren sin base de datos.
 
-**Backend** (`cd backend && npm test`) — 23 tests:
+**Backend** (`cd backend && npm test`) — 144 tests en 22 archivos:
 - `crypto`: round-trip AES-256-GCM, IV aleatorio, detección de manipulación, SHA-256 (A-9).
 - `dates`: `utcStartOfToday`/`utcEndOfDay` (fronteras UTC, RN-1, rangos inclusivos).
-- Schemas Zod: viajes (origen fijo ignorado RN-21, campos requeridos), tipos de
+- `like`: escape de wildcards LIKE para búsquedas seguras.
+- Schemas Zod compartidos (`shared/schemas`): coerción de id param, defaults y límites de
+  paginación, trim y blanqueo de search, sort order, y helper `paginationMeta`.
+- Schemas Zod de módulos: viajes (origen fijo ignorado RN-21, campos requeridos), tipos de
   mantenimiento (umbrales cross-field RN-13), usuarios (rol DRIVER rechazado, reglas de
-  contraseña, filtro de rol CSV), choferes (DNI, categoría de licencia).
+  contraseña, filtro de rol CSV), choferes (DNI, categoría de licencia), reportes (período
+  máximo, dateTo ≥ dateFrom), vehículos (patente normalizada a mayúsculas, año en rango
+  1950–actual+1, km inicial ≥ 0, update parcial requiere al menos un campo, filtro de
+  status y búsqueda en listado), configuración (update parcial, email válido, longitudes
+  máximas, campos obligatorios no vacíos).
+- Servicios y repositorios: alertas (evaluación, scheduler, repository), mantenimientos
+  (repository, service), viajes (repository, service), auditoría, documentos.
+- Prisma: seed-history (generación de historial puro), sample-pdf.
 
-**Frontend** (`cd frontend && npm test`) — 5 tests:
-- `datetime`: round-trip datetime-local ↔ ISO sin desplazamiento de zona horaria.
+**Frontend** (`cd frontend && npm test`) — 155 tests en 16 archivos:
+- `datetime`: round-trip datetime-local ↔ ISO sin desplazamiento de zona horaria,
+  formatDateOnly conserva el día UTC, formatRelativeDay (Hoy/Ayer/fecha completa).
+- `date-input`: parseo estricto, serialización, validación con mensajes en español.
 - `guards`: ruta home por rol.
+- `axios`: interceptores de refresh y manejo de errores.
+- `theme.tokens`: contraste WCAG AA para todos los pares de color (texto, sidebar,
+  chart scale, tooltip) en modo claro y oscuro.
+- Helpers de páginas: `VehiclesPage.helpers` (statusFromParams reconoce los cuatro estados
+  válidos, rechaza desconocidos), `TripsPage.helpers` (statusFromParams con los cuatro
+  estados de viaje), `AlertsPage.helpers`, `AlertCard.helpers`, `DashboardPage.helpers`,
+  `auditLabels.helpers`.
+- Componentes (Testing Library + jsdom): DateField, SearchField, AlertCard,
+  AuditLogDetailDialog, App smoke test.
 
 ## 2. Preparación del entorno de integración
 
