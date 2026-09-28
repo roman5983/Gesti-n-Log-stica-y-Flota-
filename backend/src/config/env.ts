@@ -22,7 +22,7 @@ const envSchema = z.object({
   // --- Email (credentials delivery). All optional: without SMTP config the
   //     mailer runs in dev mode (logs the message instead of sending). ---
   SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().min(1024).max(65535).optional(),
   SMTP_SECURE: z
     .enum(['true', 'false'])
     .transform((v) => v === 'true')

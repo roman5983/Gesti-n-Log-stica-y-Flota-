@@ -20,7 +20,7 @@
 7. **Test E2E automatizado** con Playwright o Cypress. La guía E2E actual es manual.
 8. **Documentación de la API** con Swagger/OpenAPI.
 9. **Video de demostración.**
-10. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` sigue diciendo "23 / 5 tests"; hoy son 97 en el backend y 149 en el frontend.
+10. **Evidencia de ejecución de los tests.** `docs/PLAN-DE-PRUEBAS.md` ya refleja los conteos actuales: 144 tests en el backend y 155 en el frontend.
 11. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
 12. **Links a los pull requests en `proposal.md`.** Ya se piden para la regularidad.
 13. **Participación:** cada integrante tiene que tener commits propios y al menos un test de su autoría. Hoy Santiago no tiene commits en el repo oficial.

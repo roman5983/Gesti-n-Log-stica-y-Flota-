@@ -756,3 +756,25 @@ Como consecuencia simétrica, `documentsService.remove` ahora rechaza borrar cua
 **Tests nuevos/actualizados.** `alerts.scheduler.test.ts` (+2: la pasada horaria corre independiente de la diaria; `intervalMin` en 0 no agrega pasadas). `documents.service.test.ts` (+2: rechaza borrar con viaje en curso, permite borrar sin él). `trips.service.test.ts` y `documents.service.test.ts` existentes actualizados al mock nuevo (`hasCompleteValidDocuments` en vez de `hasExpiredActive`).
 
 **Verificación.** Backend: 101 tests, `tsc`, ESLint y build (`tsc -p tsconfig.build.json`) limpios. Frontend: 149 tests, `tsc`, ESLint y `vite build` limpios (el aviso de bundle > 500 kB es el pendiente 25, no nuevo).
+## Tests de Santiago — participación individual (26/09/2026)
+
+La consigna exige que cada integrante tenga al menos un test de su autoría (punto 13 de `PENDIENTES.md`). Se crearon cinco archivos de test nuevos (tres en backend, dos en frontend) y se actualizó la documentación de pruebas.
+
+**Backend — 3 archivos nuevos.**
+
+- `src/modules/vehicles/vehicles.schemas.test.ts` (14 tests). Validación Zod del esquema de vehículos: la patente se normaliza a mayúsculas, rechaza caracteres especiales y largo inválido; el año acepta hasta actual + 1 y rechaza antes de 1950; el km inicial rechaza negativos; coerción de strings numéricos; `updateVehicleSchema` exige al menos un campo y permite `insuranceExpiryDate: null`; `listVehiclesQuerySchema` filtra por status (`AVAILABLE`, `INACTIVE`, `IN_WORKSHOP`, `ON_TRIP`), rechaza valores inventados, aplica defaults de paginación, y el search recorta y blanquea.
+- `src/modules/settings/settings.schemas.test.ts` (10 tests). `updateSettingsSchema`: update parcial válido, body vacío rechazado, email inválido, campos vacíos rechazados (min 1), `companyName` mayor a 150 y `taxId` mayor a 13 rechazados, valores válidos de timezone/language/dateFormat.
+- `src/shared/schemas.test.ts` (14 tests). Schemas compartidos: `idParamSchema` coerce strings a enteros positivos, rechaza 0, negativos y decimales; `paginationSchema` aplica defaults (page 1, limit 10), coerce strings de query params, rechaza page < 1 y limit fuera de [1, 100]; `searchSchema` recorta espacios, convierte blank a undefined, pasa undefined (opcional), rechaza > 100 caracteres; `sortOrderSchema` defaultea a `desc`, acepta `asc`/`desc`, rechaza otros; `paginationMeta` devuelve el objeto esperado y funciona con cero resultados.
+
+**Frontend — 2 archivos nuevos.**
+
+- `src/pages/vehicles/VehiclesPage/VehiclesPage.helpers.test.ts` (3 tests). `statusFromParams`: reconoce los cuatro estados válidos de vehículo desde el query param `?estado=`, devuelve `''` para `null` (sin param), y `''` para valores desconocidos o con case diferente.
+- `src/pages/trips/TripsPage/TripsPage.helpers.test.ts` (3 tests). `statusFromParams`: reconoce los cuatro estados de viaje (`PENDING_ASSIGNMENT`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`), devuelve `''` para `null` y para valores desconocidos.
+
+**Documentación.**
+
+- `docs/PLAN-DE-PRUEBAS.md`: se actualizaron los conteos (144 backend, 155 frontend) y se agregaron las descripciones de todas las suites, tanto las preexistentes que no estaban listadas como las nuevas.
+- `docs/EVIDENCIA-TESTS.md` (nuevo): salida completa de `npm test` de ambas capas con los archivos marcados como nuevos de Santiago, tabla resumen y conteos.
+- `PENDIENTES.md`: punto 10 actualizado con los conteos reales.
+
+**Verificación.** Backend: 144 tests en 22 archivos, exit 0. Frontend: 155 tests en 16 archivos, exit 0. Totales: 299 tests, 100 % pasando.
