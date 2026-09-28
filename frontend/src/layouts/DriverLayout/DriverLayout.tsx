@@ -1,14 +1,41 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { AppBar, Box, BottomNavigation, BottomNavigationAction, IconButton, Paper, Toolbar, Typography } from '@mui/material';
+import {
+  AppBar,
+  Box,
+  BottomNavigation,
+  BottomNavigationAction,
+  IconButton,
+  Paper,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '@/hooks/useAuth';
 import { ConfirmDialog } from '@/components/ConfirmDialog/ConfirmDialog';
 import { ColorModeToggle } from '@/components/ColorModeToggle/ColorModeToggle';
 import { toneText } from '@/theme/theme.helpers';
+import { SidebarLayout } from '@/layouts/SidebarLayout/SidebarLayout';
 import { NAV_ITEMS } from './DriverLayout.data';
 
+/**
+ * Driver layout: bottom-navigation mobile shell below `md`, the same sidebar
+ * shell as Admin/Operator at `md` and up (DOC-5 §5.3 was mobile-only; a
+ * driver at a desk shouldn't be stuck in a 480px-wide phone layout).
+ */
 export function DriverLayout() {
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
+  if (isDesktop) {
+    return <SidebarLayout title="Mi cuenta" navItems={NAV_ITEMS} />;
+  }
+  return <DriverMobileLayout />;
+}
+
+function DriverMobileLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
