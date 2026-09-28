@@ -58,6 +58,9 @@ const envSchema = z.object({
     .string()
     .refine(isValidTimeZone, 'Must be an IANA timezone, e.g. America/Argentina/Buenos_Aires')
     .default('America/Argentina/Buenos_Aires'),
+
+  /** Extra periodic evaluation (minutes), on top of the daily one. 0 disables it. */
+  ALERTS_EVAL_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(60),
 });
 
 const parsed = envSchema.safeParse(process.env);

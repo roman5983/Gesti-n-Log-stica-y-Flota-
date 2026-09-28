@@ -4,7 +4,8 @@ import { alertsService } from './alerts.service';
 
 const STARTUP_DELAY_MS = 15_000;
 
-let timer: NodeJS.Timeout | null = null;
+let dailyTimer: NodeJS.Timeout | null = null;
+let intervalTimer: NodeJS.Timeout | null = null;
 let stopped = false;
 
 /**
@@ -73,6 +74,8 @@ export interface AlertsScheduleConfig {
   time: string;
   /** IANA timezone `time` refers to. */
   timeZone: string;
+  /** Extra periodic pass, every this many minutes, on top of the daily one. 0/undefined disables it. */
+  intervalMin?: number;
 }
 
 /**
@@ -80,23 +83,27 @@ export interface AlertsScheduleConfig {
  * expiries change by day, not by minute), plus one pass STARTUP_DELAY_MS after
  * the process starts. That startup pass matters on Render's free tier, where
  * the service sleeps when idle: whoever wakes it up gets alerts that are
- * current, even if the service was asleep at the daily time. The evaluation
- * is idempotent (it reconciles against the pending set), so an extra pass
- * never duplicates alerts. "Evaluar alertas" (POST /alerts/evaluate) still
- * runs it on demand at any time.
+ * current, even if the service was asleep at the daily time. On top of that,
+ * an independent `intervalMin` timer re-runs the same evaluation through the
+ * day (e.g. every hour), so time-sensitive alerts don't wait for the next
+ * daily pass. The evaluation is idempotent (it reconciles against the
+ * pending set), so overlapping passes from either timer never duplicate
+ * alerts. "Evaluar alertas" (POST /alerts/evaluate) still runs it on demand
+ * at any time.
  *
- * Chained setTimeout, re-armed in `finally` after every pass: a failed pass
- * does not stop the job, and each run recomputes the delay to the next daily
- * time, so it never drifts. unref'd so it never keeps the process alive.
+ * Both timers are chained setTimeout, re-armed in `finally` after every pass:
+ * a failed pass does not stop the job. unref'd so neither keeps the process
+ * alive on shutdown.
  */
 export function startAlertsScheduler(config: AlertsScheduleConfig): void {
-  if (timer) return;
+  if (dailyTimer || intervalTimer) return;
   stopped = false;
   const daily = config.time !== 'off';
+  const intervalMin = config.intervalMin ?? 0;
 
-  const schedule = (delay: number) => {
+  const scheduleDaily = (delay: number) => {
     if (stopped) return;
-    timer = setTimeout(async () => {
+    dailyTimer = setTimeout(async () => {
       try {
         await runOnce();
       } catch (err) {
@@ -105,17 +112,38 @@ export function startAlertsScheduler(config: AlertsScheduleConfig): void {
         // eslint-disable-next-line no-console
         console.error('[alerts-job] unexpected error:', err);
       } finally {
-        if (daily) schedule(msUntilNextRun(new Date(), config.time, config.timeZone));
-        else timer = null;
+        if (daily) scheduleDaily(msUntilNextRun(new Date(), config.time, config.timeZone));
+        else dailyTimer = null;
       }
     }, delay);
-    timer.unref();
+    dailyTimer.unref();
   };
-  schedule(STARTUP_DELAY_MS);
+  scheduleDaily(STARTUP_DELAY_MS);
+
+  if (intervalMin > 0) {
+    const intervalMs = intervalMin * 60_000;
+    const scheduleInterval = (delay: number) => {
+      if (stopped) return;
+      intervalTimer = setTimeout(async () => {
+        try {
+          await runOnce();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('[alerts-job] unexpected error:', err);
+        } finally {
+          scheduleInterval(intervalMs);
+        }
+      }, delay);
+      intervalTimer.unref();
+    };
+    scheduleInterval(intervalMs);
+  }
 }
 
 export function stopAlertsScheduler(): void {
   stopped = true;
-  if (timer) clearTimeout(timer);
-  timer = null;
+  if (dailyTimer) clearTimeout(dailyTimer);
+  if (intervalTimer) clearTimeout(intervalTimer);
+  dailyTimer = null;
+  intervalTimer = null;
 }
