@@ -28,6 +28,7 @@ export interface ListTripsParams {
   status?: TripStatus;
   driverId?: number;
   vehicleId?: number;
+  destination?: string;
   dateFrom?: string;
   dateTo?: string;
 }

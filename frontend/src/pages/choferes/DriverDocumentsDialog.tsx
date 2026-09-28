@@ -25,6 +25,7 @@ import type { Driver } from '../../api/drivers.api';
 import { apiErrorMessage } from '../../api/axios';
 import { formatDateOnly } from '../../utils/datetime';
 import { DateField } from '../../components/DateField';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 const DOC_TYPES: { value: DocumentType; label: string }[] = [
   { value: 'DNI', label: 'DNI' },
@@ -42,13 +43,15 @@ interface Props {
 /** Admin management of a driver's documents (F-4): list, upload, view, delete. */
 export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
-  const uploadForm = useRef<HTMLFormElement>(null);
   const [docs, setDocs] = useState<DriverDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docType, setDocType] = useState<DocumentType>('DNI');
   const [expiryDate, setExpiryDate] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [toDelete, setToDelete] = useState<DriverDocument | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function load(driverId: number) {
     setLoading(true);
@@ -88,14 +91,18 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
     }
   }
 
-  async function handleDelete(documentId: number) {
-    if (!driver) return;
-    setError(null);
+  async function confirmDelete() {
+    if (!driver || !toDelete) return;
+    setDeleting(true);
+    setDeleteError(null);
     try {
-      await documentsApi.remove(driver.id, documentId);
+      await documentsApi.remove(driver.id, toDelete.id);
+      setToDelete(null);
       await load(driver.id);
     } catch (err) {
-      setError(apiErrorMessage(err));
+      setDeleteError(apiErrorMessage(err));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -108,9 +115,7 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
         {canManage && (
           <>
             <Typography variant="subtitle2" gutterBottom>Subir documento</Typography>
-            {/* A form only so the browser validates the date (empty, incomplete)
-                before the file picker opens, with the field's own message. */}
-            <Stack component="form" ref={uploadForm} direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start" onSubmit={(e) => e.preventDefault()}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
               <TextField select label="Tipo" size="small" value={docType} onChange={(e) => setDocType(e.target.value as DocumentType)} sx={{ minWidth: 140 }}>
                 {DOC_TYPES.map((t) => (
                   <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>
@@ -119,7 +124,10 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
               <DateField label="Vencimiento" size="small" value={expiryDate} onChange={setExpiryDate} required sx={{ minWidth: 180 }} />
               <Button
                 variant="outlined"
-                onClick={() => { if (uploadForm.current?.reportValidity()) fileInput.current?.click(); }}
+                onClick={() => {
+                  if (!expiryDate) { setError('Seleccioná el tipo y el vencimiento antes de subir el archivo'); return; }
+                  fileInput.current?.click();
+                }}
                 disabled={uploading}
               >
                 Elegir archivo
@@ -158,7 +166,7 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
                       <OpenInNewIcon fontSize="small" />
                     </IconButton>
                     {canManage && (
-                      <IconButton edge="end" color="error" onClick={() => handleDelete(d.id)} aria-label="Eliminar">
+                      <IconButton edge="end" color="error" onClick={() => setToDelete(d)} aria-label="Eliminar">
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     )}
@@ -185,6 +193,18 @@ export function DriverDocumentsDialog({ driver, canManage, onClose }: Props) {
       <DialogActions>
         <Button onClick={onClose}>Cerrar</Button>
       </DialogActions>
+
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Eliminar documento"
+        message={`¿Eliminar el documento ${toDelete ? (DOC_TYPES.find((t) => t.value === toDelete.documentType)?.label ?? toDelete.documentType) : ''} de ${driver?.name}? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        confirmColor="error"
+        loading={deleting}
+        error={deleteError}
+        onConfirm={confirmDelete}
+        onCancel={() => { setToDelete(null); setDeleteError(null); }}
+      />
     </Dialog>
   );
 }

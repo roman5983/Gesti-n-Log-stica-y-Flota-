@@ -15,6 +15,8 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { tripsApi, type Trip, type TripStatus } from '../../api/trips.api';
+import { driversApi, type Driver } from '../../api/drivers.api';
+import { vehiclesApi, type Vehicle } from '../../api/vehicles.api';
 import { apiErrorMessage } from '../../api/axios';
 import { TripFormDialog } from './TripFormDialog';
 import { AssignTripDialog } from './AssignTripDialog';
@@ -41,6 +43,17 @@ export function ViajesPage() {
   );
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [destination, setDestination] = useState('');
+  const [appliedDestination, setAppliedDestination] = useState('');
+  const [driverFilter, setDriverFilter] = useState<number | ''>('');
+  const [vehicleFilter, setVehicleFilter] = useState<number | ''>('');
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+
+  useEffect(() => {
+    driversApi.list({ page: 1, limit: 100 }).then((r) => setDrivers(r.items)).catch(() => {});
+    vehiclesApi.list({ page: 1, limit: 100 }).then((r) => setVehicles(r.items)).catch(() => {});
+  }, []);
 
   const fetchFn = useCallback(
     (params: PageParams) =>
@@ -49,8 +62,11 @@ export function ViajesPage() {
         status: statusFilter || undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
+        destination: appliedDestination || undefined,
+        driverId: driverFilter || undefined,
+        vehicleId: vehicleFilter || undefined,
       }),
-    [statusFilter, dateFrom, dateTo],
+    [statusFilter, dateFrom, dateTo, appliedDestination, driverFilter, vehicleFilter],
   );
 
   const { items, total, page, setPage, limit, setLimit, loading, error, reload } =
@@ -187,7 +203,7 @@ useEffect(() => {
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setActionError(null)}>{actionError}</Alert>
       ) : null}
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
         <TextField
           select
           label="Estado"
@@ -199,6 +215,41 @@ useEffect(() => {
           <MenuItem value="">Todos</MenuItem>
           {STATUS_OPTIONS.map((o) => (
             <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          label="Destino"
+          size="small"
+          value={destination}
+          onChange={(e) => setDestination(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { setAppliedDestination(destination); setPage(1); } }}
+          onBlur={() => { setAppliedDestination(destination); setPage(1); }}
+          sx={{ minWidth: 200 }}
+        />
+        <TextField
+          select
+          label="Chofer"
+          size="small"
+          value={driverFilter}
+          onChange={(e) => { setDriverFilter(e.target.value ? Number(e.target.value) : ''); setPage(1); }}
+          sx={{ minWidth: 200 }}
+        >
+          <MenuItem value="">Todos</MenuItem>
+          {drivers.map((d) => (
+            <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Vehículo"
+          size="small"
+          value={vehicleFilter}
+          onChange={(e) => { setVehicleFilter(e.target.value ? Number(e.target.value) : ''); setPage(1); }}
+          sx={{ minWidth: 180 }}
+        >
+          <MenuItem value="">Todos</MenuItem>
+          {vehicles.map((v) => (
+            <MenuItem key={v.id} value={v.id}>{v.licensePlate}</MenuItem>
           ))}
         </TextField>
         <DateRangeFilter

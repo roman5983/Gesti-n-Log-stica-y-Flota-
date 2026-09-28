@@ -52,6 +52,7 @@ export const listTripsQuerySchema = paginationSchema.extend({
   status: z.enum(['PENDING_ASSIGNMENT', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
   driverId: z.coerce.number().int().positive().optional(),
   vehicleId: z.coerce.number().int().positive().optional(),
+  destination: z.string().max(120).optional(),
   dateFrom: z.coerce.date().optional(),
   dateTo: z.coerce.date().optional(),
 });

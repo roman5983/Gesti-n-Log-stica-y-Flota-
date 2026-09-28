@@ -15,6 +15,7 @@ export interface TripFilters {
   status?: TripStatus;
   driverId?: number;
   vehicleId?: number;
+  destination?: string;
   dateFrom?: Date;
   dateTo?: Date;
 }
@@ -29,6 +30,7 @@ function buildWhere(filters: TripFilters): Prisma.TripWhereInput {
     status: filters.status,
     driverId: filters.driverId,
     vehicleId: filters.vehicleId,
+    ...(filters.destination ? { destination: { contains: filters.destination } } : {}),
   };
   if (filters.dateFrom || filters.dateTo) {
     // utcEndOfDay makes dateTo an inclusive upper bound; a raw lte would drop
