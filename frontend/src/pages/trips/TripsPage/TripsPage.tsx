@@ -35,17 +35,22 @@ export function TripsPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
+  const [idFilter, setIdFilter] = useState('');
+
+  // Accepts a bare number or the displayed "VJ-000615" format.
+  const parsedId = idFilter.replace(/\D/g, '');
 
   const fetchFn = useCallback(
     (params: PageParams) =>
       tripsApi.list({
         ...params,
         status: statusFilter || undefined,
+        id: parsedId ? Number(parsedId) : undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         search: search || undefined,
       }),
-    [statusFilter, dateFrom, dateTo, search],
+    [statusFilter, parsedId, dateFrom, dateTo, search],
   );
 
   const { items, total, page, setPage, limit, setLimit, loading, error, reload } =
@@ -210,6 +215,16 @@ export function TripsPage() {
           placeholder="Chofer o destino"
           value={search}
           onSearch={(text) => { setSearch(text); setPage(1); }}
+        />
+        <TextField
+          label="N° de viaje"
+          placeholder="VJ-000615"
+          size="small"
+          value={idFilter}
+          onChange={(e) => setIdFilter(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') setPage(1); }}
+          onBlur={() => setPage(1)}
+          sx={{ minWidth: 160 }}
         />
         <TextField
           select

@@ -78,6 +78,7 @@ export const tripsService = {
   async list(query: ListTripsQuery, actor: AuthenticatedUser): Promise<PaginatedResult<TripResponse>> {
     const filters: TripFilters = {
       status: query.status,
+      id: query.id,
       driverId: query.driverId,
       vehicleId: query.vehicleId,
       dateFrom: query.dateFrom,

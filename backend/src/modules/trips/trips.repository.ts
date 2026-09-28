@@ -14,6 +14,7 @@ export type TripWithRelations = Prisma.TripGetPayload<{ include: typeof tripIncl
 
 export interface TripFilters {
   status?: TripStatus;
+  id?: number;
   driverId?: number;
   vehicleId?: number;
   dateFrom?: Date;
@@ -31,6 +32,7 @@ interface PageArgs {
 export function buildTripWhere(filters: TripFilters): Prisma.TripWhereInput {
   const where: Prisma.TripWhereInput = {
     status: filters.status,
+    id: filters.id,
     driverId: filters.driverId,
     vehicleId: filters.vehicleId,
   };
