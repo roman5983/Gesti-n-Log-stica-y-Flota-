@@ -70,7 +70,7 @@ export function VehicleFormDialog({ open, vehicle, onClose, onSaved }: Props) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle>{isEdit ? 'Editar vehículo' : 'Nuevo vehículo'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>

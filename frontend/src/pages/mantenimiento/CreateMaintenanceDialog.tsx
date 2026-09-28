@@ -81,7 +81,7 @@ export function CreateMaintenanceDialog({ open, onClose, onSaved }: Props) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle>Registrar mantenimiento</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
