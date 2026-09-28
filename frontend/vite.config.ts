@@ -15,6 +15,19 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
+  // Screens are already split with React.lazy (App.tsx). The libraries every
+  // screen shares go to their own chunks: they change far less often than
+  // the app, so the browser keeps them cached across deploys.
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          mui: ['@mui/material', '@emotion/react', '@emotion/styled'],
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     proxy: {

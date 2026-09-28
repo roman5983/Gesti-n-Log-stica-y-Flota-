@@ -8,7 +8,7 @@ seed corriendo). Fuente de verdad: `analisis-funcional-gestion-logistica.md`.
 
 Corren sin base de datos.
 
-**Backend** (`cd backend && npm test`) — 148 tests en 22 archivos:
+**Backend** (`cd backend && npm test`) — 165 tests en 26 archivos:
 - `crypto`: round-trip AES-256-GCM, IV aleatorio, detección de manipulación, SHA-256 (A-9).
 - `dates`: `utcStartOfToday`/`utcEndOfDay` (fronteras UTC, RN-1, rangos inclusivos).
 - `like`: escape de wildcards LIKE para búsquedas seguras.
@@ -24,19 +24,24 @@ Corren sin base de datos.
 - Servicios y repositorios: alertas (evaluación, scheduler, repository), mantenimientos
   (repository, service), viajes (repository, service), auditoría, documentos.
 - Prisma: seed-history (generación de historial puro), sample-pdf.
+- Servicios nuevos (28/09): `users.service` (un chofer con viaje en curso no se elimina ni se desactiva; la
+  comprobación corre bajo el bloqueo del chofer), `vehicles.service` (baja y eliminación deciden con la fila
+  bloqueada), `auth.service` (LOGIN/LOGOUT en la auditoría), y `drivers.repository` ("disponible" exige la
+  documentación completa, RN-4).
 
-**Frontend** (`cd frontend && npm test`) — 162 tests en 18 archivos:
+**Frontend** (`cd frontend && npm test`) — 167 tests en 19 archivos:
 - `datetime`: round-trip datetime-local ↔ ISO sin desplazamiento de zona horaria,
   formatDateOnly conserva el día UTC, formatRelativeDay (Hoy/Ayer/fecha completa).
 - `date-input`: parseo estricto, serialización, validación con mensajes en español.
 - `guards`: ruta home por rol.
-- `axios`: interceptores de refresh y manejo de errores.
+- `axios`: interceptores de refresh, manejo de errores y tiempo límite de las peticiones.
 - `theme.tokens`: contraste WCAG AA para todos los pares de color (texto, sidebar,
   chart scale, tooltip) en modo claro y oscuro.
 - Helpers de páginas: `VehiclesPage.helpers` (statusFromParams reconoce los cuatro estados
   válidos, rechaza desconocidos), `TripsPage.helpers` (statusFromParams con los cuatro
   estados de viaje), `AlertsPage.helpers`, `AlertCard.helpers`, `DashboardPage.helpers`,
-  `auditLabels.helpers`.
+  `auditLabels.helpers` (incluye las acciones de sesión), `DriversPage.helpers` (motivo por el que un
+  chofer no está disponible).
 - `form-validation`: mensajes propios para campos vacíos, formato, rango y los de
   DateField/AddressAutocomplete (formularios con `noValidate`).
 - Componentes (Testing Library + jsdom): DateField, SearchField, AlertCard,

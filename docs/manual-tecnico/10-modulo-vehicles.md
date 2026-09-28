@@ -1173,6 +1173,8 @@ HTTP/1.1 400 Bad Request
 14. Reestructurar el router en dos sub-routers (lectura y escritura) con sus permisos a nivel de router. Verificar que un endpoint nuevo hereda el permiso correcto.
 15. Escribir una validación de patente específica para los formatos argentinos (`AAA111` y `AA111AA`), con una opción de configuración para permitir formatos extranjeros. Evaluar si vale la pena.
 
+> **Actualización (28/09/2026) — baja y eliminación bajo bloqueo de fila.** `deactivate` y `softDelete` ya no deciden con el estado leído antes de la transacción. Bloquean la fila del vehículo (`vehiclesRepository.lockAndReload`, `SELECT … FOR UPDATE`) y deciden con la copia releída. Es la misma fila que toma la asignación de viajes (`FOR UPDATE SKIP LOCKED`) y el alta de un mantenimiento, así que ya no puede quedar un vehículo inactivo con un viaje en curso. La comprobación de mantenimientos abiertos también pasó adentro de la transacción. Tests: `vehicles.service.test.ts`.
+
 ---
 
 **Anterior:** [Capítulo 9 — El módulo de usuarios](09-modulo-users.md) · **Siguiente:** Capítulo 11 — Choferes y documentación *(pendiente)*

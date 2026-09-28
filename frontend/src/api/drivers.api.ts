@@ -12,6 +12,9 @@ export interface Driver {
   licenseCategory: LicenseCategory;
   licenseExpiryDate: string;
   licenseValid: boolean;
+  /** RN-4: DNI, Licencia, ART and Psicofísico loaded and unexpired. */
+  documentsComplete: boolean;
+  /** Assignable today: active, valid license, no trip in progress, documentsComplete. */
   available: boolean;
   completedTrips: number;
   avgKm: number;

@@ -13,8 +13,16 @@ import type { ApiError, LoginResponse } from './types';
  */
 const baseURL = import.meta.env.VITE_API_URL || '/api/v1';
 
+/**
+ * Time limit for every request. Without one, a server that accepts the
+ * connection but never answers leaves the screen loading forever. It is
+ * generous on purpose: Render's free tier sleeps when idle and the first
+ * request after that can take close to a minute while the service wakes up.
+ */
+export const REQUEST_TIMEOUT_MS = 60_000;
+
 /** Main API client. withCredentials so the refresh cookie travels. */
-export const api = axios.create({ baseURL, withCredentials: true });
+export const api = axios.create({ baseURL, withCredentials: true, timeout: REQUEST_TIMEOUT_MS });
 
 /** Attach the in-memory access token to every request. */
 api.interceptors.request.use((config) => {
@@ -41,7 +49,7 @@ async function refreshAccessToken(): Promise<string> {
   const { data } = await axios.post<{ data: LoginResponse }>(
     `${baseURL}/auth/refresh`,
     {},
-    { withCredentials: true },
+    { withCredentials: true, timeout: REQUEST_TIMEOUT_MS },
   );
   const token = data.data.accessToken;
   authStore.setAccessToken(token);
@@ -151,6 +159,9 @@ function messageForStatus(status: number | undefined): string | null {
  */
 export function apiErrorMessage(err: unknown, fallback = 'Ocurrió un error inesperado. Intentá de nuevo.'): string {
   if (!axios.isAxiosError(err)) return fallback;
+  if (err.code === AxiosError.ECONNABORTED || err.code === AxiosError.ETIMEDOUT) {
+    return 'El servidor tardó demasiado en responder. Si estuvo inactivo, puede tardar hasta un minuto en iniciar: intentá de nuevo.';
+  }
   const data = err.response?.data as ApiError | undefined;
   const message = data?.error?.message;
   if (!message) return messageForStatus(err.response?.status) ?? fallback;

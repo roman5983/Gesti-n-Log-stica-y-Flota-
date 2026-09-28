@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuthStore } from '@/stores/auth-store';
@@ -7,21 +8,27 @@ import { AdminLayout } from '@/layouts/AdminLayout/AdminLayout';
 import { OperatorLayout } from '@/layouts/OperatorLayout/OperatorLayout';
 import { DriverLayout } from '@/layouts/DriverLayout/DriverLayout';
 import { LoginPage } from '@/pages/auth/LoginPage/LoginPage';
-import { DashboardPage } from '@/pages/dashboard/DashboardPage/DashboardPage';
-import { UsersPage } from '@/pages/users/UsersPage/UsersPage';
-import { VehiclesPage } from '@/pages/vehicles/VehiclesPage/VehiclesPage';
-import { DriversPage } from '@/pages/drivers/DriversPage/DriversPage';
-import { MaintenancePage } from '@/pages/maintenance/MaintenancePage/MaintenancePage';
-import { TripsPage } from '@/pages/trips/TripsPage/TripsPage';
-import { AlertsPage } from '@/pages/alerts/AlertsPage/AlertsPage';
-import { ReportsPage } from '@/pages/reports/ReportsPage/ReportsPage';
-import { AuditLogPage } from '@/pages/audit/AuditLogPage/AuditLogPage';
-import { SettingsPage } from '@/pages/settings/SettingsPage/SettingsPage';
-import { MyProfilePage } from '@/pages/profile/MyProfilePage/MyProfilePage';
-import { MyTripPage } from '@/pages/driver-portal/MyTripPage/MyTripPage';
-import { MyDocumentsPage } from '@/pages/driver-portal/MyDocumentsPage/MyDocumentsPage';
-import { MyTripHistoryPage } from '@/pages/driver-portal/MyTripHistoryPage/MyTripHistoryPage';
 import { useBootstrapSession } from '@/hooks/useBootstrapSession';
+
+/**
+ * Every screen except Login is loaded on demand: the first bundle carries the
+ * shell (router, theme, layouts, login) and each page arrives as its own chunk
+ * the first time it's opened. The layouts show a spinner meanwhile (PageOutlet).
+ */
+const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const UsersPage = lazy(() => import('@/pages/users/UsersPage/UsersPage').then((m) => ({ default: m.UsersPage })));
+const VehiclesPage = lazy(() => import('@/pages/vehicles/VehiclesPage/VehiclesPage').then((m) => ({ default: m.VehiclesPage })));
+const DriversPage = lazy(() => import('@/pages/drivers/DriversPage/DriversPage').then((m) => ({ default: m.DriversPage })));
+const MaintenancePage = lazy(() => import('@/pages/maintenance/MaintenancePage/MaintenancePage').then((m) => ({ default: m.MaintenancePage })));
+const TripsPage = lazy(() => import('@/pages/trips/TripsPage/TripsPage').then((m) => ({ default: m.TripsPage })));
+const AlertsPage = lazy(() => import('@/pages/alerts/AlertsPage/AlertsPage').then((m) => ({ default: m.AlertsPage })));
+const ReportsPage = lazy(() => import('@/pages/reports/ReportsPage/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const AuditLogPage = lazy(() => import('@/pages/audit/AuditLogPage/AuditLogPage').then((m) => ({ default: m.AuditLogPage })));
+const SettingsPage = lazy(() => import('@/pages/settings/SettingsPage/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const MyProfilePage = lazy(() => import('@/pages/profile/MyProfilePage/MyProfilePage').then((m) => ({ default: m.MyProfilePage })));
+const MyTripPage = lazy(() => import('@/pages/driver-portal/MyTripPage/MyTripPage').then((m) => ({ default: m.MyTripPage })));
+const MyDocumentsPage = lazy(() => import('@/pages/driver-portal/MyDocumentsPage/MyDocumentsPage').then((m) => ({ default: m.MyDocumentsPage })));
+const MyTripHistoryPage = lazy(() => import('@/pages/driver-portal/MyTripHistoryPage/MyTripHistoryPage').then((m) => ({ default: m.MyTripHistoryPage })));
 
 /** Redirects "/" to the appropriate home for the current role. */
 function RoleHome() {

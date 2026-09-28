@@ -18,6 +18,7 @@ import { usersApi } from '@/api/users.api';
 import { apiErrorMessage } from '@/api/axios';
 import { useNotify } from '@/hooks/useNotify';
 import { useAuth } from '@/hooks/useAuth';
+import { unavailabilityReasons } from './DriversPage.helpers';
 import { DriverFormDialog } from '@/pages/drivers/DriverFormDialog/DriverFormDialog';
 import { DriverCredentialsDialog } from '@/pages/drivers/DriverCredentialsDialog/DriverCredentialsDialog';
 import { DriverDocumentsDialog } from '@/pages/drivers/DriverDocumentsDialog/DriverDocumentsDialog';
@@ -130,7 +131,14 @@ export function DriversPage() {
       {
         key: 'available',
         label: 'Disponible',
-        render: (d) => <Chip size="small" label={d.available ? 'Sí' : 'No'} color={d.available ? 'success' : 'default'} />,
+        render: (d) =>
+          d.available ? (
+            <Chip size="small" label="Sí" color="success" />
+          ) : (
+            <Tooltip title={unavailabilityReasons(d).join(' · ')}>
+              <Chip size="small" label="No" />
+            </Tooltip>
+          ),
       },
       { key: 'trips', label: 'Viajes', align: 'right', render: (d) => d.completedTrips },
       ...(canManage

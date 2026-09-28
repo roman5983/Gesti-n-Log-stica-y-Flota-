@@ -82,6 +82,17 @@ export const vehiclesRepository = {
    * covers soft-deleted rows (same pattern as users.email — Entry 6 of the
    * dev log). `DEL-{id}` is short, collision-free and fits VARCHAR(10).
    */
+  /**
+   * Row-lock the vehicle (SELECT ... FOR UPDATE) and re-read it under the
+   * lock. Same row the trip assignment locks (FOR UPDATE SKIP LOCKED) and a
+   * new maintenance locks, so a deactivation or deletion serializes with
+   * them instead of deciding from a stale status.
+   */
+  async lockAndReload(id: number, tx: Prisma.TransactionClient): Promise<Vehicle | null> {
+    await tx.$queryRaw`SELECT id FROM vehicles WHERE id = ${id} FOR UPDATE`;
+    return this.findById(id, tx);
+  },
+
   softDelete(id: number, db: DbClient = prisma): Promise<Vehicle> {
     return db.vehicle.update({
       where: { id },

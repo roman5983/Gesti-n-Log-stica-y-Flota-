@@ -164,18 +164,42 @@ export const vehiclesService = {
    * RN-16 / A-8: only an ADMIN moves a vehicle to INACTIVE, manually
    * (enforced by route authorization + this explicit transition).
    */
+  /**
+   * The status is checked on a copy read UNDER the vehicle row lock, the same
+   * lock a trip assignment takes: if an assignment commits first, this sees
+   * ON_TRIP and refuses; if this commits first, the assignment skips the
+   * (now INACTIVE) vehicle. Without the lock both could pass their checks
+   * and leave an inactive vehicle on a trip.
+   */
   async deactivate(id: number, actorId: number): Promise<VehicleResponse> {
-    const existing = await getExistingOrFail(id);
-    if (existing.status === 'INACTIVE') return toResponse(existing); // idempotent
-    if (existing.status === 'ON_TRIP') {
-      throw new BusinessRuleError('No se puede dar de baja un vehículo con un viaje en curso');
-    }
-    // A vehicle in the workshop has an open maintenance whose completion would
-    // move it back to AVAILABLE, silently overwriting an INACTIVE set here.
-    if (existing.status === 'IN_WORKSHOP') {
-      throw new BusinessRuleError('No se puede dar de baja un vehículo en mantenimiento');
-    }
-    return toResponse(await this.transition(existing, 'INACTIVE', 'DEACTIVATE', actorId));
+    await getExistingOrFail(id);
+    const updated = await prisma.$transaction(async (tx) => {
+      const locked = await vehiclesRepository.lockAndReload(id, tx);
+      if (!locked) throw new NotFoundError(`No se encontró el vehículo ${id}`);
+      if (locked.status === 'INACTIVE') return locked; // idempotent
+      if (locked.status === 'ON_TRIP') {
+        throw new BusinessRuleError('No se puede dar de baja un vehículo con un viaje en curso');
+      }
+      // A vehicle in the workshop has an open maintenance whose completion would
+      // move it back to AVAILABLE, silently overwriting an INACTIVE set here.
+      if (locked.status === 'IN_WORKSHOP') {
+        throw new BusinessRuleError('No se puede dar de baja un vehículo en mantenimiento');
+      }
+      const vehicle = await vehiclesRepository.update(id, { status: 'INACTIVE' }, tx);
+      await auditLogsService.record(
+        {
+          actorId,
+          action: 'DEACTIVATE',
+          entity: 'VEHICLE',
+          entityId: id,
+          previousData: { status: locked.status },
+          newData: { status: 'INACTIVE' },
+        },
+        tx,
+      );
+      return vehicle;
+    });
+    return toResponse(updated);
   },
 
   /** INACTIVE → AVAILABLE. Maintenance rules may re-block it later (RN-3). */
@@ -210,19 +234,21 @@ export const vehiclesService = {
     });
   },
 
+  /** Same row lock as `deactivate`; also serializes with a new maintenance, which locks the vehicle too. */
   async softDelete(id: number, actorId: number): Promise<void> {
-    const existing = await getExistingOrFail(id);
-    if (existing.status === 'ON_TRIP') {
-      throw new BusinessRuleError('No se puede eliminar un vehículo con un viaje en curso');
-    }
-    // An open maintenance (PENDING/IN_PROGRESS) would end up pointing at a
-    // deleted vehicle. Covers IN_WORKSHOP and any scheduled-but-not-started
-    // maintenance — broader and more precise than checking the status alone.
-    if (await maintenancesRepository.hasOpenForVehicle(id)) {
-      throw new BusinessRuleError('No se puede eliminar un vehículo con un mantenimiento abierto');
-    }
-
+    await getExistingOrFail(id);
     await prisma.$transaction(async (tx) => {
+      const locked = await vehiclesRepository.lockAndReload(id, tx);
+      if (!locked) throw new NotFoundError(`No se encontró el vehículo ${id}`);
+      if (locked.status === 'ON_TRIP') {
+        throw new BusinessRuleError('No se puede eliminar un vehículo con un viaje en curso');
+      }
+      // An open maintenance (PENDING/IN_PROGRESS) would end up pointing at a
+      // deleted vehicle. Covers IN_WORKSHOP and any scheduled-but-not-started
+      // maintenance — broader and more precise than checking the status alone.
+      if (await maintenancesRepository.hasOpenForVehicle(id, undefined, tx)) {
+        throw new BusinessRuleError('No se puede eliminar un vehículo con un mantenimiento abierto');
+      }
       await vehiclesRepository.softDelete(id, tx);
       await auditLogsService.record(
         {
@@ -230,7 +256,7 @@ export const vehiclesService = {
           action: 'DELETE',
           entity: 'VEHICLE',
           entityId: id,
-          previousData: toAuditSnapshot(existing),
+          previousData: toAuditSnapshot(locked),
         },
         tx,
       );

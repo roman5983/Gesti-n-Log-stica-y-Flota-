@@ -1,29 +1,29 @@
 # Capítulo 22B — Las pantallas de viajes y mantenimiento
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Archivos cubiertos** (11 archivos, 1.230 líneas)
 >
 > | Carpeta | Archivo | Líneas |
 > |:--|:--|--:|
-> | `pages/viajes/` | `ViajesPage.tsx` | 201 |
+> | `pages/trips/` | `TripsPage.tsx` | 201 |
 > | | `TripFormDialog.tsx` | 102 |
 > | | `AssignTripDialog.tsx` | 105 |
 > | | `FinishTripDialog.tsx` | 82 |
 > | | `TripDetailDialog.tsx` | 79 |
-> | `pages/mantenimiento/` | `MantenimientoPage.tsx` | 33 |
+> | `pages/maintenance/` | `MaintenancePage.tsx` | 33 |
 > | | `MaintenanceListTab.tsx` | 115 |
-> | | `TiposMantenimientoTab.tsx` | 122 |
+> | | `MaintenanceTypesTab.tsx` | 122 |
 > | | `CreateMaintenanceDialog.tsx` | 125 |
 > | | `MaintenanceDetailDialog.tsx` | 152 |
 > | | `MaintenanceTypeFormDialog.tsx` | 114 |
 >
 > Además se analizan dos componentes compartidos que solo se usan aquí:
-> `components/AddressAutocomplete.tsx` y `components/RouteMap.tsx`.
+> `components/AddressAutocomplete/AddressAutocomplete.tsx` y `components/RouteMap/RouteMap.tsx`.
 
 > **Nota de método.** El patrón de pantalla de listado ya está explicado línea por
-> línea en **§22A.3**, con `VehiculosPage` como caso canónico. `ViajesPage`,
-> `MaintenanceListTab` y `TiposMantenimientoTab` son instancias de ese mismo patrón:
+> línea en **§22A.3**, con `VehiclesPage` como caso canónico. `TripsPage`,
+> `MaintenanceListTab` y `MaintenanceTypesTab` son instancias de ese mismo patrón:
 > aquí **solo se explica lo que las diferencia**. En cambio, los **seis diálogos** sí
 > se analizan completos, porque es en ellos donde vive la lógica de negocio del
 > cliente — y donde están los hallazgos más caros de este capítulo.
@@ -55,7 +55,7 @@ También aparece aquí el hallazgo más revelador del frontend entero, y es de l
 solo se ven cruzando dos archivos que nadie leería juntos:
 
 ```
-frontend/src/pages/mantenimiento/MaintenanceListTab.tsx:74
+frontend/src/pages/maintenance/MaintenanceListTab/MaintenanceListTab.tsx:74
     // eslint-disable-next-line react-hooks/exhaustive-deps
 ```
 
@@ -94,7 +94,7 @@ defecto). Pero el componente que *contiene* al `<Dialog>` — es decir,
 `TripFormDialog` mismo — **sigue montado**, porque el padre lo renderiza siempre:
 
 ```tsx
-// ViajesPage.tsx:184 — el diálogo está SIEMPRE en el árbol
+// TripsPage.tsx:184 — el diálogo está SIEMPRE en el árbol
 <TripFormDialog open={formOpen} trip={editing} onClose={...} onSaved={...} />
 ```
 
@@ -119,7 +119,7 @@ campos vaciarse durante la animación de salida del diálogo (MUI la anima ~195 
 Reiniciando al abrir, el vaciado ocurre cuando el diálogo todavía no es visible.
 
 **Por qué `trip` está en las dependencias.** Sin `trip`, el efecto solo correría al
-cambiar `open`. Pero `ViajesPage` reutiliza *la misma instancia* del diálogo para
+cambiar `open`. Pero `TripsPage` reutiliza *la misma instancia* del diálogo para
 crear y para editar: hace `setEditing(t); setFormOpen(true)`. Ambos `setState` se
 agrupan en un solo render (batching, §18.6.3), así que `open` y `trip` cambian juntos
 y el efecto correría igual. El `trip` en las dependencias protege el caso raro en que
@@ -227,13 +227,13 @@ explicando el problema, dejó catorce `toLocaleDateString` sin UTC en las tablas
 
 ### 22B.2.5 · Pestañas: qué significa `{tab === 0 && <X/>}`
 
-`MantenimientoPage` es la única pantalla del sistema con pestañas. La forma en que las
+`MaintenancePage` es la única pantalla del sistema con pestañas. La forma en que las
 implementa tiene una consecuencia que hay que entender antes de leer el código.
 
 ```tsx
 {tab === 0 && <MaintenanceListTab view="scheduled" />}
 {tab === 1 && <MaintenanceListTab view="history" />}
-{tab === 2 && <TiposMantenimientoTab canManage={canManageTypes} />}
+{tab === 2 && <MaintenanceTypesTab canManage={canManageTypes} />}
 ```
 
 React reconcilia los hijos de un elemento **por posición** (§18.5.4). Los tres
@@ -272,9 +272,9 @@ diseño explícito. Un `key` haría la intención visible:
 
 ## 22B.3 · El módulo de viajes
 
-### 22B.3.1 · `ViajesPage`: qué la diferencia del patrón canónico
+### 22B.3.1 · `TripsPage`: qué la diferencia del patrón canónico
 
-`ViajesPage` sigue las siete piezas de §22A.3. Las diferencias son cuatro:
+`TripsPage` sigue las siete piezas de §22A.3. Las diferencias son cuatro:
 
 **1. Tres filtros en lugar de dos, y ninguno es de texto libre.**
 
@@ -286,7 +286,7 @@ const [dateTo, setDateTo] = useState('');
 
 No hay `search`, y por lo tanto **no hay el par `search`/`appliedSearch`** que §22A.3.1
 explicó (el desdoblamiento que evita una petición por tecla). Los tres filtros de
-`ViajesPage` son selects y `<input type="date">`, que solo emiten `onChange` cuando el
+`TripsPage` son selects y `<input type="date">`, que solo emiten `onChange` cuando el
 usuario termina de elegir. La ausencia de `appliedSearch` no es una omisión: es que no
 hace falta.
 
@@ -329,7 +329,7 @@ anotado.
 const columns = useMemo<Column<Trip>[]>(() => [ /* ... */ ], []);   // línea 119
 ```
 
-En §22A.3.5 documenté que el `useMemo` de columnas de `VehiculosPage` produce un cierre
+En §22A.3.5 documenté que el `useMemo` de columnas de `VehiclesPage` produce un cierre
 obsoleto. Aquí las dependencias son un array **vacío**, aún más agresivo. Y sin embargo
 **no hay bug**. La razón está en lo que hacen los manejadores:
 
@@ -347,7 +347,7 @@ documentada, no un detalle de implementación. Capturar la del primer render y u
 el render número cuarenta da exactamente el mismo resultado. Y `t` no viene del cierre:
 llega como argumento de `render(t)` en cada pintado.
 
-`VehiculosPage` tiene el bug porque su manejador llama a `reload`, que **no** es
+`VehiclesPage` tiene el bug porque su manejador llama a `reload`, que **no** es
 estable: `usePaginatedList` lo define con `useCallback(..., [fetchFn, page, limit])`, y
 por lo tanto cambia de identidad cada vez que cambia la página.
 
@@ -358,7 +358,7 @@ por lo tanto cambia de identidad cada vez que cambia la página.
 > `dispatch` de `useReducer`, funciones de módulo. En cuanto uno llame a algo derivado
 > del estado —`reload`, `items`, `user`— el cierre queda congelado.
 
-`ViajesPage` cumple. `VehiculosPage` (§22A.3.5) y `MaintenanceListTab` (§22B.4.6) no.
+`TripsPage` cumple. `VehiclesPage` (§22A.3.5) y `MaintenanceListTab` (§22B.4.6) no.
 
 **4. El error de acción se muestra, pero el de carga tiene prioridad.**
 
@@ -377,13 +377,13 @@ todos modos. Nótese que solo el segundo tiene `onClose` — el de carga no se p
 descartar porque no tiene sentido descartarlo: desaparece cuando la carga tiene éxito.
 
 Este bloque exacto, con el mismo ternario anidado, aparece **cuatro veces** en el
-proyecto (`ViajesPage:133`, `MaintenanceListTab:92`, `TiposMantenimientoTab:84`, y las
+proyecto (`TripsPage:133`, `MaintenanceListTab:92`, `MaintenanceTypesTab:84`, y las
 pantallas de 22A). Es un candidato obvio a componente `<ErrorBanner primary secondary/>`,
 y refuerza el hallazgo de §21.2.1: el catálogo de componentes se quedó corto.
 
 ### 22B.3.2 · La máquina de estados, dibujada con iconos
 
-Lo más interesante de `ViajesPage` es que **la columna de acciones es una máquina de
+Lo más interesante de `TripsPage` es que **la columna de acciones es una máquina de
 estados**. El backend define tres estados y cuatro transiciones (§12.3.1); la tabla los
 traduce a botones que aparecen y desaparecen:
 
@@ -411,7 +411,7 @@ Y "Ver detalle" fuera de los condicionales: disponible siempre.
 **La correspondencia con el backend es exacta.** Verifiqué las cuatro reglas contra
 `trips.service.ts` y no hay ninguna acción ofrecida que el servidor vaya a rechazar por
 estado, ni ninguna transición legal que la interfaz oculte. Es la máquina de estados
-mejor reflejada del proyecto — comparar con §22A.3.5, donde `VehiculosPage` ofrece el
+mejor reflejada del proyecto — comparar con §22A.3.5, donde `VehiclesPage` ofrece el
 interruptor de activación sobre vehículos `IN_WORKSHOP` que el backend rechaza.
 
 Un detalle que puede confundir al leer: el mensaje del diálogo de confirmación de
@@ -471,7 +471,7 @@ no pasarse"; `| null` significa "puede pasarse valiendo `null`". Con
 `trip = null` como valor por defecto (línea 31), las dos formas convergen en `null`, y
 `isEdit` funciona igual se llame `<TripFormDialog/>` o `<TripFormDialog trip={null}/>`.
 
-Es tolerancia innecesaria —`ViajesPage` siempre pasa la prop— pero inofensiva.
+Es tolerancia innecesaria —`TripsPage` siempre pasa la prop— pero inofensiva.
 
 **La separación de `onClose` y `onSaved` sí es importante.** Son dos callbacks porque
 representan dos salidas distintas del diálogo:
@@ -762,8 +762,8 @@ useEffect(() => {
    sobre un `inputRef.current` que ya es `null`, o peor, adjuntaría un autocompletado a
    un nodo huérfano que nunca se libera. La función de limpieza pone `cancelled = true`
    y el `.then()` se rinde. Es el patrón estándar para efectos asíncronos, y el proyecto
-   lo aplica en **cinco** de sus efectos —`App.tsx:40`, este, `DashboardPage:29`,
-   `ConfiguracionPage:28` y `MiDocumentacionPage:30`— pero **no** en los diálogos que
+   lo aplica en **cinco** de sus efectos —`App/App.tsx:40`, este, `DashboardPage:29`,
+   `SettingsPage:28` y `MyDocumentsPage:30`— pero **no** en los diálogos que
    cargan catálogos (§22B.4.3). En `AddressAutocomplete` es el único caso donde además
    hace falta liberar un recurso externo (`clearInstanceListeners`), no solo evitar un
    `setState`.
@@ -810,13 +810,13 @@ Rastreé los dos campos por todo el proyecto:
 | `trips.service.ts:47-48` | El servicio los devuelve en la respuesta |
 | `frontend/src/api/trips.api.ts:12-13, 39-40` | El tipo del cliente los declara |
 | `TripDetailDialog.tsx:41` | La pantalla los **muestra** |
-| `MiViajePage.tsx:82` | La pantalla del chofer los **muestra** |
+| `MyTripPage.tsx:82` | La pantalla del chofer los **muestra** |
 | **Quién los envía** | **Nadie.** Ni `TripFormDialog` ni ningún otro archivo del frontend. |
 
 **🔴 Es un camino muerto de punta a punta.** Siete archivos, dos columnas de base de
 datos, cuatro reglas de validación y dos pantallas construidas alrededor de dos campos
 que **siempre valen `NULL`**. `TripDetailDialog` muestra invariablemente "—" en
-"Distancia estimada", y en `MiViajePage` la fila directamente nunca se pinta
+"Distancia estimada", y en `MyTripPage` la fila directamente nunca se pinta
 (`{trip.estimatedDistanceKm != null && ...}`).
 
 La pieza que falta es pequeña: con `place.geometry` —que ya se está pagando— el
@@ -1077,7 +1077,7 @@ en ocho y el resto se copia.
 **Línea 31.** El `?? ''` sortea el hecho de que `trip` puede ser `null` cuando el
 diálogo está cerrado. `StatusChip` recibe una cadena vacía y renderiza su caso por
 defecto. Funciona, pero es sintomático: el diálogo se renderiza siempre —está en el
-árbol de `ViajesPage` con `open={detailTrip !== null}`— y el cuerpo se protege con
+árbol de `TripsPage` con `open={detailTrip !== null}`— y el cuerpo se protege con
 `{trip && (...)}` en la línea 34. El título, en cambio, quedó fuera de esa guarda y
 necesita su propia defensa.
 
@@ -1185,10 +1185,10 @@ Google Cloud.
 
 ## 22B.5 · El módulo de mantenimiento
 
-### 22B.5.1 · `MantenimientoPage` (33 líneas) — tres pestañas, dos componentes
+### 22B.5.1 · `MaintenancePage` (33 líneas) — tres pestañas, dos componentes
 
 ```tsx
-export function MantenimientoPage() {
+export function MaintenancePage() {
   const { user } = useAuth();
   const [tab, setTab] = useState(0);
   const canManageTypes = user?.role === 'ADMIN';
@@ -1210,7 +1210,7 @@ personas.
 
 **⚠️ Dos consecuencias del estado local de la pestaña.**
 
-`tab` vive en un `useState` de `MantenimientoPage`. Cuando el usuario navega a otra
+`tab` vive en un `useState` de `MaintenancePage`. Cuando el usuario navega a otra
 ruta, React Router desmonta la pantalla y el estado se pierde. Al volver, siempre se
 abre en "Programados". Para un administrador que trabaja sobre "Tipos" y va y viene a
 "Vehículos", es fricción real.
@@ -1368,8 +1368,8 @@ Hay tres supresiones así en el frontend:
 | Archivo | Línea | Regla silenciada | ¿Hay bug? |
 |:--|:--|:--|:--|
 | `MaintenanceListTab.tsx` | 74 | `react-hooks/exhaustive-deps` | 🔴 **Sí** — el descrito arriba |
-| `AlertasPage.tsx` | 88 | `react-hooks/exhaustive-deps` | Por verificar (cap. 22C) |
-| `UsuariosPage.tsx` | 123 | `react-hooks/exhaustive-deps` | Por verificar (§22A) |
+| `AlertsPage.tsx` | 88 | `react-hooks/exhaustive-deps` | Por verificar (cap. 22C) |
+| `UsersPage.tsx` | 123 | `react-hooks/exhaustive-deps` | Por verificar (§22A) |
 
 Y seis más en el backend, silenciando `no-console` y `@typescript-eslint/no-namespace`
 (`env.ts:40,43`, `mailer.ts:65,68,72`, `server.ts:8,14`, `auth.ts:17`).
@@ -1382,7 +1382,7 @@ habría impedido.
 
 Instalar ESLint con `eslint-plugin-react-hooks` es una tarea de veinte minutos que
 habría detectado, además de este bug, los de §22A.3.5, y el que quede por confirmar en
-`AlertasPage`. **Es la recomendación de mayor retorno del capítulo 25.**
+`AlertsPage`. **Es la recomendación de mayor retorno del capítulo 25.**
 
 ```tsx
 { key: 'scheduled', label: 'Programado', render: (m) => new Date(m.scheduledAt).toLocaleDateString('es-AR') },
@@ -1666,9 +1666,9 @@ por adjunto**, la segunda redundante. Con diez adjuntos son veinte tabulaciones 
 recorrer diez elementos. El `aria-label="Abrir"` del `IconButton` está bien puesto, pero
 no resuelve la duplicación.
 
-### 22B.5.5 · `TiposMantenimientoTab` y `MaintenanceTypeFormDialog`
+### 22B.5.5 · `MaintenanceTypesTab` y `MaintenanceTypeFormDialog`
 
-**`TiposMantenimientoTab`** (122 líneas) es el patrón de §22A.3 casi literal: mismo
+**`MaintenanceTypesTab`** (122 líneas) es el patrón de §22A.3 casi literal: mismo
 `useCallback`, mismo `usePaginatedList`, mismas columnas condicionales con
 `...(canManage ? [...] : [])`, mismo `ConfirmDialog`. Dos observaciones:
 
@@ -1683,8 +1683,8 @@ depende de nada del componente. Es el caso más simple del patrón.
 const columns = useMemo<Column<MaintenanceType>[]>(() => [ /* ... */ ], [canManage]);
 ```
 
-**Línea 71.** Dependencias `[canManage]`, exactamente como `VehiculosPage`. **Y aquí no
-hay bug**, por la misma razón que en `ViajesPage` (§22B.3.1): los manejadores solo
+**Línea 71.** Dependencias `[canManage]`, exactamente como `VehiclesPage`. **Y aquí no
+hay bug**, por la misma razón que en `TripsPage` (§22B.3.1): los manejadores solo
 llaman a `setEditing`, `setFormOpen` y `setToDelete`, que son setters estables. `reload`
 se usa en `confirmDelete`, que está **fuera** del `useMemo` y se recrea en cada render.
 
@@ -1758,7 +1758,7 @@ el incumplimiento con un 422 en inglés.
 
 ```
 1.  El operador pulsa el icono de asignar en la fila del viaje 42.
-      ViajesPage:97 → setAssignTrip(t)
+      TripsPage:97 → setAssignTrip(t)
 2.  React re-renderiza. AssignTripDialog recibe open={true} trip={t}.
 3.  El useEffect de la línea 36 dispara:
       GET /api/v1/drivers?page=1&limit=100&available=true
@@ -1786,7 +1786,7 @@ el incumplimiento con un 422 en inglés.
       j. INSERT audit_logs
       COMMIT
 8.  200 OK. handleAssign resuelve, ejecuta onSaved().
-9.  ViajesPage:185 → setAssignTrip(null) cierra el diálogo
+9.  TripsPage:185 → setAssignTrip(null) cierra el diálogo
                    → void reload() vuelve a pedir la página actual
 10. usePaginatedList sustituye items. DataTable repinta.
     La fila 42 muestra ahora el chofer, el vehículo y el estado "En viaje".
@@ -1799,7 +1799,7 @@ botones de esa fila**. La columna de acciones es una función del `status`, el `
 llegó nuevo del servidor, y React recalculó. El estado del servidor es la única fuente
 de verdad y la interfaz es su proyección.
 
-Y aquí funciona porque `ViajesPage` usa el `reload` correcto (§22B.3.1). En
+Y aquí funciona porque `TripsPage` usa el `reload` correcto (§22B.3.1). En
 `MaintenanceListTab`, el paso equivalente saltaría a la página 1.
 
 ### 22B.6.2 · Los cuatro efectos de finalizar
@@ -1865,10 +1865,10 @@ stateDiagram-v2
 
 ```mermaid
 graph TD
-    MP["MantenimientoPage<br/><i>useState: tab</i>"]
+    MP["MaintenancePage<br/><i>useState: tab</i>"]
     MP -->|"tab === 0"| MLT1["MaintenanceListTab<br/>view='scheduled'"]
     MP -->|"tab === 1"| MLT2["MaintenanceListTab<br/>view='history'"]
-    MP -->|"tab === 2"| TMT["TiposMantenimientoTab<br/>canManage={role==='ADMIN'}"]
+    MP -->|"tab === 2"| TMT["MaintenanceTypesTab<br/>canManage={role==='ADMIN'}"]
 
     MLT1 --> CMD["CreateMaintenanceDialog"]
     MLT1 --> MDD["MaintenanceDetailDialog"]
@@ -1932,13 +1932,13 @@ sequenceDiagram
    que lo necesitan lo usan. Es el único manejo de fechas correcto del frontend, lo que
    hace del bug de §22A.4 un descuido y no una laguna.
 
-4. **La máquina de estados dibujada con iconos.** La columna de acciones de `ViajesPage`
+4. **La máquina de estados dibujada con iconos.** La columna de acciones de `TripsPage`
    es una proyección exacta de las transiciones legales del backend. Es la mejor
    correspondencia cliente-servidor del proyecto.
 
 5. **La regla del `useMemo` de columnas.** Con dependencias incompletas es seguro **si y
    solo si** los manejadores usan identidades estables. Tres pantallas con el mismo
-   `useMemo`: `ViajesPage` ✅, `TiposMantenimientoTab` ✅, `MaintenanceListTab` 🔴. La
+   `useMemo`: `TripsPage` ✅, `MaintenanceTypesTab` ✅, `MaintenanceListTab` 🔴. La
    diferencia es una sola llamada a `reload`.
 
 6. **Las tres capas de validación.** `FinishTripDialog` implementa RN-5 en texto de
@@ -1960,7 +1960,7 @@ sequenceDiagram
 | 7 | ⚠️ Media | **El selector de vehículos no filtra ni muestra el estado.** Ofrece inactivos y en taller; el backend solo comprueba `deletedAt`. Puede ser deliberado, no está escrito en ningún lado. | `CreateMaintenanceDialog:49` vs `vehicles.repository.ts:32` |
 | 8 | ⚠️ Media | **`km` del mantenimiento no se contrasta con `accumulatedKm`.** Se puede registrar a 5 km un vehículo con 200.000. El dato ya está cargado en el selector: bastaría con precargarlo. | `CreateMaintenanceDialog:109` |
 | 9 | ⚠️ Media | **Se puede programar un viaje en el pasado.** Ni `min` en el input ni `.min()` en el esquema. Contrasta con el rigor de RN-1 y RN-5. | `TripFormDialog:83-91`, `trips.schemas.ts:12` |
-| 10 | ⚠️ Media | **La pestaña de mantenimiento no está en la URL.** Se pierde al navegar, no es enlazable, y "atrás" salta la pantalla entera. `useSearchParams` ya es una dependencia. | `MantenimientoPage:14` |
+| 10 | ⚠️ Media | **La pestaña de mantenimiento no está en la URL.** Se pierde al navegar, no es enlazable, y "atrás" salta la pantalla entera. `useSearchParams` ya es una dependencia. | `MaintenancePage:14` |
 | 11 | ⚠️ Media | **`nextMaintenanceKm` y `kmTarget`: regla enunciada, no validada.** El `helperText` la dice; el fallo llega como 422 en inglés en un `<Alert>` general, sin marcar el campo. | `CreateMaintenanceDialog:112`, `MaintenanceTypeFormDialog:96` |
 | 12 | ⚠️ Baja | **El texto de choferes disponibles omite una condición de tres.** Dice "licencia vigente, sin viaje activo"; el filtro exige además usuario activo. | `AssignTripDialog:83` vs `drivers.repository.ts:37-41` |
 | 13 | ⚠️ Baja | **Comentario desactualizado.** *"The Google Maps route view is a later integration"* — está implementada 43 líneas más abajo. | `TripDetailDialog:26` |
@@ -1973,7 +1973,7 @@ sequenceDiagram
 | 20 | ⚠️ Baja | **`CreateMaintenanceDialog` no indica que está cargando.** Selectores vacíos y mudos, a diferencia de `AssignTripDialog`, que resuelve tres estados. | `CreateMaintenanceDialog:39-57` |
 | 21 | ✅ Bueno | **El manejo de `datetime-local` es correcto.** El par de conversión evita el desplazamiento acumulativo en cada edición. | `TripFormDialog:43,55`, `CreateMaintenanceDialog:68` |
 | 22 | ✅ Bueno | **RN-5 en tres capas.** Texto de ayuda con el número concreto, marca de error solo tras escribir, botón deshabilitado — más la validación del servidor. El modelo a seguir. | `FinishTripDialog:50-76` |
-| 23 | ✅ Bueno | **La máquina de estados de `ViajesPage` es exacta.** Ninguna acción ofrecida que el backend rechace por estado; ninguna transición legal oculta. | `ViajesPage:89-114` |
+| 23 | ✅ Bueno | **La máquina de estados de `TripsPage` es exacta.** Ninguna acción ofrecida que el backend rechace por estado; ninguna transición legal oculta. | `TripsPage:89-114` |
 | 24 | ✅ Bueno | **`AddressAutocomplete` y `RouteMap` degradan sin clave.** El sistema funciona sin Google configurado. Y `AddressAutocomplete` combina bandera de cancelación con liberación real del recurso externo (`clearInstanceListeners`). *(Corrección: la bandera `cancelled` está en cinco efectos del proyecto, no en uno solo — verificado en §22C.)* | `AddressAutocomplete:27-53`, `RouteMap:24-35` |
 | 25 | ✅ Bueno | **El truco de la fila fresca.** `items.find(...) ?? detail` convierte el estado del diálogo en un identificador en lugar de una copia. | `MaintenanceListTab:80` |
 
@@ -1998,12 +1998,12 @@ animación de cierre de MUI.
 </details>
 
 <details>
-<summary><b>2. Explique por qué <code>useMemo(..., [])</code> produce un bug en <code>MaintenanceListTab</code> y no en <code>ViajesPage</code>.</b></summary>
+<summary><b>2. Explique por qué <code>useMemo(..., [])</code> produce un bug en <code>MaintenanceListTab</code> y no en <code>TripsPage</code>.</b></summary>
 
 Un `useMemo` con dependencias vacías congela el valor del **primer render**, incluidas
 todas las funciones que su cuerpo capture por cierre.
 
-En **`ViajesPage`**, los manejadores solo llaman a `setDetailTrip`, `setEditing`,
+En **`TripsPage`**, los manejadores solo llaman a `setDetailTrip`, `setEditing`,
 `setFormOpen`, `setAssignTrip`, `setFinishTrip` y `setToDelete`. React garantiza que la
 identidad de los setters de `useState` es **estable durante toda la vida del
 componente**: la del primer render es la misma que la del render cuarenta. Congelarlas no
@@ -2100,11 +2100,11 @@ habría detectado este bug y el de §22A.3.5.
 - `trips.schemas.ts` las acepta al crear y al actualizar, con validación de rango.
 - `trips.service.ts` las escribe y las devuelve.
 - `trips.api.ts` las declara en el tipo del cliente.
-- `TripDetailDialog:41` y `MiViajePage:82` las **muestran**.
+- `TripDetailDialog:41` y `MyTripPage:82` las **muestran**.
 - **Ningún archivo del frontend las envía nunca.**
 
 `TripDetailDialog` muestra invariablemente "—" en "Distancia estimada", y en
-`MiViajePage` la fila nunca se pinta.
+`MyTripPage` la fila nunca se pinta.
 
 Lo llamativo es que la pieza que falta está casi pagada: `AddressAutocomplete` ya pide
 `geometry` a Google Places —lo que encarece la petición— y descarta las coordenadas. Con
@@ -2213,13 +2213,13 @@ bien resuelta en el único sitio donde hacía falta.
 tres categorías de §22B.2.3 (formulario / control / servidor). ¿Cuál de las tres no
 aparece en este diálogo? ¿Por qué?
 
-**1.2.** `ViajesPage` no tiene el par `search`/`appliedSearch` que sí tiene
-`VehiculosPage` (§22A.3.1). Explique por qué no le hace falta, en términos de cuándo
+**1.2.** `TripsPage` no tiene el par `search`/`appliedSearch` que sí tiene
+`VehiclesPage` (§22A.3.1). Explique por qué no le hace falta, en términos de cuándo
 emite `onChange` cada tipo de control.
 
-**1.3.** Dibuje la tabla de acciones ofrecidas por estado en `ViajesPage` y contrástela
+**1.3.** Dibuje la tabla de acciones ofrecidas por estado en `TripsPage` y contrástela
 con las transiciones que permite `trips.service.ts`. ¿Hay alguna discrepancia?
-(Compare el resultado con lo que ocurre en `VehiculosPage`, §22A.3.5.)
+(Compare el resultado con lo que ocurre en `VehiclesPage`, §22A.3.5.)
 
 **1.4.** En `MaintenanceTypeFormDialog:40-43`, explique por qué `kmAlert` usa
 `type ? ... : ''` y `monthsAlert` usa `type?.monthsAlert != null ? ... : ''`. ¿Qué se
@@ -2258,7 +2258,7 @@ y cómo llega el valor a `TripFormDialog`. Implemente la variante que elija.
 `error ? ... : actionError ? ... : null` que aparece cuatro veces— a un componente
 `<ErrorBanner primary secondary onDismiss/>`. Aplíquelo en las cuatro pantallas.
 
-**3.3.** Lleve la pestaña de `MantenimientoPage` a la URL con `useSearchParams`
+**3.3.** Lleve la pestaña de `MaintenancePage` a la URL con `useSearchParams`
 (hallazgo 10). Verifique que `/mantenimiento?tab=tipos` abre la pestaña correcta, que el
 botón "atrás" vuelve a la pestaña anterior y no a la pantalla anterior, y que un enlace
 compartido funciona.
@@ -2290,7 +2290,7 @@ que pasan.
 
 ### 22B.9.1. `DateRangeFilter`: por qué un componente nuevo y no un `<DatePicker>` suelto por pantalla
 
-`ReportesPage` (§22C.5.1) tiene el mismo par "Desde"/"Hasta" que `ViajesPage`, con el mismo formato de `string` (`YYYY-MM-DD`) viajando hacia `reportsApi.trips(dateFrom, dateTo)` y `tripsApi.list({ dateFrom, dateTo })` respectivamente. En vez de poner un `<DatePicker>` en cada pantalla, se extrajo `frontend/src/components/DateRangeFilter.tsx` — el catálogo de componentes compartidos que §21.2.1 documentó como "corto" (ver también §22B.3.1, punto 4, sobre el bloque de error duplicado cuatro veces) gana una pieza más:
+`ReportsPage` (§22C.5.1) tiene el mismo par "Desde"/"Hasta" que `TripsPage`, con el mismo formato de `string` (`YYYY-MM-DD`) viajando hacia `reportsApi.trips(dateFrom, dateTo)` y `tripsApi.list({ dateFrom, dateTo })` respectivamente. En vez de poner un `<DatePicker>` en cada pantalla, se extrajo `frontend/src/components/DateRangeFilter/DateRangeFilter.tsx` — el catálogo de componentes compartidos que §21.2.1 documentó como "corto" (ver también §22B.3.1, punto 4, sobre el bloque de error duplicado cuatro veces) gana una pieza más:
 
 ```tsx
 interface Props {
@@ -2361,9 +2361,9 @@ if (departureAt < todayLocalInputMin()) {
 
 ### 22B.9.3. Verificación
 
-`tsc --noEmit` limpio en `frontend/`. Probado en navegador: el atajo "Hoy" de `DateRangeFilter` fija ambas fechas y filtra `ViajesPage` de inmediato; el calendario emergente abre en español (`adapterLocale="es"`). En `TripFormDialog`, forzar `2020-01-01T10:00` en el campo (vía `form_input`, saltando la interacción normal del calendario) dispara el propio mensaje nativo del navegador — *"El valor debe ser igual o posterior a 18/09/2026 00:00"*— al intentar enviar, confirmando que el `min` funciona incluso frente a una escritura directa del valor.
+`tsc --noEmit` limpio en `frontend/`. Probado en navegador: el atajo "Hoy" de `DateRangeFilter` fija ambas fechas y filtra `TripsPage` de inmediato; el calendario emergente abre en español (`adapterLocale="es"`). En `TripFormDialog`, forzar `2020-01-01T10:00` en el campo (vía `form_input`, saltando la interacción normal del calendario) dispara el propio mensaje nativo del navegador — *"El valor debe ser igual o posterior a 18/09/2026 00:00"*— al intentar enviar, confirmando que el `min` funciona incluso frente a una escritura directa del valor.
 
-**Archivos tocados:** `frontend/src/main.tsx`, `frontend/src/components/DateRangeFilter.tsx` (nuevo), `frontend/src/pages/viajes/ViajesPage.tsx`, `frontend/src/pages/viajes/TripFormDialog.tsx`, `backend/src/modules/trips/trips.schemas.ts` (§12.12). `ReportesPage` usa el mismo `DateRangeFilter`; se documenta en §22C.5 (actualización posterior).
+**Archivos tocados:** `frontend/src/main.tsx`, `frontend/src/components/DateRangeFilter/DateRangeFilter.tsx` (nuevo), `frontend/src/pages/trips/TripsPage/TripsPage.tsx`, `frontend/src/pages/trips/TripFormDialog/TripFormDialog.tsx`, `backend/src/modules/trips/trips.schemas.ts` (§12.12). `ReportsPage` usa el mismo `DateRangeFilter`; se documenta en §22C.5 (actualización posterior).
 
 ---
 
@@ -2384,13 +2384,13 @@ if (departureAt < todayLocalInputMin()) {
 
 **Límite:** es una regla **del cliente**. El backend sigue aceptando cualquier `destination` de 2 a 120 caracteres; quien llame a la API directamente puede saltarse la validación (no hay forma de validarla en el servidor sin una segunda consulta a Google).
 
-**Verificación:** sin clave real no se puede usar el SDK, así que se simuló `google.maps.places.Autocomplete` en la página con una clave falsa: dirección elegida → válida; la misma editada a mano (`… XYZ`) → inválida con "Elegí una dirección de la lista" y ayuda en rojo; al elegir de nuevo → válida. `tsc` limpio. **Archivo:** `frontend/src/components/AddressAutocomplete.tsx`.
+**Verificación:** sin clave real no se puede usar el SDK, así que se simuló `google.maps.places.Autocomplete` en la página con una clave falsa: dirección elegida → válida; la misma editada a mano (`… XYZ`) → inválida con "Elegí una dirección de la lista" y ayuda en rojo; al elegir de nuevo → válida. `tsc` limpio. **Archivo:** `frontend/src/components/AddressAutocomplete/AddressAutocomplete.tsx`.
 
 ## 22B.11. Actualización posterior — cancelar viajes y mantenimientos desde la interfaz
 
 > **Fecha:** 2026-09-21. La regla y sus efectos están en §12.14 (viajes) y §13.10 (mantenimientos); esta sección cubre la pantalla. **La tabla de §22B.3.2 y el diagrama de §22B.7.1, que decían "no hay cancelación (RN-14)", quedan como registro de la situación previa.**
 
-**`ViajesPage`.** La columna de acciones (§22B.3.2) es ahora:
+**`TripsPage`.** La columna de acciones (§22B.3.2) es ahora:
 
 | Estado | Acciones |
 |:--|:--|
@@ -2404,9 +2404,9 @@ El ícono abre un `ConfirmDialog` cuyo texto depende del estado: para uno en cur
 
 **`MaintenanceListTab`.** Los mantenimientos `PENDING` e `IN_PROGRESS` muestran **Cancelar mantenimiento** (con el mismo patrón de estado + `ConfirmDialog`); la pestaña *Historial* ahora lista finalizados **y cancelados** (`view=history`, §13.10) y su mensaje vacío lo dice. El listado conserva el defecto ya documentado de §22B.5.2: el chip de un mantenimiento `IN_PROGRESS` dice *"En viaje"* (`StatusChip` usa un solo mapa para viajes y mantenimientos, §21.5.1) — **sin cambios**.
 
-**Piezas compartidas.** `StatusChip`: `CANCELLED` → *"Cancelado"* (gris). `audit-labels.ts`: acción `CANCEL` → *"Cancelación"* (ámbar) y el estado *"Cancelado"* para viajes y mantenimientos, para que la pantalla de Auditoría (§22C.5.2) lo muestre traducido. `trips.api.ts` y `maintenances.api.ts`: tipo `CANCELLED` y método `cancel(id)`.
+**Piezas compartidas.** `StatusChip`: `CANCELLED` → *"Cancelado"* (gris). `auditLabels.helpers.ts`: acción `CANCEL` → *"Cancelación"* (ámbar) y el estado *"Cancelado"* para viajes y mantenimientos, para que la pantalla de Auditoría (§22C.5.2) lo muestre traducido. `trips.api.ts` y `maintenances.api.ts`: tipo `CANCELLED` y método `cancel(id)`.
 
-**Verificación:** `tsc` limpio y 23/23 tests del frontend. En el navegador: los íconos aparecen según el estado en Viajes y Mantenimiento, y el diálogo de un viaje en curso muestra el texto correcto y se cierra con *"Volver"* sin cancelar. La cancelación en sí (con efectos en la base) se probó contra la API (§12.14, §13.10). **Archivos:** `ViajesPage.tsx`, `MaintenanceListTab.tsx`, `ConfirmDialog.tsx`, `StatusChip.tsx`, `audit-labels.ts`, `trips.api.ts`, `maintenances.api.ts`.
+**Verificación:** `tsc` limpio y 23/23 tests del frontend. En el navegador: los íconos aparecen según el estado en Viajes y Mantenimiento, y el diálogo de un viaje en curso muestra el texto correcto y se cierra con *"Volver"* sin cancelar. La cancelación en sí (con efectos en la base) se probó contra la API (§12.14, §13.10). **Archivos:** `TripsPage.tsx`, `MaintenanceListTab.tsx`, `ConfirmDialog.tsx`, `StatusChip.tsx`, `auditLabels.helpers.ts`, `trips.api.ts`, `maintenances.api.ts`.
 
 
 ---

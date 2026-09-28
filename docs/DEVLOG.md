@@ -790,3 +790,35 @@ Se verificó `main` después de los PR #13 (tests unitarios de Santiago) y #14 (
 - **Formularios con `noValidate`.** Sacar la validación del navegador también sacó el bloqueo del envío. `DateField` (fecha incompleta o fuera de rango) y `AddressAutocomplete` (dirección escrita pero no elegida de la lista) marcan el error con `setCustomValidity`, y era el navegador el que frenaba el formulario. Sin eso, un viaje podía crearse con un destino sin validar, y una fecha a medio escribir se descartaba en silencio. Ahora `utils/form-validation.ts` revisa las mismas reglas al enviar y muestra el mensaje en el `Alert` del formulario, con palabras de la app ("Completá el campo \"Patente\"."). Así se mantiene el objetivo de Justino, que era no mostrar el cartel del navegador. Se aplicó a los 8 formularios. Tests: `form-validation.test.ts` (6) y `VehicleFormDialog.test.tsx` (1). El frontend queda en 162 tests.
 
 **Anotado en `PENDIENTES.md`, sin corregir.** `SMTP_PORT` tiene un mínimo de 1024 y rechaza los puertos de correo habituales (25, 465 y 587, este último el de `.env.example`). Con el correo configurado, el backend no arranca. Se le avisó a Santiago para que lo corrija. También quedó anotado que el diálogo "Asignar viaje" todavía ofrece choferes que no cumplen la RN-4, y el error aparece recién al confirmar. Se quitaron de la lista la evidencia de tests (ya está en `docs/EVIDENCIA-TESTS.md`) y la participación (Santiago ya tiene commits y tests propios).
+
+---
+
+## Bugs y menores de PENDIENTES (28/09/2026)
+
+Se resolvieron todos los bugs y menores anotados en `PENDIENTES.md`. El de `SMTP_PORT` lo corrigió Santiago en su rama (`fix/env-config-ports`), ya mezclada en `main`.
+
+**Bugs.**
+
+- **Eliminar un chofer con viaje en curso.** Solo estaba bloqueado desactivarlo, y con una consulta previa a la transacción. Ahora `users.service` comprueba en los dos casos (`assertDriverNotOnTrip`) dentro de la transacción, después de tomar el mismo bloqueo de fila del chofer que usa la asignación (`tripsRepository.lockDriver`).
+- **Carrera en la baja de vehículos.** `deactivate` y `softDelete` bloquean la fila del vehículo (`vehiclesRepository.lockAndReload`, `SELECT … FOR UPDATE`) y deciden con la copia releída. La asignación elige vehículo con `FOR UPDATE SKIP LOCKED` sobre la misma fila, así que las dos operaciones se ordenan. La comprobación de mantenimientos abiertos pasó adentro de la transacción.
+- **Tiempo límite en el frontend.** Axios tiene `timeout` de 60 s, amplio a propósito porque Render tarda cerca de un minuto en despertar. Al vencerse, el mensaje lo explica.
+- **"Asignar viaje" ofrecía choferes sin la documentación completa.** "Disponible" ahora incluye la RN-4, tanto en el filtro (`buildDriverWhere`) como en el campo `available`, y la respuesta suma `documentsComplete`. En la pantalla de Choferes, la etiqueta "No" muestra el motivo al pasar el mouse.
+
+**Menores.**
+
+- **Auditoría de sesiones.** `LOGIN` y `LOGOUT`, con el propio usuario como actor. En la pantalla de Auditoría figuran como "Inicio de sesión" y "Cierre de sesión".
+- **Dependencias.** Se actualizaron las que no requieren versión mayor: express 4.22.3 (qs 6.16), nodemailer 9.1.1, vitest 4.1.11, react-router-dom 6.30.6, postcss, nanoid, hono y fast-uri. Las vulnerabilidades bajaron de 18 a 9 en el backend y de 8 a 4 en el frontend; las que quedan requieren Prisma, Vite o React Router en una versión mayor. npm 10.9 tiene un error interno ("Cannot read properties of null (reading 'edgesOut')") al actualizar vitest, así que esa actualización se armó por separado y el lockfile final lo normalizó npm. Se verificó que `npm ci` y `npm install` lo dejan igual.
+- **Lockfile del frontend.** Quedó sincronizado: `npm ci` ya no falla con npm 10.
+- **Carga por pantalla.** Todas las pantallas salvo el login usan `React.lazy`, y los layouts muestran un indicador mientras llega cada una (`components/PageOutlet`). React y MUI van en paquetes propios (`manualChunks`). La carga inicial pasó de 1,28 MB a unos 620 KB sin comprimir, sin el aviso de Vite por paquetes de más de 500 KB. Recharts solo se descarga al abrir el Dashboard.
+- **Manual técnico.**
+  - Notas sobre los tests actuales en los capítulos 2, 20 y 24.
+  - Nueve tipos de alerta en el capítulo 14.
+  - Rutas y nombres de archivo actuales en los capítulos 18 a 22C, con la aclaración de que los números de línea citados son los anteriores a la reorganización.
+  - Tabla de "Hallazgos consolidados" al final de cada capítulo del 02 al 07: 69 hallazgos, con su estado verificado.
+  - Notas en los capítulos 8, 9, 10, 11, 15, 19, 21B y 24 sobre los cambios de este día.
+
+**Tests nuevos.** Backend: `users.service.test.ts` (4), `vehicles.service.test.ts` (4), `drivers.repository.test.ts` (3) y `auth.service.test.ts` (4). Frontend: `DriversPage.helpers.test.ts` (3), un caso de timeout en `axios.test.ts` y uno de etiquetas de sesión en `auditLabels`.
+
+**Verificación** (en copias temporales, con las dependencias nuevas instaladas desde cero con `npm ci`): backend con 163 tests (165 junto con lo último de `main`: el filtro por número de viaje y la edición del propio perfil de Justino, y el arreglo de Santiago), y `tsc`, ESLint y build limpios; frontend con 167 tests, y `tsc`, ESLint y `vite build` limpios, sin avisos.
+
+**Sin probar contra una base real:** el SQL de los bloqueos nuevos es el mismo patrón que ya usan viajes y mantenimientos. Conviene repetir la sección 3 de `GUIA-PRUEBAS-E2E.md`: dar de baja y eliminar vehículos y choferes, asignar un viaje, y revisar la auditoría después de entrar y salir.

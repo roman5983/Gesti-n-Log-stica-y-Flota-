@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { PageOutlet } from '@/components/PageOutlet/PageOutlet';
 import {
   AppBar,
   Box,
@@ -61,7 +62,7 @@ function DriverMobileLayout() {
       </AppBar>
 
       <Box component="main" sx={{ p: 2 }}>
-        <Outlet />
+        <PageOutlet />
       </Box>
 
       <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, maxWidth: 480, mx: 'auto' }} elevation={3}>

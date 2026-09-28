@@ -1,9 +1,9 @@
 # Capítulo 20 — Estado y autorización en el cliente
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Prerrequisitos:** [Capítulo 8](08-modulo-auth.md) (el esquema de doble token), [Capítulo 18](18-frontend-bootstrap.md) (hooks y rutas) y [Capítulo 19](19-frontend-api.md).
-> **Archivos que se explican aquí:** `src/stores/auth-store.ts` (37 líneas), `src/auth/guards.tsx` (38), `src/auth/use-auth.ts` (25), `src/auth/guards.test.ts` (13) y `src/pages/auth/LoginPage.tsx` (123). Total: 236 líneas, todas.
+> **Archivos que se explican aquí:** `src/stores/auth-store.ts` (37 líneas), `src/auth/guards/guards.tsx` (38), `src/hooks/useAuth.ts` (25), `src/auth/guards/guards.helpers.test.ts` (13) y `src/pages/auth/LoginPage/LoginPage.tsx` (123). Total: 236 líneas, todas.
 > **Al terminar** el lector entenderá cómo se gestiona el estado global sin Redux, cómo se implementa la autorización del lado del cliente, y por qué las 38 líneas de `guards.tsx` **no son seguridad**.
 
 ---
@@ -393,7 +393,7 @@ Por lo mismo de §18.5.4: sin `replace`, el botón "atrás" volvería a la ruta 
 if (!user) return <Navigate to="/login" replace />;
 ```
 
-⚠️ **El comentario dice *"Assumes RequireAuth ran first"***, y `App.tsx` siempre lo anida dentro. **Así que esta línea nunca se alcanza en la práctica.**
+⚠️ **El comentario dice *"Assumes RequireAuth ran first"***, y `App/App.tsx` siempre lo anida dentro. **Así que esta línea nunca se alcanza en la práctica.**
 
 🔴 **Y es correcta igualmente**, por dos razones:
 
@@ -484,6 +484,8 @@ describe('homePathForRole', () => {
 
 ⚠️ **Tres dependencias de desarrollo instaladas para probar componentes, y ningún test de componente.**
 
+> **Actualización (28/09/2026).** Esto ya no es así: hoy hay 163 tests en el backend y 167 en el frontend. Hay tests de **servicios** (viajes, mantenimientos, documentos, alertas, usuarios, vehículos, auth, auditoría) con mocking a nivel de módulo, de **repositorios** (los constructores de filtros y orden de viajes, mantenimientos, alertas y choferes), de **componentes** (DateField, SearchField, AlertCard, AuditLogDetailDialog, VehicleFormDialog) y un **smoke test** que recorre todas las pantallas de cada rol. Siguen faltando los tests de **endpoints** (Supertest), los que corren contra una **base real** y los de las **carreras de concurrencia** del capítulo 23 — ver `PENDIENTES.md`. La lista completa está en `docs/PLAN-DE-PRUEBAS.md`. `RequireAuth` y `RequireRole` se ejercitan de forma indirecta en el smoke test, que entra a cada ruta con cada rol.
+
 **Un test de `RequireRole` sería:**
 
 ```tsx
@@ -523,7 +525,7 @@ it('redirige a un chofer que intenta una ruta de ADMIN', () => {
 
 ---
 
-## 20.5. `use-auth.ts` — la fachada para componentes
+## 20.5. `useAuth.ts` — la fachada para componentes
 
 ```ts
 1  import { useAuthStore } from '../stores/auth-store';
@@ -914,7 +916,7 @@ npm run typecheck
 ```
 
 ```
-src/auth/guards.tsx:30:44 - error TS2366: Function lacks ending return statement
+src/auth/guards/guards.tsx:30:44 - error TS2366: Function lacks ending return statement
 and return type does not include 'undefined'.
 ```
 
@@ -1022,7 +1024,7 @@ and return type does not include 'undefined'.
 
 4. Porque `set({ accessToken })` **solo reemplaza esa propiedad** y deja `user` e `initializing` intactos. **Es lo que permite que el interceptor renueve el token sin tocar al usuario**: si `set` reemplazara el estado completo (como exige un reductor de Redux), habría que reconstruir el objeto entero y sería fácil perder campos.
 
-5. Porque **cerrar sesión no significa volver a verificar si hay una**. Si `clearSession` pusiera `initializing: true`, `App.tsx` volvería a mostrar el indicador de carga (§18.5.3) **y nadie llamaría a `setInitialized()`** —el efecto de rehidratación solo corre al montar—, así que **la aplicación quedaría con el spinner girando para siempre**. Es una sutileza que un cambio "más limpio" rompería.
+5. Porque **cerrar sesión no significa volver a verificar si hay una**. Si `clearSession` pusiera `initializing: true`, `App/App.tsx` volvería a mostrar el indicador de carga (§18.5.3) **y nadie llamaría a `setInitialized()`** —el efecto de rehidratación solo corre al montar—, así que **la aplicación quedaría con el spinner girando para siempre**. Es una sutileza que un cambio "más limpio" rompería.
 
 6. **`persist`**, que guarda el store en `localStorage` automáticamente. **Se omite porque guardaría el access token en `localStorage`**, que es exactamente lo que la decisión del capítulo 8 evita: un XSS podría exfiltrarlo con una línea. **La ausencia del middleware ES la implementación de esa decisión de seguridad** — y es frágil, porque nada advierte contra agregarlo.
 

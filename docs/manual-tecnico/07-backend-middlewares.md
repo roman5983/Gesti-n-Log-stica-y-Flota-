@@ -1444,6 +1444,25 @@ sequenceDiagram
 15. Agregar un limitador global a `/api/v1` con un límite generoso, sin afectar el del login. Configurar `trust proxy` y verificar con una cabecera `X-Forwarded-For` simulada.
 16. Implementar la verificación de números mágicos en el servicio de documentos. Probar con el archivo del ejercicio 7 y confirmar que ahora se rechaza.
 
+## Hallazgos consolidados del capítulo 7
+
+Agregada el 28/09/2026 para cerrar el hueco señalado en §25.2.2: este capítulo marcaba sus hallazgos en el cuerpo del texto (🔴 y ⚠️) pero no los consolidaba. Solo se listan los **problemas o deudas**. No entran las marcas que solo destacan un concepto (por ejemplo, por qué `password_hash` es `VARCHAR(60)`). La columna *Estado* se verificó contra el código de esa fecha. Lo que sigue abierto y conviene resolver para la entrega está en `PENDIENTES.md`.
+
+| # | Hallazgo | § | Gravedad | Estado al 28/09/2026 |
+|:-:|:--|:--|:--|:--|
+| 1 | `jwt.verify` no fija `algorithms`. | §7.3.2 | Media | Abierto. |
+| 2 | `as unknown as JwtPayload` no verifica la forma del payload. | §7.3.2 | Baja | Abierto. |
+| 3 | `'bearer'` en minúscula se rechaza (el RFC no distingue mayúsculas) y el `7` de `slice(7)` es un número mágico. | §7.3.2 | Baja | Abierto. |
+| 4 | `authenticate` no consulta la base: un usuario dado de baja sigue operando hasta que vence su token. | §7.3.3 | Media | Aceptado (diseño sin estado; la baja revoca los refresh tokens). |
+| 5 | `authorize()` sin argumentos compila (y rechaza a todos) y no declara tipo de retorno. | §7.4 | Baja | Abierto. |
+| 6 | `validate` no es genérico: los controladores repiten aserciones de tipo. | §7.5 | Baja | Abierto. |
+| 7 | Mensajes de Zod y de multer en inglés. | §7.6.3 / 7.6.4 | Media | Resuelto en parte: Zod usa mensajes en castellano (`shared/zod-es.ts`). Los errores de multer distintos del tamaño siguen en inglés. |
+| 8 | El mensaje de tamaño dice «1024 KB» en vez de «1 MB». | §7.6.4 | Baja | Abierto. |
+| 9 | El 409 por clave duplicada (`P2002`) no dice qué valor está repetido, y faltan otros códigos de Prisma (`P2025`). | §7.6.5 | Baja | Abierto. |
+| 10 | Solo el caso 500 se registra en el log, y sin el stack (`String(err)`). | §7.6.6 | Baja | Abierto. |
+| 11 | Límite de intentos: solo en el login, en memoria, con ventana fija y sin bloqueo progresivo; `/refresh` no tiene límite. | §7.7.1 | Media | Abierto en parte: `TRUST_PROXY` ya es configurable (22/09). El almacén compartido está en `PENDIENTES.md`. |
+| 12 | multer: `memoryStorage` sin límite de subidas concurrentes, y sin `files: 1` ni límites de campos. | §7.8 | Media | Abierto. |
+
 ---
 
 **Anterior:** [Capítulo 6 — La capa compartida](06-backend-shared.md) · **Siguiente:** Capítulo 8 — El módulo de autenticación *(pendiente)*

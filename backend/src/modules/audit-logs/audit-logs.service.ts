@@ -14,6 +14,9 @@ export type AuditAction =
   | 'FINISH'
   | 'CANCEL'
   | 'RESOLVE'
+  /** Session start/end, recorded by the auth module (actor = the user). */
+  | 'LOGIN'
+  | 'LOGOUT'
   /** Security-sensitive read: an Admin viewed a driver's password (A-9). */
   | 'VIEW_CREDENTIALS';
 

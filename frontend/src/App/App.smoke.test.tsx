@@ -41,7 +41,7 @@ const vehicle = {
 const driver = {
   id: 3, name: 'Juan Pérez', email: 'chofer@empresa.com', isActive: true, dni: '30111222',
   licenseCategory: 'C', licenseExpiryDate: '2027-05-01T00:00:00.000Z', licenseValid: true,
-  available: false, completedTrips: 12, avgKm: 340,
+  documentsComplete: true, available: false, completedTrips: 12, avgKm: 340,
 };
 const trip = {
   id: 41, origin: 'Ciudad Industria', destination: 'Rosario', departureAt: NOW, status: 'IN_PROGRESS',

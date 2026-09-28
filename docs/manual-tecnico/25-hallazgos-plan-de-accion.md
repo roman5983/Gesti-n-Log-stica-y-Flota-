@@ -93,6 +93,8 @@ Las cuatro se corrigieron en el texto original, con nota. Se dejan visibles a pr
 
 ### 25.2.2 · ⚠️ Un hueco del propio manual
 
+> **Actualización (28/09/2026).** Resuelto: cada capítulo del 02 al 07 tiene ahora al final una sección «Hallazgos consolidados» con 69 hallazgos en total. Se tabularon solo los problemas o deudas; las marcas que destacan un concepto quedaron afuera. Cada tabla incluye el estado verificado contra el código a esa fecha. El censo de 208 de este capítulo no se recalculó.
+
 **Los capítulos 02 a 07 no tienen tabla de hallazgos.**
 
 Esos seis capítulos —arquitectura, base de datos, Prisma, bootstrap, capa compartida,

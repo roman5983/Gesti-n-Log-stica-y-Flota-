@@ -63,7 +63,7 @@ export function AssignTripDialog({ open, trip, onClose, onSaved }: AssignTripDia
                 ? 'Cargando choferes disponibles…'
                 : drivers.length === 0
                   ? 'No hay choferes disponibles'
-                  : 'Solo se listan choferes disponibles (licencia vigente, sin viaje activo)'
+                  : 'Solo se listan choferes disponibles: activos, con licencia vigente, sin viaje en curso y con la documentación completa y vigente'
             }
           >
             {drivers.map((d) => (

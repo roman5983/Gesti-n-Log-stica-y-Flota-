@@ -6,6 +6,7 @@ import {
   fieldLabel,
   formatAuditValue,
 } from './auditLabels.helpers';
+import { AUDIT_ACTIONS } from './auditLabels.data';
 
 describe('auditLabels', () => {
   it('translates actions and entities to Spanish', () => {
@@ -14,6 +15,12 @@ describe('auditLabels', () => {
     expect(entityLabel('COMPANY_SETTINGS')).toBe('Configuración de la empresa');
     expect(entityWithId('VEHICLE', 12)).toBe('Vehículo #12');
     expect(entityWithId('ALERT', null)).toBe('Alerta');
+  });
+
+  it('labels every action offered in the filter, sessions included', () => {
+    expect(actionLabel('LOGIN')).toBe('Inicio de sesión');
+    expect(actionLabel('LOGOUT')).toBe('Cierre de sesión');
+    for (const a of AUDIT_ACTIONS) expect(actionLabel(a)).not.toBe(a);
   });
 
   it('lets unknown codes through instead of hiding them', () => {

@@ -1,20 +1,20 @@
 # Capítulo 22C — Pantallas del chofer, tableros y consulta
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Archivos cubiertos** (9 archivos, 897 líneas)
 >
 > | Carpeta | Archivo | Líneas | Rol |
 > |:--|:--|--:|:--|
-> | `pages/chofer/` | `MiViajePage.tsx` | 114 | DRIVER |
-> | | `MiDocumentacionPage.tsx` | 86 | DRIVER |
-> | | `MiHistorialPage.tsx` | 42 | DRIVER |
+> | `pages/driver-portal/` | `MyTripPage.tsx` | 114 | DRIVER |
+> | | `MyDocumentsPage.tsx` | 86 | DRIVER |
+> | | `MyTripHistoryPage.tsx` | 42 | DRIVER |
 > | `pages/dashboard/` | `DashboardPage.tsx` | 116 | ADMIN · OPERATOR |
-> | `pages/alertas/` | `AlertasPage.tsx` | 134 | ADMIN · OPERATOR |
-> | `pages/reportes/` | `ReportesPage.tsx` | 133 | ADMIN |
-> | `pages/auditoria/` | `AuditoriaPage.tsx` | 92 | ADMIN |
+> | `pages/alerts/` | `AlertsPage.tsx` | 134 | ADMIN · OPERATOR |
+> | `pages/reports/` | `ReportsPage.tsx` | 133 | ADMIN |
+> | `pages/audit/` | `AuditLogPage.tsx` | 92 | ADMIN |
 > | | `AuditLogDetailDialog.tsx` | 98 | ADMIN |
-> | `pages/configuracion/` | `ConfiguracionPage.tsx` | 124 | ADMIN |
+> | `pages/settings/` | `SettingsPage.tsx` | 124 | ADMIN |
 
 > **Nota de método.** Igual que en 22B: el patrón de listado está explicado línea por
 > línea en **§22A.3** y no se repite. Aquí interesan tres cosas nuevas que ninguna
@@ -37,7 +37,7 @@ En un ABM, si la pantalla se equivoca, el servidor corrige: rechaza el 422, devu
 409, y el usuario ve un error. Aquí no hay nada que rechazar. Si `DashboardPage` decide
 ocultar un dato al operador, y el servidor se lo envió igual, **el dato está en el
 navegador del operador y solo un `if` de JavaScript lo separa de sus ojos**. Si
-`ReportesPage` no acota el rango de fechas, y el backend tampoco, un informe de cien
+`ReportsPage` no acota el rango de fechas, y el backend tampoco, un informe de cien
 años se calcula sin que nadie lo impida.
 
 Los tres hallazgos principales del capítulo son de esa familia:
@@ -46,9 +46,9 @@ Los tres hallazgos principales del capítulo son de esa familia:
    servicio: el dato se calcula y se envía siempre; `DashboardPage:78` solo lo oculta
    con `{isAdmin && ...}`. Es §20.4.2 otra vez —*los guards son ergonomía, no
    seguridad*— pero aplicado a datos, no a rutas.
-2. **El chofer con más de 50 viajes no puede ver los anteriores.** `MiHistorialPage`
+2. **El chofer con más de 50 viajes no puede ver los anteriores.** `MyTripHistoryPage`
    pide 50 elementos y **no renderiza paginador**: no hay forma de llegar al 51.
-3. **`AlertasPage:88` esconde el tercer cierre obsoleto**, exactamente como predije al
+3. **`AlertsPage:88` esconde el tercer cierre obsoleto**, exactamente como predije al
    cerrar 22B a partir del `eslint-disable`. Con esto son tres pantallas con el mismo
    bug y cuatro sin él, y la regla de §22B.3.1 queda confirmada en las siete.
 
@@ -87,7 +87,7 @@ Tres estados que representan los cuatro mundos posibles de un dato remoto:
 | `false` | `null` | objeto | Cargado |
 | `false` | `null` | `null` | **Cargó y no hay nada** |
 
-El cuarto es el que se olvida. `MiViajePage` lo trata explícitamente —"No tenés un viaje
+El cuarto es el que se olvida. `MyTripPage` lo trata explícitamente —"No tenés un viaje
 asignado en este momento"— y es la diferencia entre una pantalla útil y una pantalla en
 blanco que parece rota.
 
@@ -111,14 +111,14 @@ control (§1.5.6) hace el trabajo que en las pantallas de colección hacía el `
 ### 22C.2.2 · Alcance en el servidor: cómo se protege al chofer
 
 Las tres pantallas del chofer plantean un problema de autorización que ninguna anterior
-tenía. `MiViajePage` pide "mi viaje actual" así:
+tenía. `MyTripPage` pide "mi viaje actual" así:
 
 ```tsx
 const { items } = await tripsApi.list({ page: 1, limit: 1, status: 'IN_PROGRESS' });
 ```
 
 **No envía ningún identificador de chofer.** Es el mismo endpoint `GET /api/v1/trips`
-que usa `ViajesPage` para mostrárselos todos a un operador. ¿Qué impide que el chofer
+que usa `TripsPage` para mostrárselos todos a un operador. ¿Qué impide que el chofer
 vea los viajes de sus compañeros?
 
 Nada del lado del cliente. Todo del lado del servidor:
@@ -149,7 +149,7 @@ datos existen para quien pregunta. La alternativa —un endpoint `/my-trips` sep
 duplicaría código; la peor alternativa —confiar en que el cliente mande el `driverId`
 correcto— sería el bug de referencia directa a objetos (IDOR) que §7.3.3 describió.
 
-**El contraste con `MiDocumentacionPage` es instructivo.** Esa sí manda el id:
+**El contraste con `MyDocumentsPage` es instructivo.** Esa sí manda el id:
 
 ```tsx
 const driverId = user?.id ?? 0;
@@ -231,11 +231,11 @@ tema de MUI automáticamente, pero `useTheme()` lo resolvería en una línea.
 
 > **Actualización (23/09/2026).** Resuelto en dos pasos. Primero el gráfico pasó a leer el tema con
 > `useTheme()` (ejes, grilla y tooltip incluidos, para el modo oscuro). Después, con el sistema de
-> color (§18.6), cada barra recibe su propio tono: `scaleColor` (en `theme-tokens.ts`) interpola entre
+> color (§18.6), cada barra recibe su propio tono: `scaleColor` (en `theme/theme.tokens.ts`) interpola entre
 > `chart.low` (el mes con menos viajes, tono más oscuro) y `chart.high` (el de más viajes, tono más
 > claro), y se pinta con un `<Cell>` por barra. Un `<LabelList>` escribe el número sobre cada barra,
 > así el tono ayuda pero nunca es la única forma de leer el dato. Los dos extremos de la escala tienen
-> contraste ≥ 3:1 con la tarjeta en los dos modos, y lo verifica `theme-tokens.test.ts`.
+> contraste ≥ 3:1 con la tarjeta en los dos modos, y lo verifica `theme/theme.tokens.test.ts`.
 
 ---
 
@@ -267,7 +267,7 @@ estas tres asumen un móvil.
 Es una decisión de diseño deliberada y correcta, y merece señalarse porque el proyecto
 no la documenta en ningún lado: se deduce leyendo el código.
 
-### 22C.3.1 · `MiViajePage` (114 líneas)
+### 22C.3.1 · `MyTripPage` (114 líneas)
 
 ```tsx
 /** Driver's current trip (P-CH-2). The list endpoint already scopes to the
@@ -324,7 +324,7 @@ capturar.
 **⚠️ No hay bandera `cancelled`.** Si el chofer sale de la pantalla mientras la petición
 vuela, `setTrip` y `setLoading` se ejecutan sobre un componente desmontado. En React 18
 eso es inocuo (§22B.4.3), pero es inconsistente: cuatro pantallas del proyecto sí la
-tienen, incluida `MiDocumentacionPage`, su vecina de carpeta.
+tienen, incluida `MyDocumentsPage`, su vecina de carpeta.
 
 ```tsx
 if (!trip) {
@@ -343,8 +343,8 @@ if (!trip) {
 segunda persona del voseo rioplatense, y nada más. Sin botones, porque el chofer no puede
 hacer nada al respecto: los viajes se los asigna un operador.
 
-Compárese con `MiHistorialPage:20` —"Todavía no realizaste viajes."— y con
-`MiDocumentacionPage:58` —"No tenés documentos cargados. Los carga el administrador."
+Compárese con `MyTripHistoryPage:20` —"Todavía no realizaste viajes."— y con
+`MyDocumentsPage:58` —"No tenés documentos cargados. Los carga el administrador."
 Las tres están escritas con el mismo cuidado, y la tercera hace algo más: **explica quién
 resuelve el problema**. Un chofer sin documentos no puede que le asignen viajes (RN-4), y
 esa frase le dice a quién reclamar.
@@ -358,7 +358,7 @@ inglés que llegan a la misma interfaz (§22B.5.3).
 
 **Línea 77.** **⚠️ `padStart(6, ...)`** — seis dígitos.
 
-`ViajesPage:72` y `TripDetailDialog:31` usan **cinco**:
+`TripsPage:72` y `TripDetailDialog:31` usan **cinco**:
 
 ```tsx
 render: (t) => `VJ-${String(t.id).padStart(5, '0')}`
@@ -402,7 +402,7 @@ vocabulario del oficio, no el del modelo de datos. El diálogo que se abre, en c
 dice "Finalizar viaje" en su título — porque es el mismo componente que ve el operador.
 Una inconsistencia de vocabulario que nace de la reutilización.
 
-### 22C.3.2 · `MiDocumentacionPage` (86 líneas) — el distintivo correcto sobre la fecha equivocada
+### 22C.3.2 · `MyDocumentsPage` (86 líneas) — el distintivo correcto sobre la fecha equivocada
 
 ```tsx
 /**
@@ -443,8 +443,8 @@ En la práctica el caso no ocurre: esta pantalla vive dentro de `ProtectedRoute`
 (§20.4.1), así que `user` siempre existe. La guarda es defensa en profundidad.
 
 **La bandera `cancelled` está bien implementada**, en las tres ramas de la promesa
-(`then`, `catch`, `finally`). Es una de las cinco del proyecto —junto con `App.tsx:40`,
-`AddressAutocomplete:29`, `DashboardPage:29` y `ConfiguracionPage:28`— y las cinco están
+(`then`, `catch`, `finally`). Es una de las cinco del proyecto —junto con `App/App.tsx:40`,
+`AddressAutocomplete:29`, `DashboardPage:29` y `SettingsPage:28`— y las cinco están
 en pantallas de recurso único. Ninguno de los seis diálogos de §22B la tiene. La
 distribución sugiere que se escribieron en momentos distintos, con criterios distintos.
 
@@ -481,7 +481,7 @@ Y el chofer que actúe sobre lo que lee —"se me venció, dejo de manejar"— a
 dato equivocado. Al revés también: el 6 de agosto verá "Vence: 05/08/2026" **con** el
 distintivo rojo, lo que al menos es coherente, pero un día tarde en la percepción.
 
-Es el mismo error que `ChoferesPage:53`, `VehiculosPage:90` y `DriverDocumentsDialog:168`,
+Es el mismo error que `DriversPage:53`, `VehiclesPage:90` y `DriverDocumentsDialog:168`,
 y este es el peor de los cuatro por dos razones: es el que ve la persona directamente
 afectada, y es el único que aparece junto a un dato correcto que lo desmiente.
 
@@ -502,7 +502,7 @@ Recorrer `DOC_LABELS` y pintar los ausentes en gris con "Falta cargar" convertir
 pantalla de un listado en una lista de verificación. Son unas diez líneas y cambia para
 qué sirve la pantalla.
 
-### 22C.3.3 · `MiHistorialPage` (42 líneas) — el hook a medias
+### 22C.3.3 · `MyTripHistoryPage` (42 líneas) — el hook a medias
 
 La pantalla más corta del proyecto, y con el bug más fácil de pasar por alto.
 
@@ -549,7 +549,7 @@ const fetchFn = useCallback(
 ```
 
 **Líneas 9-12.** Dependencias vacías y correcto: no hay filtros, y el alcance al chofer
-lo pone el servidor (§22C.2.2). El mismo caso que `TiposMantenimientoTab:15`.
+lo pone el servidor (§22C.2.2). El mismo caso que `MaintenanceTypesTab:15`.
 
 ```tsx
 {t.finishedAt ? new Date(t.finishedAt).toLocaleDateString('es-AR') : ''} · {t.vehicle?.licensePlate ?? ''}
@@ -607,8 +607,8 @@ limpieza o `undefined`; recibiría una promesa, no sabría qué hacer con ella, 
 limpieza nunca se ejecutaría.
 
 Las dos soluciones son declarar la función aparte y llamarla (`void load()`, como
-`MiViajePage:42`) o esta IIFE. La IIFE mantiene el código junto; la función aparte
-permite reutilizarla. `MiViajePage` necesita reutilizarla —para recargar tras finalizar
+`MyTripPage:42`) o esta IIFE. La IIFE mantiene el código junto; la función aparte
+permite reutilizarla. `MyTripPage` necesita reutilizarla —para recargar tras finalizar
 el viaje—; aquí no hay recarga, así que la IIFE es la elección adecuada.
 
 Y la bandera `cancelled` está en las tres ramas, correctamente.
@@ -697,9 +697,9 @@ notable —las de arriba tienen icono y color, las de abajo son texto y número�
 responde a ninguna jerarquía informativa: las tarjetas más restringidas son las más
 pobres visualmente. Parece que se añadieron después y con menos cuidado.
 
-### 22C.4.2 · `AlertasPage` (134 líneas) — el tercer cierre obsoleto, confirmado
+### 22C.4.2 · `AlertsPage` (134 líneas) — el tercer cierre obsoleto, confirmado
 
-Al cerrar el capítulo 22B anoté que `AlertasPage:88` tiene un
+Al cerrar el capítulo 22B anoté que `AlertsPage:88` tiene un
 `eslint-disable-next-line react-hooks/exhaustive-deps` y que había que verificar si
 escondía el mismo bug. **Lo esconde.**
 
@@ -749,20 +749,20 @@ patrón:
 
 | Pantalla | Deps del `useMemo` | ¿Toca `reload`? | Resultado |
 |:--|:--|:--|:--|
-| `ViajesPage` | `[]` | No — solo setters | ✅ |
-| `TiposMantenimientoTab` | `[canManage]` | No — `confirmDelete` está fuera | ✅ |
-| `AuditoriaPage` | `[]` | No — solo `setDetail` | ✅ |
-| `ChoferesPage` (§22A) | `[canManage]` | No | ✅ |
-| `VehiculosPage` (§22A) | `[canManage]` | **Sí** (`toggleActive`) | 🔴 |
+| `TripsPage` | `[]` | No — solo setters | ✅ |
+| `MaintenanceTypesTab` | `[canManage]` | No — `confirmDelete` está fuera | ✅ |
+| `AuditLogPage` | `[]` | No — solo `setDetail` | ✅ |
+| `DriversPage` (§22A) | `[canManage]` | No | ✅ |
+| `VehiclesPage` (§22A) | `[canManage]` | **Sí** (`toggleActive`) | 🔴 |
 | `MaintenanceListTab` (§22B) | `[]` | **Sí** (`transition`) | 🔴 |
-| **`AlertasPage`** | `[isAdmin, status]` | **Sí** (`handleResolve`) | 🔴 |
+| **`AlertsPage`** | `[isAdmin, status]` | **Sí** (`handleResolve`) | 🔴 |
 
 Cuatro correctas, tres con bug, y **las tres con bug son exactamente las tres que
 llaman a `reload` desde una columna memorizada**. La correlación es perfecta.
 
-Y las tres supresiones de ESLint del frontend están en `VehiculosPage`… no: están en
-`UsuariosPage:123`, `AlertasPage:88` y `MaintenanceListTab:74`. Dos de las tres marcan
-un bug real; la de `UsuariosPage` marca un caso correcto. Quien las escribió no sabía
+Y las tres supresiones de ESLint del frontend están en `VehiclesPage`… no: están en
+`UsersPage:123`, `AlertsPage:88` y `MaintenanceListTab:74`. Dos de las tres marcan
+un bug real; la de `UsersPage` marca un caso correcto. Quien las escribió no sabía
 distinguir cuál era cuál — que es precisamente para lo que sirve la herramienta que no
 instaló.
 
@@ -859,13 +859,13 @@ justo donde más duele: en la pantalla cuyo propósito es que alguien actúe.
 <Tabs value={tab} onChange={(_e, v) => { setTab(v); setPage(1); }}>
 ```
 
-**Línea 112.** Compárese con `MantenimientoPage:21`, que solo hace `setTab(v)`. Aquí,
+**Línea 112.** Compárese con `MaintenancePage:21`, que solo hace `setTab(v)`. Aquí,
 como el mismo `usePaginatedList` sirve a las dos pestañas —solo cambia `status` en
 `fetchFn`—, **el componente no se desmonta** y `page` sobreviviría al cambio de pestaña.
 Sin el `setPage(1)`, pasar de "Pendientes" página 3 a "Resueltas" pediría la página 3 de
 las resueltas, que probablemente no existe.
 
-`MantenimientoPage` no lo necesita porque su cambio de pestaña **sí** remonta el
+`MaintenancePage` no lo necesita porque su cambio de pestaña **sí** remonta el
 componente (§22B.2.5). Dos implementaciones de pestañas, dos comportamientos distintos,
 y cada una hace lo correcto para su caso. Que sea por análisis o por prueba y error, no
 se puede saber leyendo el código.
@@ -874,7 +874,7 @@ se puede saber leyendo el código.
 
 ## 22C.5 · Las pantallas de consulta
 
-### 22C.5.1 · `ReportesPage` (133 líneas) — generación bajo demanda
+### 22C.5.1 · `ReportsPage` (133 líneas) — generación bajo demanda
 
 Es la única pantalla del proyecto que **no carga nada al abrirse**. No hay `useEffect`.
 El usuario elige un período, pulsa un botón, y entonces se pide el informe.
@@ -993,9 +993,9 @@ seguro, y este lo cumple.
 Vale la pena saber *por qué* es seguro aquí, no asumir que "el índice como clave siempre
 está mal".
 
-### 22C.5.2 · `AuditoriaPage` y `AuditLogDetailDialog` — leer lo que nadie puede cambiar
+### 22C.5.2 · `AuditLogPage` y `AuditLogDetailDialog` — leer lo que nadie puede cambiar
 
-`AuditoriaPage` es el patrón de §22A.3 casi sin variaciones: cuatro filtros, un
+`AuditLogPage` es el patrón de §22A.3 casi sin variaciones: cuatro filtros, un
 `useCallback`, `usePaginatedList`, `DataTable`, un diálogo de detalle. Tres observaciones.
 
 **1. Es la única pantalla sin ninguna acción de escritura.** No hay botón de crear, ni de
@@ -1025,7 +1025,7 @@ defendible; para una pantalla cuyo propósito es que alguien audite qué pasó, 
 diccionario de nueve entradas convertiría `VIEW_CREDENTIALS` en "Consultó credenciales",
 que es lo que interesa saber.
 
-Es el mismo problema de `AlertasPage` con las entidades, y aquí es más agudo: se
+Es el mismo problema de `AlertsPage` con las entidades, y aquí es más agudo: se
 mezclan el nombre de la tabla y el de la acción, ambos en jerga técnica, en la pantalla
 que debería contar una historia legible.
 
@@ -1111,10 +1111,10 @@ pintar en negrita las claves que cambiaron son cinco líneas, y convierte la pan
 necesita.
 
 Y **`Info` es la cuarta copia** del mismo componente de etiqueta y valor: `Field` en
-`TripDetailDialog`, `Detail` en `MaintenanceDetailDialog`, `Row` en `MiViajePage`, `Info`
+`TripDetailDialog`, `Detail` en `MaintenanceDetailDialog`, `Row` en `MyTripPage`, `Info`
 aquí. Cuatro nombres, cuatro archivos, prácticamente el mismo cuerpo, ninguno exportado.
 
-### 22C.5.3 · `ConfiguracionPage` (124 líneas) — tres campos que no hacen nada
+### 22C.5.3 · `SettingsPage` (124 líneas) — tres campos que no hacen nada
 
 ```tsx
 function setField<K extends keyof CompanySettings>(key: K, value: CompanySettings[K]) {
@@ -1243,7 +1243,7 @@ tres de los ocho no hicieron nada y el mensaje afirma lo contrario.
        → RouteMap ve role === 'DRIVER' y renderiza SOLO tres rutas
        → redirección a /mi-viaje
 
-07:31  MiViajePage monta.
+07:31  MyTripPage monta.
        GET /trips?page=1&limit=1&status=IN_PROGRESS
        → authenticate: verifica la firma del JWT              (§7.2)
        → trips.service.ts:88: filters.driverId = actor.id     ← el alcance forzado
@@ -1285,7 +1285,7 @@ La primera es el hueco de las 08:15. **El chofer no tiene forma de enterarse de 
 asignaron un viaje** salvo recargando. No hay notificaciones, ni sondeo periódico, ni
 sockets. Para una aplicación cuyo usuario está en la calle, es la carencia funcional más
 grande del sistema — y no aparece en ninguna lista de errores porque no es un error:
-nunca se construyó. Un `setInterval` de 60 segundos en `MiViajePage` sería la versión
+nunca se construyó. Un `setInterval` de 60 segundos en `MyTripPage` sería la versión
 mínima; una notificación *push* del navegador, la correcta.
 
 La segunda son las 16:40. El refresco transparente (§19.4.3) es la pieza del proyecto que
@@ -1336,8 +1336,8 @@ graph TB
 graph LR
     Q{"¿El manejador de la<br/>columna memorizada<br/>llama a reload?"}
 
-    Q -->|No — solo setters| OK["✅ Seguro<br/><br/>ViajesPage []<br/>TiposMantenimientoTab [canManage]<br/>AuditoriaPage []<br/>ChoferesPage [canManage]"]
-    Q -->|"Sí"| BUG["🔴 Cierre obsoleto<br/><br/>VehiculosPage [canManage]<br/>MaintenanceListTab []<br/>AlertasPage [isAdmin, status]"]
+    Q -->|No — solo setters| OK["✅ Seguro<br/><br/>TripsPage []<br/>MaintenanceTypesTab [canManage]<br/>AuditLogPage []<br/>DriversPage [canManage]"]
+    Q -->|"Sí"| BUG["🔴 Cierre obsoleto<br/><br/>VehiclesPage [canManage]<br/>MaintenanceListTab []<br/>AlertsPage [isAdmin, status]"]
 
     BUG --> FIX["Actuar desde la página 3<br/>recarga la página 1<br/>con el paginador diciendo 3"]
 
@@ -1404,39 +1404,39 @@ sequenceDiagram
 
 | # | Gravedad | Hallazgo | Dónde |
 |--:|:--|:--|:--|
-| 1 | 🔴 Alta | **El chofer no puede ver más de 50 viajes.** `usePaginatedList(fetchFn, 50)` sin paginador: `page`, `setPage` y `total` se descartan. El viaje 51 es inalcanzable y **nada indica que falte algo**. Cinco meses de historial para un chofer de ritmo normal. | `MiHistorialPage:13` |
-| 2 | 🔴 Alta | **La pantalla del chofer se contradice sobre su propia licencia.** El distintivo "Vencido" lo calcula el backend correctamente (RN-1); la fecha al lado se muestra un día antes por el bug de §22A.4. El día del vencimiento: sin distintivo, y "Vence: ayer". | `MiDocumentacionPage:69-72` |
-| 3 | 🔴 Alta | **Tercer cierre obsoleto, confirmado.** `AlertasPage` memoriza columnas con `[isAdmin, status]`; el manejador llama a `handleResolve` → `reload`. Resolver desde la página 3 salta a la 1. Predicho al cerrar 22B a partir del `eslint-disable`. | `AlertasPage:65-90` |
-| 4 | ⚠️ Media | **Tres campos de configuración no hacen nada.** `timezone`, `language` y `dateFormat` se editan, se validan como `required`, se guardan — y **ningún código los lee**. Verificado por búsqueda en los dos repositorios. Funcionalidad aparente. | `ConfiguracionPage:100-108` |
+| 1 | 🔴 Alta | **El chofer no puede ver más de 50 viajes.** `usePaginatedList(fetchFn, 50)` sin paginador: `page`, `setPage` y `total` se descartan. El viaje 51 es inalcanzable y **nada indica que falte algo**. Cinco meses de historial para un chofer de ritmo normal. | `MyTripHistoryPage:13` |
+| 2 | 🔴 Alta | **La pantalla del chofer se contradice sobre su propia licencia.** El distintivo "Vencido" lo calcula el backend correctamente (RN-1); la fecha al lado se muestra un día antes por el bug de §22A.4. El día del vencimiento: sin distintivo, y "Vence: ayer". | `MyDocumentsPage:69-72` |
+| 3 | 🔴 Alta | **Tercer cierre obsoleto, confirmado.** `AlertsPage` memoriza columnas con `[isAdmin, status]`; el manejador llama a `handleResolve` → `reload`. Resolver desde la página 3 salta a la 1. Predicho al cerrar 22B a partir del `eslint-disable`. | `AlertsPage:65-90` |
+| 4 | ⚠️ Media | **Tres campos de configuración no hacen nada.** `timezone`, `language` y `dateFormat` se editan, se validan como `required`, se guardan — y **ningún código los lee**. Verificado por búsqueda en los dos repositorios. Funcionalidad aparente. | `SettingsPage:100-108` |
 | 5 | ⚠️ Media | **El operador recibe `users.total` aunque no lo vea.** El servicio no consulta el rol: calcula y envía las ocho métricas siempre. Visible en las herramientas de desarrollo. Inofensivo hoy; el patrón es el problema. | `DashboardPage:78` vs `dashboard.service.ts:43-87` |
-| 6 | ⚠️ Media | **El chofer no se entera de que le asignaron un viaje.** Sin sondeo, sin sockets, sin notificaciones. Debe recargar. Para un usuario en la calle, la carencia funcional más grande del sistema. | `MiViajePage:41-43` |
-| 7 | ⚠️ Media | **"Resolver" no advierte que la alerta volverá.** El motor es un reconciliador (§14.3): si la condición persiste, la alerta se regenera. Correcto por diseño, no comunicado. Doce alertas resueltas que reaparecen parecen un sistema roto. | `AlertasPage:55-63` |
-| 8 | ✅ *(resuelto 2026-09-21, §22C.12)* ⚠️ Media | ~~**El período del informe no tiene tope.** Ni `min`/`max` en el cliente ni límite en `reportQuerySchema` (solo valida el orden). `1900-2100` es un informe válido. Confirma §16.4.1.~~ Tope de 366 días en cliente y servidor. | `ReportesPage:53-54`, `reports.schemas.ts:8-16` |
-| 9 | ⚠️ Media | **El mismo viaje tiene dos códigos.** `padStart(6)` para el chofer, `padStart(5)` para el operador. `VJ-000042` y `VJ-00042`. Invisible en revisión: los dos archivos son correctos por separado. | `MiViajePage:77` vs `ViajesPage:72` |
-| 10 | ⚠️ Baja | **Las alertas muestran `VEHICLE #7`** en vez de la patente. Consecuencia directa de la relación polimórfica sin FK (§3.7.2): el backend no puede hacer `include`. Duele en la pantalla cuyo fin es que alguien actúe. | `AlertasPage:69` |
-| 11 | ⚠️ Baja | **La auditoría no traduce nada.** `VIEW_CREDENTIALS`, `MAINTENANCE_TYPE` en crudo, en la pantalla que debería contar una historia legible. `AlertasPage` sí traduce sus tipos. | `AuditoriaPage:10-11, 40-41` |
+| 6 | ⚠️ Media | **El chofer no se entera de que le asignaron un viaje.** Sin sondeo, sin sockets, sin notificaciones. Debe recargar. Para un usuario en la calle, la carencia funcional más grande del sistema. | `MyTripPage:41-43` |
+| 7 | ⚠️ Media | **"Resolver" no advierte que la alerta volverá.** El motor es un reconciliador (§14.3): si la condición persiste, la alerta se regenera. Correcto por diseño, no comunicado. Doce alertas resueltas que reaparecen parecen un sistema roto. | `AlertsPage:55-63` |
+| 8 | ✅ *(resuelto 2026-09-21, §22C.12)* ⚠️ Media | ~~**El período del informe no tiene tope.** Ni `min`/`max` en el cliente ni límite en `reportQuerySchema` (solo valida el orden). `1900-2100` es un informe válido. Confirma §16.4.1.~~ Tope de 366 días en cliente y servidor. | `ReportsPage:53-54`, `reports.schemas.ts:8-16` |
+| 9 | ⚠️ Media | **El mismo viaje tiene dos códigos.** `padStart(6)` para el chofer, `padStart(5)` para el operador. `VJ-000042` y `VJ-00042`. Invisible en revisión: los dos archivos son correctos por separado. | `MyTripPage:77` vs `TripsPage:72` |
+| 10 | ⚠️ Baja | **Las alertas muestran `VEHICLE #7`** en vez de la patente. Consecuencia directa de la relación polimórfica sin FK (§3.7.2): el backend no puede hacer `include`. Duele en la pantalla cuyo fin es que alguien actúe. | `AlertsPage:69` |
+| 11 | ⚠️ Baja | **La auditoría no traduce nada.** `VIEW_CREDENTIALS`, `MAINTENANCE_TYPE` en crudo, en la pantalla que debería contar una historia legible. `AlertsPage` sí traduce sus tipos. | `AuditLogPage:10-11, 40-41` |
 | 12 | ⚠️ Baja | **`Snapshot` y `sanitize` fallan en el mismo nivel.** Los dos recorren solo el primer nivel; `formatValue` imprime los objetos anidados con `JSON.stringify`. **Hoy no hay riesgo** (los 13 módulos usan listas blancas planas), pero las dos capas fallarían juntas. | `AuditLogDetailDialog:16-47` + §15.4.3 |
-| 13 | ⚠️ Baja | **La configuración no permite descartar cambios.** El estado del servidor *es* el estado del formulario. Sin copia original: el botón está siempre habilitado, no se puede deshacer, y navegar pierde los cambios en silencio. | `ConfiguracionPage:21,37-39` |
-| 14 | ⚠️ Baja | **La documentación del chofer no dice qué falta.** Lista lo cargado; los cuatro tipos obligatorios están en `DOC_LABELS`. Un chofer con 3 de 4 no sabe cuál le impide que le asignen viajes (RN-4). | `MiDocumentacionPage:9-14, 62` |
-| 15 | ⚠️ Baja | **Alineación por heurístico.** "las dos últimas columnas a la derecha" se rompe en la tabla de dos columnas: el destino, texto largo, queda alineado a la derecha. | `ReportesPage:108,123` |
-| 16 | ✅ Resuelto | ~~**`fill="#1e88e5"` en crudo**, fuera del tema de MUI.~~ El gráfico lee el tema y cada barra toma un tono de la escala `chart` de `theme-tokens.ts` (§18.6). | `DashboardPage` |
-| 17 | ⚠️ Baja | **`Info` es la cuarta copia** de la etiqueta-valor: `Field`, `Detail`, `Row`, `Info`. Cuatro archivos, ninguno exportado. Y `MiHistorialPage:34` reimplementaba `StatusChip` a mano (✅ resuelto el 23/09/2026: ahora usa `StatusChip`, igual que `MiViajePage`). | 4 archivos |
-| 18 | ⚠️ Baja | **`MiViajePage` depende de RN-19 sin decirlo.** `items[0] ?? null` es correcto porque un chofer tiene a lo sumo un viaje activo. Sin comentario, la suposición es invisible. | `MiViajePage:32-33` |
+| 13 | ⚠️ Baja | **La configuración no permite descartar cambios.** El estado del servidor *es* el estado del formulario. Sin copia original: el botón está siempre habilitado, no se puede deshacer, y navegar pierde los cambios en silencio. | `SettingsPage:21,37-39` |
+| 14 | ⚠️ Baja | **La documentación del chofer no dice qué falta.** Lista lo cargado; los cuatro tipos obligatorios están en `DOC_LABELS`. Un chofer con 3 de 4 no sabe cuál le impide que le asignen viajes (RN-4). | `MyDocumentsPage:9-14, 62` |
+| 15 | ⚠️ Baja | **Alineación por heurístico.** "las dos últimas columnas a la derecha" se rompe en la tabla de dos columnas: el destino, texto largo, queda alineado a la derecha. | `ReportsPage:108,123` |
+| 16 | ✅ Resuelto | ~~**`fill="#1e88e5"` en crudo**, fuera del tema de MUI.~~ El gráfico lee el tema y cada barra toma un tono de la escala `chart` de `theme/theme.tokens.ts` (§18.6). | `DashboardPage` |
+| 17 | ⚠️ Baja | **`Info` es la cuarta copia** de la etiqueta-valor: `Field`, `Detail`, `Row`, `Info`. Cuatro archivos, ninguno exportado. Y `MyTripHistoryPage:34` reimplementaba `StatusChip` a mano (✅ resuelto el 23/09/2026: ahora usa `StatusChip`, igual que `MyTripPage`). | 4 archivos |
+| 18 | ⚠️ Baja | **`MyTripPage` depende de RN-19 sin decirlo.** `items[0] ?? null` es correcto porque un chofer tiene a lo sumo un viaje activo. Sin comentario, la suposición es invisible. | `MyTripPage:32-33` |
 | 19 | ✅ Bueno | **Alcance forzado por el servidor.** `filters.driverId = actor.id` *"regardless of any driverId passed in the query"*, más la comprobación explícita para el acceso individual. El patrón correcto contra IDOR. | `trips.service.ts:87-88, 99` |
-| 20 | ✅ Bueno | **Los estados vacíos del chofer están bien escritos.** Icono, voseo, y `MiDocumentacionPage` además dice **quién** resuelve el problema. La mejor redacción del proyecto. | `MiViajePage:54-65`, `MiDocumentacionPage:58` |
-| 21 | ✅ Bueno | **`setField` genérico.** `K extends keyof T` + `T[K]` + forma funcional del setter + clave computada. Ocho campos con seguridad de tipos en tres líneas. La mejor pieza de TypeScript del frontend. | `ConfiguracionPage:37-39` |
-| 22 | ✅ Bueno | **El envío enumera los campos.** Se desestructuran los ocho editables en vez de mandar `settings` entero con `id` y `updatedAt`. La disciplina de §7.4.3 en dirección inversa. | `ConfiguracionPage:47-48` |
-| 23 | ✅ Bueno | **`ReportTable` con `string[][]` es la simplificación correcta.** Generalizar sería reinventar `DataTable` para tres tablas sin paginación ni acciones. | `ReportesPage:99` |
-| 24 | ✅ Bueno | **El aviso de la evaluación informa números.** "3 nuevas, 1 auto-resuelta" convierte un silencio ambiguo en una respuesta. Y `disabled={evaluating}` + `GET_LOCK` es defensa en dos capas. | `AlertasPage:41-53` |
+| 20 | ✅ Bueno | **Los estados vacíos del chofer están bien escritos.** Icono, voseo, y `MyDocumentsPage` además dice **quién** resuelve el problema. La mejor redacción del proyecto. | `MyTripPage:54-65`, `MyDocumentsPage:58` |
+| 21 | ✅ Bueno | **`setField` genérico.** `K extends keyof T` + `T[K]` + forma funcional del setter + clave computada. Ocho campos con seguridad de tipos en tres líneas. La mejor pieza de TypeScript del frontend. | `SettingsPage:37-39` |
+| 22 | ✅ Bueno | **El envío enumera los campos.** Se desestructuran los ocho editables en vez de mandar `settings` entero con `id` y `updatedAt`. La disciplina de §7.4.3 en dirección inversa. | `SettingsPage:47-48` |
+| 23 | ✅ Bueno | **`ReportTable` con `string[][]` es la simplificación correcta.** Generalizar sería reinventar `DataTable` para tres tablas sin paginación ni acciones. | `ReportsPage:99` |
+| 24 | ✅ Bueno | **El aviso de la evaluación informa números.** "3 nuevas, 1 auto-resuelta" convierte un silencio ambiguo en una respuesta. Y `disabled={evaluating}` + `GET_LOCK` es defensa en dos capas. | `AlertsPage:41-53` |
 | 25 | ✅ Bueno | **`Snapshot` recibe `unknown` y lo estrecha.** El tipo honesto para una columna `JSON`, con comprobaciones sucesivas antes de usarlo. `any` no habría avisado de nada. | `AuditLogDetailDialog:16-26` |
-| 26 | ✅ Bueno | **`AlertasPage` reinicia la página al cambiar de pestaña** y `MantenimientoPage` no lo necesita. Cada una hace lo correcto para su forma de montar. | `AlertasPage:112` |
+| 26 | ✅ Bueno | **`AlertsPage` reinicia la página al cambiar de pestaña** y `MaintenancePage` no lo necesita. Cada una hace lo correcto para su forma de montar. | `AlertsPage:112` |
 
 ---
 
 ## 22C.9 · Preguntas de repaso
 
 <details>
-<summary><b>1. <code>MiViajePage</code> pide <code>GET /trips</code> sin enviar ningún identificador de chofer. ¿Qué impide que un chofer vea los viajes de sus compañeros?</b></summary>
+<summary><b>1. <code>MyTripPage</code> pide <code>GET /trips</code> sin enviar ningún identificador de chofer. ¿Qué impide que un chofer vea los viajes de sus compañeros?</b></summary>
 
 El servidor, en dos puntos distintos:
 
@@ -1459,7 +1459,7 @@ Es el patrón de **alcance forzado por el servidor**: el cliente no elige qué d
 el servidor decide qué datos existen para quien pregunta. La alternativa mala —confiar en
 que el cliente mande el `driverId` correcto— sería el bug IDOR de §7.3.3.
 
-`MiDocumentacionPage` usa la otra variante: **sí** manda el id, porque el endpoint es por
+`MyDocumentsPage` usa la otra variante: **sí** manda el id, porque el endpoint es por
 chofer y también lo usa el administrador. Ahí protege `assertCanAccess` (§11), que
 permite el acceso si es administrador **o** si el id coincide con el suyo.
 </details>
@@ -1496,14 +1496,14 @@ La corrección es la regla de §22B.2.4 para columnas `DATE`:
 </details>
 
 <details>
-<summary><b>3. Enuncie la regla del cierre obsoleto verificada en las siete pantallas y aplíquela a <code>AlertasPage</code>.</b></summary>
+<summary><b>3. Enuncie la regla del cierre obsoleto verificada en las siete pantallas y aplíquela a <code>AlertsPage</code>.</b></summary>
 
 **La regla (§22B.3.1):** un `useMemo` de columnas con dependencias incompletas es seguro
 **si y solo si** los manejadores usan exclusivamente identidades estables — setters de
 `useState`, `dispatch`, funciones de módulo. En cuanto uno llame a algo derivado del
 estado, el cierre queda congelado.
 
-**En `AlertasPage`:** las dependencias son `[isAdmin, status]`. El manejador llama a
+**En `AlertsPage`:** las dependencias son `[isAdmin, status]`. El manejador llama a
 `handleResolve`, que llama a `reload`. Y `reload` cambia de identidad con `page`
 (`useCallback(..., [fetchFn, page, limit])`).
 
@@ -1514,9 +1514,9 @@ recalcula las columnas.** El `handleResolve` congelado cierra sobre el `reload` 
 Resultado: resolver una alerta desde la página 3 devuelve 200, la alerta se resuelve de
 verdad, y la tabla salta a mostrar la página 1 mientras el paginador dice 3.
 
-**El balance de las siete:** `ViajesPage`, `TiposMantenimientoTab`, `AuditoriaPage` y
-`ChoferesPage` no tocan `reload` → correctas. `VehiculosPage`, `MaintenanceListTab` y
-`AlertasPage` sí → las tres con bug. Correlación perfecta.
+**El balance de las siete:** `TripsPage`, `MaintenanceTypesTab`, `AuditLogPage` y
+`DriversPage` no tocan `reload` → correctas. `VehiclesPage`, `MaintenanceListTab` y
+`AlertsPage` sí → las tres con bug. Correlación perfecta.
 </details>
 
 <details>
@@ -1584,9 +1584,9 @@ no sabría qué hacer con ella, y **la limpieza nunca se ejecutaría** — en es
 que pone `cancelled = true`.
 
 Las dos salidas son declarar la función aparte y llamarla (`void load()`, como
-`MiViajePage:42`) o esta IIFE asíncrona, que mantiene el código junto.
+`MyTripPage:42`) o esta IIFE asíncrona, que mantiene el código junto.
 
-`MiViajePage` necesita la función aparte porque la reutiliza desde `onSaved` para recargar
+`MyTripPage` necesita la función aparte porque la reutiliza desde `onSaved` para recargar
 tras finalizar el viaje. `DashboardPage` no recarga nunca, así que la IIFE es lo adecuado.
 
 Sobre `void load()`: el `void` le dice a TypeScript "sé que esto devuelve una promesa y
@@ -1659,17 +1659,17 @@ que hacer de todos modos para arreglar §22A.4.
 </details>
 
 <details>
-<summary><b>9. ¿Por qué <code>AlertasPage:112</code> hace <code>setPage(1)</code> al cambiar de pestaña y <code>MantenimientoPage:21</code> no?</b></summary>
+<summary><b>9. ¿Por qué <code>AlertsPage:112</code> hace <code>setPage(1)</code> al cambiar de pestaña y <code>MaintenancePage:21</code> no?</b></summary>
 
 Porque las dos pestañas se implementan igual pero se **montan** distinto.
 
-En **`AlertasPage`**, el mismo `usePaginatedList` sirve a las dos pestañas: solo cambia
+En **`AlertsPage`**, el mismo `usePaginatedList` sirve a las dos pestañas: solo cambia
 `status` dentro de `fetchFn`. El componente **no se desmonta**, así que `page`
 sobreviviría al cambio. Sin `setPage(1)`, pasar de "Pendientes" página 3 a "Resueltas"
 pediría la página 3 de las resueltas, que probablemente no existe → tabla vacía sin
 explicación.
 
-En **`MantenimientoPage`**, las pestañas renderizan **elementos en posiciones distintas**
+En **`MaintenancePage`**, las pestañas renderizan **elementos en posiciones distintas**
 del array de hijos:
 
 ```
@@ -1719,15 +1719,15 @@ vehículo concreto.
 `RouteMap` (§21.6) y con los `authorize()` de las rutas del backend. ¿Hay alguna pantalla
 que la interfaz oculte y el backend permita, o al revés?
 
-**1.2.** `MiViajePage`, `DashboardPage`, `ReportesPage` y `ConfiguracionPage` reconstruyen
+**1.2.** `MyTripPage`, `DashboardPage`, `ReportsPage` y `SettingsPage` reconstruyen
 a mano lo que `usePaginatedList` hace por las otras. Liste qué estados declara cada una y
 señale cuál de los cuatro mundos de §22C.2.1 trata cada una explícitamente.
 
-**1.3.** Recorra los cuatro sitios donde se formatea un vencimiento (`ChoferesPage:53`,
-`VehiculosPage:90`, `DriverDocumentsDialog:168`, `MiDocumentacionPage:72`) y explique por
+**1.3.** Recorra los cuatro sitios donde se formatea un vencimiento (`DriversPage:53`,
+`VehiclesPage:90`, `DriverDocumentsDialog:168`, `MyDocumentsPage:72`) y explique por
 qué el cuarto es el peor de los cuatro.
 
-**1.4.** `DashboardPage:108` escribe `fill="#1e88e5"`. Busque ese color en `theme.ts`
+**1.4.** `DashboardPage:108` escribe `fill="#1e88e5"`. Busque ese color en `theme/theme.ts`
 (§18.8). ¿Coincide con alguna entrada del tema? ¿Qué pasaría si alguien cambiara la
 paleta?
 
@@ -1741,7 +1741,7 @@ corresponde al diseño móvil de la pantalla?
 `formatDateOnly(iso: string)` en `utils/` y aplíquelo a los **cuatro** sitios. Verifique
 con un documento que vence hoy que el distintivo y la fecha ya coinciden.
 
-**2.3.** Corrija el hallazgo 3 en `AlertasPage`. Luego repase las siete pantallas de la
+**2.3.** Corrija el hallazgo 3 en `AlertsPage`. Luego repase las siete pantallas de la
 tabla de §22C.4.2 y compruebe que la regla se cumple en todas.
 
 **2.4.** Cierre el hallazgo 5 en el backend: haga que `dashboard.service` no calcule las
@@ -1776,7 +1776,7 @@ crear. Implemente una y argumente cuál es mejor para una alerta concreta.
 para los adjuntos. Decida si se genera en el cliente a partir de los datos que ya tiene, o
 en el servidor con un endpoint nuevo, y justifique.
 
-**3.5.** Convierta `MiDocumentacionPage` de listado en **lista de verificación**: recorra
+**3.5.** Convierta `MyDocumentsPage` de listado en **lista de verificación**: recorra
 `DOC_LABELS`, pinte en gris los tipos ausentes con "Falta cargar", y muestre el estado
 global de la documentación del chofer respecto de RN-4.
 
@@ -1798,7 +1798,7 @@ resultado en una tabla y clasifique cada caso como inofensivo, dudoso o a correg
 
 ### 22C.5.1. El botón "Ir al origen"
 
-`AlertasPage` agrega una función pura `sourceLink(a: Alert)` que traduce `entityType` + `entityId` (y, para documentos, el `linkedDriverId` nuevo de §14.11) a una ruta del frontend:
+`AlertsPage` agrega una función pura `sourceLink(a: Alert)` que traduce `entityType` + `entityId` (y, para documentos, el `linkedDriverId` nuevo de §14.11) a una ruta del frontend:
 
 ```ts
 function sourceLink(a: Alert): string | null {
@@ -1817,10 +1817,10 @@ function sourceLink(a: Alert): string | null {
 
 La columna "Acciones" se separó en dos: un ícono `LaunchIcon` ("Ir al origen"), habilitado para **todos** los roles con acceso a la pantalla, y el `DoneIcon` de resolver, que sigue siendo ADMIN-only y solo en la pestaña "Pendientes" (sin cambios ahí respecto del capítulo 22B). El botón de origen se deshabilita (`disabled={!sourceLink(a)}`) cuando no hay ruta resoluble — hoy nunca ocurre en la práctica porque las tres condiciones del backend (§14.2) cubren `VEHICLE`, `DRIVER` y `DRIVER_DOCUMENT` con `linkedDriverId` resuelto, pero la función queda preparada para un `entityType` futuro sin mapear.
 
-**Reutiliza el patrón `?estado=` de §22A** (`VehiculosPage` ya leía un query param para preseleccionar un filtro desde los accesos directos del dashboard, capítulo agregado en `fb406c0`). Aquí el query param es `highlight` y, en vez de preseleccionar un filtro, **abre directamente el diálogo de edición o de documentación** de la entidad:
+**Reutiliza el patrón `?estado=` de §22A** (`VehiclesPage` ya leía un query param para preseleccionar un filtro desde los accesos directos del dashboard, capítulo agregado en `fb406c0`). Aquí el query param es `highlight` y, en vez de preseleccionar un filtro, **abre directamente el diálogo de edición o de documentación** de la entidad:
 
-- `VehiculosPage` agrega un `useEffect` con dependencias `[highlight, canManage]` que llama `vehiclesApi.getById(id)` (método nuevo en `vehicles.api.ts` — el backend ya exponía `GET /vehicles/:id`, el cliente no lo usaba) y abre `VehicleFormDialog` con el vehículo recibido.
-- `ChoferesPage` hace lo mismo con `driversApi.getById(id)` (ya existía) y abre `DriverDocumentsDialog`, que es la vista donde vive tanto la licencia (alertas `DRIVER`) como los documentos (`DRIVER_DOCUMENT`) — un solo destino cubre ambos tipos de alerta de chofer.
+- `VehiclesPage` agrega un `useEffect` con dependencias `[highlight, canManage]` que llama `vehiclesApi.getById(id)` (método nuevo en `vehicles.api.ts` — el backend ya exponía `GET /vehicles/:id`, el cliente no lo usaba) y abre `VehicleFormDialog` con el vehículo recibido.
+- `DriversPage` hace lo mismo con `driversApi.getById(id)` (ya existía) y abre `DriverDocumentsDialog`, que es la vista donde vive tanto la licencia (alertas `DRIVER`) como los documentos (`DRIVER_DOCUMENT`) — un solo destino cubre ambos tipos de alerta de chofer.
 
 Ninguno de los dos `useEffect` necesitó `eslint-disable`: a diferencia de los tres cierres obsoletos que el capítulo 22B predijo y el 22C confirmó (§22C.4, tabla de revisión, hallazgo 3), aquí las dependencias declaradas son exactamente las que el efecto usa — `highlight` deriva de `searchParams.get(...)` leído en el cuerpo del componente, no capturado en un cierre viejo.
 
@@ -1833,25 +1833,25 @@ const [toResolve, setToResolve] = useState<Alert | null>(null);
 // el ícono llama setToResolve(a) en vez de resolver directo
 ```
 
-y se reutiliza `ConfirmDialog` (§21, el mismo componente que `VehiculosPage` usa para confirmar bajas) con el texto de la alerta interpolado: *"¿Marcar como resuelta la alerta '{tipo}'?"*.
+y se reutiliza `ConfirmDialog` (§21, el mismo componente que `VehiclesPage` usa para confirmar bajas) con el texto de la alerta interpolado: *"¿Marcar como resuelta la alerta '{tipo}'?"*.
 
 **Lo que el hallazgo 7 pedía y esto NO cubre:** el diálogo confirma la *acción* de resolver, pero no explica que el motor es un **reconciliador** (§14.3) y que una condición que persiste **va a regenerar la alerta con un id nuevo** en la siguiente evaluación. Ese matiz semántico — distinguir "resolver de verdad" de "reconocer y silenciar" — es el mismo que el ejercicio 12 de §14.10 plantea con `snoozedUntil`; sigue sin resolverse.
 
 ### 22C.5.3. Verificación
 
-Probado manualmente contra el entorno local de desarrollo: login como `admin@empresa.com`, clic en "Ir al origen" de una alerta `INSURANCE_EXPIRED` (`VEHICLE #2`) → abre `VehiculosPage` con el diálogo de edición de la patente `BBB222` ya cargado. Clic en "Ir al origen" de una alerta `DOCUMENT_EXPIRED` (`DRIVER_DOCUMENT #9`) → abre `ChoferesPage` con la documentación de "Juan Pérez" (el chofer resuelto vía `linkedDriverId`), mostrando el documento ART marcado "Vencido". El diálogo de confirmación se probó sobre una alerta pendiente y se canceló sin resolverla. `tsc --noEmit` limpio en `backend/` y `frontend/` tras el cambio.
+Probado manualmente contra el entorno local de desarrollo: login como `admin@empresa.com`, clic en "Ir al origen" de una alerta `INSURANCE_EXPIRED` (`VEHICLE #2`) → abre `VehiclesPage` con el diálogo de edición de la patente `BBB222` ya cargado. Clic en "Ir al origen" de una alerta `DOCUMENT_EXPIRED` (`DRIVER_DOCUMENT #9`) → abre `DriversPage` con la documentación de "Juan Pérez" (el chofer resuelto vía `linkedDriverId`), mostrando el documento ART marcado "Vencido". El diálogo de confirmación se probó sobre una alerta pendiente y se canceló sin resolverla. `tsc --noEmit` limpio en `backend/` y `frontend/` tras el cambio.
 
-**Archivos tocados:** `backend/src/modules/alerts/alerts.service.ts`, `frontend/src/api/alerts.api.ts`, `frontend/src/api/vehicles.api.ts`, `frontend/src/pages/alertas/AlertasPage.tsx`, `frontend/src/pages/vehiculos/VehiculosPage.tsx`, `frontend/src/pages/choferes/ChoferesPage.tsx`.
+**Archivos tocados:** `backend/src/modules/alerts/alerts.service.ts`, `frontend/src/api/alerts.api.ts`, `frontend/src/api/vehicles.api.ts`, `frontend/src/pages/alerts/AlertsPage/AlertsPage.tsx`, `frontend/src/pages/vehicles/VehiclesPage/VehiclesPage.tsx`, `frontend/src/pages/drivers/DriversPage/DriversPage.tsx`.
 
 ---
 
 ## 22C.6. Actualización posterior — `DateRangeFilter` en Reportes y polling silencioso en Alertas
 
-> **Fecha:** 2026-09-18. **Motivación:** dos pendientes del mismo lote que §22B.9 y §12.12 — el selector de fecha nativo (aquí, en `ReportesPage`) y el botón "Evaluar alertas" bajo demanda (§22C.4.2), que el pedido original describía textualmente como *"solo botón 'Evaluar alertas' a demanda, sin job/polling/websockets"*.
+> **Fecha:** 2026-09-18. **Motivación:** dos pendientes del mismo lote que §22B.9 y §12.12 — el selector de fecha nativo (aquí, en `ReportsPage`) y el botón "Evaluar alertas" bajo demanda (§22C.4.2), que el pedido original describía textualmente como *"solo botón 'Evaluar alertas' a demanda, sin job/polling/websockets"*.
 
-### 22C.6.1. `ReportesPage` adopta `DateRangeFilter`
+### 22C.6.1. `ReportsPage` adopta `DateRangeFilter`
 
-El componente es el mismo `DateRangeFilter` que §22B.9.1 documenta en detalle (calendario `@mui/x-date-pickers` + chips de atajos), reutilizado tal cual porque `ReportesPage` tenía exactamente el mismo par `dateFrom`/`dateTo` en formato `string` que `ViajesPage`:
+El componente es el mismo `DateRangeFilter` que §22B.9.1 documenta en detalle (calendario `@mui/x-date-pickers` + chips de atajos), reutilizado tal cual porque `ReportsPage` tenía exactamente el mismo par `dateFrom`/`dateTo` en formato `string` que `TripsPage`:
 
 ```tsx
 <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onChange={(from, to) => { setDateFrom(from); setDateTo(to); }} />
@@ -1859,7 +1859,7 @@ El componente es el mismo `DateRangeFilter` que §22B.9.1 documenta en detalle (
 
 **Lo que este cambio no toca:** la decisión de "generación bajo demanda" de §22C.5.1 (sin `useEffect` al abrir, el usuario debe pulsar "Generar informe") sigue intacta — el componente nuevo solo cambia *cómo* se eligen las fechas, no *cuándo* se dispara la consulta. Tampoco agrega el `min`/`max` que el hallazgo de §22C.5.1 señala como faltante (nota agregada ahí mismo): los atajos (`Últimos 30 días`, etc.) acotan la selección *por conveniencia*, pero el calendario sigue permitiendo elegir manualmente cualquier fecha, incluido 1900. Ese hallazgo permanece abierto.
 
-### 22C.6.2. `AlertasPage`: un `useEffect` con `setInterval`, y por qué sus dependencias sí son correctas
+### 22C.6.2. `AlertsPage`: un `useEffect` con `setInterval`, y por qué sus dependencias sí son correctas
 
 ```tsx
 useEffect(() => {
@@ -1881,7 +1881,7 @@ useEffect(() => {
 
 **El `catch` vacío es deliberado, con un comentario que lo explica** (`// ignore — next tick retries`). Es la única forma correcta de manejar un `ConflictError` 409 esperado (§14.4.5, el `GET_LOCK` ocupado) en un proceso de fondo que el usuario no inició a propósito: no hay ningún lugar razonable donde mostrar ese error —no hay un `Snackbar` para cada tick fallido, sería ruido— y el próximo tick, 60 segundos después, vuelve a intentarlo.
 
-**Por qué `[isAdmin, reload]` y no `[]`.** Esta es la comprobación que el capítulo 22C lleva insistiendo desde §22C.2 (introducción a `exhaustive-deps`) y confirmó tres veces como cierre obsoleto real (`VehiculosPage` en §22A, `MaintenanceListTab` en §22B, y esta misma `AlertasPage` dos secciones atrás, en §22C.4.2, con su `handleResolve` congelado). La regla que §22B.3.1 formuló para `ViajesPage`:
+**Por qué `[isAdmin, reload]` y no `[]`.** Esta es la comprobación que el capítulo 22C lleva insistiendo desde §22C.2 (introducción a `exhaustive-deps`) y confirmó tres veces como cierre obsoleto real (`VehiclesPage` en §22A, `MaintenanceListTab` en §22B, y esta misma `AlertsPage` dos secciones atrás, en §22C.4.2, con su `handleResolve` congelado). La regla que §22B.3.1 formuló para `TripsPage`:
 
 > Un `useMemo`/`useEffect` con dependencias vacías es seguro **si y solo si** los manejadores usan exclusivamente valores de identidad estable. En cuanto uno llame a algo derivado del estado —`reload`, `items`, `user`— el cierre queda congelado.
 
@@ -1889,37 +1889,37 @@ useEffect(() => {
 
 **Por qué solo ADMIN llama a `evaluate()`.** `POST /alerts/evaluate` sigue protegido con `authorize('ADMIN')` en el servidor (§14.6) — un chofer o un no-admin que lo intentara recibiría 403. El polling respeta esa frontera en el cliente en vez de descubrirla por prueba y error: los roles sin permiso solo hacen `reload()` (un `GET /alerts`, sin restricción de rol), así que igual ven las alertas que algún administrador con la pantalla abierta haya generado — pero no disparan la evaluación ellos mismos.
 
-**Por qué no se agregó un job de servidor.** Se discute con el detalle completo del motor de evaluación en §14.12 (actualización posterior del capítulo 14); esta sección se limita a la mitad que vive en `AlertasPage`.
+**Por qué no se agregó un job de servidor.** Se discute con el detalle completo del motor de evaluación en §14.12 (actualización posterior del capítulo 14); esta sección se limita a la mitad que vive en `AlertsPage`.
 
 > ⚠️ **Actualización 2026-09-20 (§14.13):** el `useEffect` de arriba ya no llama a `alertsApi.evaluate()`. La evaluación pasó a un job en el servidor; el efecto solo hace `reload()` cada 60 s con la pestaña visible, para todos los roles. Las dependencias pasan a ser `[reload]`; el resto del razonamiento (por qué `reload` va en las dependencias) sigue igual.
 
 ### 22C.6.3. Verificación
 
-`tsc --noEmit` limpio en `frontend/`. `ReportesPage`: atajo "Últimos 30 días" seguido de "Generar informe" trae el resumen correcto (viajes finalizados, km totales, tablas por chofer/vehículo/destino) contra el entorno local. `AlertasPage`: la pantalla carga sin errores nuevos en la consola del navegador; el botón manual "Evaluar alertas" se probó y sigue funcionando exactamente igual que antes de este cambio.
+`tsc --noEmit` limpio en `frontend/`. `ReportsPage`: atajo "Últimos 30 días" seguido de "Generar informe" trae el resumen correcto (viajes finalizados, km totales, tablas por chofer/vehículo/destino) contra el entorno local. `AlertsPage`: la pantalla carga sin errores nuevos en la consola del navegador; el botón manual "Evaluar alertas" se probó y sigue funcionando exactamente igual que antes de este cambio.
 
-**Archivos tocados:** `frontend/src/pages/reportes/ReportesPage.tsx`, `frontend/src/pages/alertas/AlertasPage.tsx`. (`DateRangeFilter.tsx` y `main.tsx` se cuentan en §22B.9, donde se introdujeron.)
+**Archivos tocados:** `frontend/src/pages/reports/ReportsPage/ReportsPage.tsx`, `frontend/src/pages/alerts/AlertsPage/AlertsPage.tsx`. (`DateRangeFilter.tsx` y `main.tsx` se cuentan en §22B.9, donde se introdujeron.)
 
 ---
 
 ## 22C.11. Actualización posterior — paginador en el historial del chofer
 
-> **Fecha:** 2026-09-20. **Motivación:** el hallazgo de §22C.3.3 (*"el chofer nunca puede ver más de 50 viajes"*): `MiHistorialPage` pedía `usePaginatedList(fetchFn, 50)` pero descartaba `total`, `page` y `setPage`, sin ningún control.
+> **Fecha:** 2026-09-20. **Motivación:** el hallazgo de §22C.3.3 (*"el chofer nunca puede ver más de 50 viajes"*): `MyTripHistoryPage` pedía `usePaginatedList(fetchFn, 50)` pero descartaba `total`, `page` y `setPage`, sin ningún control.
 
-`MiHistorialPage` ahora usa el hook completo (`total`, `page`, `setPage`, `limit`, `setLimit`) y renderiza un `TablePagination` de MUI debajo de las tarjetas (opciones 10/25/50, por defecto 10; con etiquetas en español como `DataTable`, §21.3.3). Se muestra solo si `total > 0`. Se usa `TablePagination` suelto y no `DataTable` porque esta pantalla es una lista de tarjetas pensada para móvil, no una tabla.
+`MyTripHistoryPage` ahora usa el hook completo (`total`, `page`, `setPage`, `limit`, `setLimit`) y renderiza un `TablePagination` de MUI debajo de las tarjetas (opciones 10/25/50, por defecto 10; con etiquetas en español como `DataTable`, §21.3.3). Se muestra solo si `total > 0`. Se usa `TablePagination` suelto y no `DataTable` porque esta pantalla es una lista de tarjetas pensada para móvil, no una tabla.
 
 `fetchFn` conserva dependencias `[]` (no hay filtros), así que el hook solo recarga al cambiar `page` o `limit`; cambiar de tamaño de página vuelve a la 1, igual que en el resto de las pantallas.
 
-**Verificación:** con 14 viajes finalizados de un chofer (2 reales + 12 de prueba, luego borrados): página 1 → 10 tarjetas "1–10 de 14"; siguiente → 4 tarjetas "11–14 de 14"; anterior → vuelve a 10. **Archivo:** `frontend/src/pages/chofer/MiHistorialPage.tsx`. El diagrama de §22C.7.1 (*"50 viajes máx."*) y el hallazgo original quedan como registro de la situación previa.
+**Verificación:** con 14 viajes finalizados de un chofer (2 reales + 12 de prueba, luego borrados): página 1 → 10 tarjetas "1–10 de 14"; siguiente → 4 tarjetas "11–14 de 14"; anterior → vuelve a 10. **Archivo:** `frontend/src/pages/driver-portal/MyTripHistoryPage/MyTripHistoryPage.tsx`. El diagrama de §22C.7.1 (*"50 viajes máx."*) y el hallazgo original quedan como registro de la situación previa.
 
-## 22C.12. Actualización posterior — tope de 366 días en `ReportesPage`
+## 22C.12. Actualización posterior — tope de 366 días en `ReportsPage`
 
 > **Fecha:** 2026-09-21. Resuelve el hallazgo 8 de §22C.8.1 (*"el período del informe no tiene tope"*). El servidor es la barrera real (§16.10); esta pantalla solo evita el viaje de ida y vuelta.
 
-`ReportesPage` declara `MAX_REPORT_DAYS = 366` (espejo del backend) y deriva, en cada render, `tooLong = dayjs(dateTo).diff(dayjs(dateFrom), 'day') >= MAX_REPORT_DAYS`. Si es verdadero: aparece un `Alert` de advertencia (*"El período no puede superar 366 días. Acortalo para generar el informe."*), el botón *Generar informe* se deshabilita y `generate()` retorna sin llamar a la API. Es un **valor derivado**, no estado (§22B.4.1: no duplicar la fuente de verdad).
+`ReportsPage` declara `MAX_REPORT_DAYS = 366` (espejo del backend) y deriva, en cada render, `tooLong = dayjs(dateTo).diff(dayjs(dateFrom), 'day') >= MAX_REPORT_DAYS`. Si es verdadero: aparece un `Alert` de advertencia (*"El período no puede superar 366 días. Acortalo para generar el informe."*), el botón *Generar informe* se deshabilita y `generate()` retorna sin llamar a la API. Es un **valor derivado**, no estado (§22B.4.1: no duplicar la fuente de verdad).
 
 **Dos límites.** (1) La constante está duplicada en cliente y servidor: si uno cambia y el otro no, el servidor gana (devuelve 400 con el mensaje). (2) El calendario de `DateRangeFilter` (§22B.9.1) sigue sin `minDate`/`maxDate`: se puede elegir cualquier fecha, pero el rango no puede abarcar más de un año.
 
-**Verificación:** `tsc` limpio. La regla del servidor está probada con backend real y con tests (§16.10). **No** pude ejercitar el aviso en el navegador: los campos de fecha de MUI no aceptan tecleo sintético en el navegador de pruebas, así que la condición se verificó solo por lectura. **Archivo:** `frontend/src/pages/reportes/ReportesPage.tsx`.
+**Verificación:** `tsc` limpio. La regla del servidor está probada con backend real y con tests (§16.10). **No** pude ejercitar el aviso en el navegador: los campos de fecha de MUI no aceptan tecleo sintético en el navegador de pruebas, así que la condición se verificó solo por lectura. **Archivo:** `frontend/src/pages/reports/ReportsPage/ReportsPage.tsx`.
 
 
 ---

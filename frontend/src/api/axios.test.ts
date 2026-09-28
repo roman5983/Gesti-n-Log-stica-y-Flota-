@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AxiosError, AxiosHeaders, type AxiosResponse } from 'axios';
-import { apiErrorMessage } from './axios';
+import { api, apiErrorMessage, REQUEST_TIMEOUT_MS } from './axios';
 
 /** Builds the error axios would reject with for a given response. */
 function httpError(status: number | undefined, data?: unknown): AxiosError {
@@ -40,6 +40,14 @@ describe('apiErrorMessage — user-facing error messages (Spanish)', () => {
     expect(apiErrorMessage(httpError(429))).toMatch(/Demasiados intentos/);
     expect(apiErrorMessage(httpError(503))).toMatch(/se está iniciando/);
     expect(apiErrorMessage(httpError(500))).toMatch(/error en el servidor/);
+  });
+
+  it('a request that times out says so instead of loading forever', () => {
+    expect(api.defaults.timeout).toBe(REQUEST_TIMEOUT_MS);
+    const timedOut = new AxiosError('timeout of 60000ms exceeded', AxiosError.ECONNABORTED, { headers: new AxiosHeaders() });
+    expect(apiErrorMessage(timedOut)).toMatch(/tardó demasiado en responder/);
+    const etimedout = new AxiosError('timeout', AxiosError.ETIMEDOUT, { headers: new AxiosHeaders() });
+    expect(apiErrorMessage(etimedout)).toMatch(/tardó demasiado en responder/);
   });
 
   it('uses the fallback only when there is nothing better to say', () => {

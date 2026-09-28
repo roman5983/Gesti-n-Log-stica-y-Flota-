@@ -1910,6 +1910,25 @@ sequenceDiagram
 
 **Verificación:** `tsc` limpio, 24/24 tests, y respuestas reales del backend: login inválido (*"Credenciales inválidas"*), sin token, ruta inexistente, email inválido, viaje sin datos, viaje con fecha pasada, chofer inexistente y baja de un chofer en viaje, todos en español.
 
+## Hallazgos consolidados del capítulo 6
+
+Agregada el 28/09/2026 para cerrar el hueco señalado en §25.2.2: este capítulo marcaba sus hallazgos en el cuerpo del texto (🔴 y ⚠️) pero no los consolidaba. Solo se listan los **problemas o deudas**. No entran las marcas que solo destacan un concepto (por ejemplo, por qué `password_hash` es `VARCHAR(60)`). La columna *Estado* se verificó contra el código de esa fecha. Lo que sigue abierto y conviene resolver para la entrega está en `PENDIENTES.md`.
+
+| # | Hallazgo | § | Gravedad | Estado al 28/09/2026 |
+|:-:|:--|:--|:--|:--|
+| 1 | `details` de un `AppError` viaja al cliente sin filtrar. | §6.2.2 | Baja | Abierto. |
+| 2 | `rule` de `BusinessRuleError` (por ejemplo `RN-4`) no se envía en la respuesta. | §6.2.4 | Baja | Abierto. |
+| 3 | Falta `Error.captureStackTrace` en `AppError`. | §6.2.2 | Baja | Abierto. |
+| 4 | `idParamSchema` no tiene límite superior: un id enorme llega a MySQL. | §6.3.1 | Baja | Abierto. |
+| 5 | `paginationMeta` sin tipo de retorno y sin `totalPages`. | §6.3.4 | Baja | Abierto. |
+| 6 | El rol viaja en el JWT: un cambio de rol no surte efecto hasta que vence el token (hasta 15 minutos). | §6.4.1 | Media | Aceptado (diseño sin estado; `refresh` revalida contra la base). |
+| 7 | La aumentación de tipos de `req.user` depende de un import implícito. | §6.4.3 | Baja | Abierto. |
+| 8 | El segundo test de `dates.test.ts` es tautológico: no puede fallar. | §6.6.2 | Baja | Abierto. |
+| 9 | Archivos: extensión sin validar, escritura no atómica, `safeUnlink` silencioso y archivos huérfanos. | §6.7 | Media | Resuelto: los archivos se guardan en la base (22/09). |
+| 10 | La plantilla del correo de credenciales no escapa el nombre (inyección de HTML). | §6.8.2 | Media | Abierto (el nombre lo carga un administrador). |
+| 11 | La contraseña viaja en claro por correo. | §6.8.2 | Media | Aceptado (requisito A-9 y DOC-1). |
+| 12 | El envío de correo no tiene reintentos, y con `SMTP_USER` sin `SMTP_PASS` intenta autenticarse igual. | §6.8.3 | Baja | Abierto. |
+
 ---
 
 **Anterior:** [Capítulo 5 — Arranque del backend](05-backend-bootstrap.md) · **Siguiente:** Capítulo 7 — Los middlewares *(pendiente)*

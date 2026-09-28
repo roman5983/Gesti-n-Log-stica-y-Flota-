@@ -7,6 +7,7 @@ import { sendCredentialsEmail } from '../../shared/services/mailer';
 import type { PaginatedResult } from '../../shared/schemas';
 import { auditLogsService } from '../audit-logs/audit-logs.service';
 import { authRepository } from '../auth/auth.repository';
+import { tripsRepository } from '../trips/trips.repository';
 import { usersRepository, type UserFilters } from './users.repository';
 import type { CreateUserDto, ListUsersQuery, UpdateUserDto } from './users.schemas';
 
@@ -73,6 +74,28 @@ async function assertNotRemovingLastAdmin(
         'administrador antes de eliminar, desactivar o cambiar el rol de este.',
       'RN-ULTIMO-ADMIN',
     );
+  }
+}
+
+/**
+ * A driver on a trip in progress cannot be deactivated or deleted: the trip
+ * would be left with a driver who can no longer log in to finish it.
+ *
+ * Runs inside the caller's transaction and takes the driver row lock that
+ * trip assignment takes (`tripsRepository.lockDriver`), then checks under
+ * it. If an assignment commits first, this sees its trip and refuses; if
+ * this commits first, the assignment re-reads the driver as inactive and
+ * refuses. No-op for other roles.
+ */
+async function assertDriverNotOnTrip(
+  tx: Prisma.TransactionClient,
+  target: User,
+  verb: 'dar de baja' | 'eliminar',
+): Promise<void> {
+  if (target.role !== 'DRIVER') return;
+  await tripsRepository.lockDriver(target.id, tx);
+  if (await tripsRepository.hasActiveTrip(target.id, tx)) {
+    throw new BusinessRuleError(`No se puede ${verb} a un chofer con un viaje en curso`);
   }
 }
 
@@ -215,14 +238,8 @@ export const usersService = {
     }
     if (existing.isActive === isActive) return toResponse(existing); // idempotent
 
-    if (!isActive && existing.role === 'DRIVER') {
-      const onTrip = await prisma.trip.count({ where: { driverId: id, status: 'IN_PROGRESS' } });
-      if (onTrip > 0) {
-        throw new BusinessRuleError('No se puede dar de baja a un chofer con un viaje en curso');
-      }
-    }
-
     const updated = await prisma.$transaction(async (tx) => {
+      if (!isActive) await assertDriverNotOnTrip(tx, existing, 'dar de baja');
       // Deactivating the last admin would leave the system unmanageable.
       if (!isActive) await assertNotRemovingLastAdmin(tx, existing);
       const user = await usersRepository.update(id, { isActive }, tx);
@@ -264,6 +281,7 @@ export const usersService = {
     }
 
     await prisma.$transaction(async (tx) => {
+      await assertDriverNotOnTrip(tx, existing, 'eliminar');
       // Deleting the last admin would leave the system unmanageable.
       await assertNotRemovingLastAdmin(tx, existing);
       await usersRepository.softDelete(id, tx);
