@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { homePathForRole } from '@/auth/guards/guards.helpers';
 import { apiErrorMessage } from '@/api/axios';
 import { ColorModeToggle } from '@/components/ColorModeToggle/ColorModeToggle';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Login screen (P-CH-1). No password recovery link (A-9). */
 export function LoginPage() {
@@ -42,6 +43,11 @@ export function LoginPage() {
     setError(null);
     if (!email || !password) {
       setError('Completá usuario y contraseña');
+      return;
+    }
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
       return;
     }
     setSubmitting(true);

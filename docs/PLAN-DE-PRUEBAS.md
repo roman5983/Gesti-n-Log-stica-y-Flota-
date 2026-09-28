@@ -8,7 +8,7 @@ seed corriendo). Fuente de verdad: `analisis-funcional-gestion-logistica.md`.
 
 Corren sin base de datos.
 
-**Backend** (`cd backend && npm test`) — 144 tests en 22 archivos:
+**Backend** (`cd backend && npm test`) — 148 tests en 22 archivos:
 - `crypto`: round-trip AES-256-GCM, IV aleatorio, detección de manipulación, SHA-256 (A-9).
 - `dates`: `utcStartOfToday`/`utcEndOfDay` (fronteras UTC, RN-1, rangos inclusivos).
 - `like`: escape de wildcards LIKE para búsquedas seguras.
@@ -25,7 +25,7 @@ Corren sin base de datos.
   (repository, service), viajes (repository, service), auditoría, documentos.
 - Prisma: seed-history (generación de historial puro), sample-pdf.
 
-**Frontend** (`cd frontend && npm test`) — 155 tests en 16 archivos:
+**Frontend** (`cd frontend && npm test`) — 162 tests en 18 archivos:
 - `datetime`: round-trip datetime-local ↔ ISO sin desplazamiento de zona horaria,
   formatDateOnly conserva el día UTC, formatRelativeDay (Hoy/Ayer/fecha completa).
 - `date-input`: parseo estricto, serialización, validación con mensajes en español.
@@ -37,8 +37,10 @@ Corren sin base de datos.
   válidos, rechaza desconocidos), `TripsPage.helpers` (statusFromParams con los cuatro
   estados de viaje), `AlertsPage.helpers`, `AlertCard.helpers`, `DashboardPage.helpers`,
   `auditLabels.helpers`.
+- `form-validation`: mensajes propios para campos vacíos, formato, rango y los de
+  DateField/AddressAutocomplete (formularios con `noValidate`).
 - Componentes (Testing Library + jsdom): DateField, SearchField, AlertCard,
-  AuditLogDetailDialog, App smoke test.
+  AuditLogDetailDialog, VehicleFormDialog (un formulario vacío no se envía), App smoke test.
 
 ## 2. Preparación del entorno de integración
 

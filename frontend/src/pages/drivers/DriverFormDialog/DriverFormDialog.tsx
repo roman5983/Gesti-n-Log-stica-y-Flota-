@@ -5,6 +5,7 @@ import { apiErrorMessage } from '@/api/axios';
 import { DateField } from '@/components/DateField/DateField';
 import type { DriverFormDialogProps } from './DriverFormDialog.types';
 import { CATEGORIES } from './DriverFormDialog.data';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Create/edit dialog for a driver (user + profile + license, C-2). */
 export function DriverFormDialog({ open, driver, onClose, onSaved }: DriverFormDialogProps) {
@@ -32,6 +33,11 @@ export function DriverFormDialog({ open, driver, onClose, onSaved }: DriverFormD
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {

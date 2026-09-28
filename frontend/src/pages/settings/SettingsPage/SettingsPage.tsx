@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/PageHeader/PageHeader';
 import { settingsApi, type CompanySettings } from '@/api/settings.api';
 import { apiErrorMessage } from '@/api/axios';
 import { useNotify } from '@/hooks/useNotify';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Company settings screen (P-AD-6), Admin-only. */
 export function SettingsPage() {
@@ -40,6 +41,11 @@ export function SettingsPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     if (!settings) return;
     setSaving(true);
     setError(null);
