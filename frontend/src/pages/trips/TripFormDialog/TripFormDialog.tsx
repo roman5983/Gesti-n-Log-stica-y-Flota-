@@ -8,6 +8,7 @@ import { DateTimeField } from '@/components/DateField/DateField';
 import type { TripFormDialogProps } from './TripFormDialog.types';
 import { FIXED_ORIGIN } from './TripFormDialog.const';
 import { todayLocalInputMin } from './TripFormDialog.helpers';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Create/edit a trip (A-1): the route only; driver/vehicle come at assignment.
  *  Editing is limited to trips still pending assignment (A-4). */
@@ -31,6 +32,11 @@ export function TripFormDialog({ open, trip = null, onClose, onSaved }: TripForm
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setError(null);
     if (departureAt < todayLocalInputMin()) {
       setError('La fecha de salida no puede ser anterior a hoy');

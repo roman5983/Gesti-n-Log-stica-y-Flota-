@@ -7,6 +7,7 @@ import { apiErrorMessage } from '@/api/axios';
 import { localInputToIso } from '@/utils/datetime';
 import { DateTimeField } from '@/components/DateField/DateField';
 import type { CreateMaintenanceDialogProps } from './CreateMaintenanceDialog.types';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Register (schedule) a maintenance: born PENDING (C-6). */
 export function CreateMaintenanceDialog({ open, onClose, onSaved }: CreateMaintenanceDialogProps) {
@@ -43,6 +44,11 @@ export function CreateMaintenanceDialog({ open, onClose, onSaved }: CreateMainte
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     if (vehicleId === '' || maintenanceTypeId === '') return;
     setError(null);
     setSubmitting(true);

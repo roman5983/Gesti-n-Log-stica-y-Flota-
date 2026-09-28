@@ -3,6 +3,7 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuI
 import { usersApi } from '@/api/users.api';
 import { apiErrorMessage } from '@/api/axios';
 import type { UserFormDialogProps } from './UserFormDialog.types';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Create/edit dialog for ADMIN/OPERATOR users. Drivers are managed elsewhere. */
 export function UserFormDialog({ open, user, onClose, onSaved }: UserFormDialogProps) {
@@ -26,6 +27,11 @@ export function UserFormDialog({ open, user, onClose, onSaved }: UserFormDialogP
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {

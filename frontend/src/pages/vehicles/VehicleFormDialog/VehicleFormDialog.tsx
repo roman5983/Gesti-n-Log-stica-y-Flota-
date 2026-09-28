@@ -4,6 +4,7 @@ import { vehiclesApi } from '@/api/vehicles.api';
 import { apiErrorMessage } from '@/api/axios';
 import { DateField } from '@/components/DateField/DateField';
 import type { VehicleFormDialogProps } from './VehicleFormDialog.types';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Create/edit dialog for a vehicle. initialKm is only set on creation
  *  (A-13); the backend blocks changing it once the vehicle has history. */
@@ -30,6 +31,11 @@ export function VehicleFormDialog({ open, vehicle, onClose, onSaved }: VehicleFo
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setError(null);
     setSubmitting(true);
     const payload = {

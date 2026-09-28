@@ -3,6 +3,7 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid,
 import { maintenanceTypesApi } from '@/api/maintenance-types.api';
 import { apiErrorMessage } from '@/api/axios';
 import type { MaintenanceTypeFormDialogProps } from './MaintenanceTypeFormDialog.types';
+import { formValidationError } from '@/utils/form-validation';
 
 /** Create/edit dialog for a maintenance type. Full-set semantics (PUT): the
  *  km/months thresholds are always submitted together (kmTarget ≥ kmAlert). */
@@ -31,6 +32,11 @@ export function MaintenanceTypeFormDialog({ open, type, onClose, onSaved }: Main
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setError(null);
     setSubmitting(true);
     const payload = {

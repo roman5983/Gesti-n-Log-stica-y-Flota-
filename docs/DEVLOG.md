@@ -778,3 +778,15 @@ La consigna exige que cada integrante tenga al menos un test de su autoría (pun
 - `PENDIENTES.md`: punto 10 actualizado con los conteos reales.
 
 **Verificación.** Backend: 144 tests en 22 archivos, exit 0. Frontend: 155 tests en 16 archivos, exit 0. Totales: 299 tests, 100 % pasando.
+
+---
+
+## Revisión de lo que trajeron Justino y Santiago (28/09/2026)
+
+Se verificó `main` después de los PR #13 (tests unitarios de Santiago) y #14 (RN-4 completa, pasada horaria de alertas, validación de formularios propia, layout de escritorio del chofer). Backend: 148 tests, `tsc`, ESLint y build limpios. Frontend: 155 tests, `tsc`, ESLint y build limpios. El seed sigue teniendo choferes asignables con la RN-4 nueva: Juan, María, Carlos y Valentina tienen la documentación completa. A Lucía y Diego les falta documentación, así que no se les puede asignar un viaje.
+
+**Problema corregido:**
+
+- **Formularios con `noValidate`.** Sacar la validación del navegador también sacó el bloqueo del envío. `DateField` (fecha incompleta o fuera de rango) y `AddressAutocomplete` (dirección escrita pero no elegida de la lista) marcan el error con `setCustomValidity`, y era el navegador el que frenaba el formulario. Sin eso, un viaje podía crearse con un destino sin validar, y una fecha a medio escribir se descartaba en silencio. Ahora `utils/form-validation.ts` revisa las mismas reglas al enviar y muestra el mensaje en el `Alert` del formulario, con palabras de la app ("Completá el campo \"Patente\"."). Así se mantiene el objetivo de Justino, que era no mostrar el cartel del navegador. Se aplicó a los 8 formularios. Tests: `form-validation.test.ts` (6) y `VehicleFormDialog.test.tsx` (1). El frontend queda en 162 tests.
+
+**Anotado en `PENDIENTES.md`, sin corregir.** `SMTP_PORT` tiene un mínimo de 1024 y rechaza los puertos de correo habituales (25, 465 y 587, este último el de `.env.example`). Con el correo configurado, el backend no arranca. Se le avisó a Santiago para que lo corrija. También quedó anotado que el diálogo "Asignar viaje" todavía ofrece choferes que no cumplen la RN-4, y el error aparece recién al confirmar. Se quitaron de la lista la evidencia de tests (ya está en `docs/EVIDENCIA-TESTS.md`) y la participación (Santiago ya tiene commits y tests propios).
