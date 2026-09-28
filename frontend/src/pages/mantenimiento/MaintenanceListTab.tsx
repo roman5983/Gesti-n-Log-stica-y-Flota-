@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Alert, Box, Button, IconButton, Stack, Tooltip } from '@mui/material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Tooltip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -8,8 +8,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusChip } from '../../components/StatusChip';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { DateRangeFilter } from '../../components/DateRangeFilter';
 import { usePaginatedList, type PageParams } from '../../hooks/usePaginatedList';
 import { maintenancesApi, type Maintenance } from '../../api/maintenances.api';
+import { maintenanceTypesApi, type MaintenanceType } from '../../api/maintenance-types.api';
 import { apiErrorMessage } from '../../api/axios';
 import { CreateMaintenanceDialog } from './CreateMaintenanceDialog';
 import { MaintenanceDetailDialog } from './MaintenanceDetailDialog';
@@ -17,9 +19,25 @@ import { formatLocalDate } from '../../utils/datetime';
 
 /** Scheduled (PENDING+IN_PROGRESS) or history (COMPLETED+CANCELLED) list of maintenances. */
 export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) {
+  const [types, setTypes] = useState<MaintenanceType[]>([]);
+  const [typeFilter, setTypeFilter] = useState<number | ''>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  useEffect(() => {
+    maintenanceTypesApi.list({ page: 1, limit: 100 }).then((r) => setTypes(r.items)).catch(() => {});
+  }, []);
+
   const fetchFn = useCallback(
-    (params: PageParams) => maintenancesApi.list({ ...params, view }),
-    [view],
+    (params: PageParams) =>
+      maintenancesApi.list({
+        ...params,
+        view,
+        maintenanceTypeId: typeFilter || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      }),
+    [view, typeFilter, dateFrom, dateTo],
   );
   const { items, total, page, setPage, limit, setLimit, loading, error, reload } =
     usePaginatedList<Maintenance>(fetchFn);
@@ -111,13 +129,39 @@ export function MaintenanceListTab({ view }: { view: 'scheduled' | 'history' }) 
 
   return (
     <Box>
-      {view === 'scheduled' && (
-        <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        justifyContent="space-between"
+        alignItems={{ sm: 'flex-start' }}
+        sx={{ mb: 2 }}
+      >
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <TextField
+            select
+            label="Tipo de mantenimiento"
+            size="small"
+            value={typeFilter}
+            onChange={(e) => { setTypeFilter(e.target.value ? Number(e.target.value) : ''); setPage(1); }}
+            sx={{ minWidth: 220 }}
+          >
+            <MenuItem value="">Todos</MenuItem>
+            {types.map((t) => (
+              <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+            ))}
+          </TextField>
+          <DateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onChange={(from, to) => { setDateFrom(from); setDateTo(to); setPage(1); }}
+          />
+        </Stack>
+        {view === 'scheduled' && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
             Registrar mantenimiento
           </Button>
-        </Stack>
-      )}
+        )}
+      </Stack>
 
       {error ? (
         <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>

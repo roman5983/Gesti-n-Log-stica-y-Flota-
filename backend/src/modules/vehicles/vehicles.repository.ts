@@ -5,6 +5,8 @@ import type { DbClient } from '../audit-logs/audit-logs.repository';
 export interface VehicleFilters {
   status?: VehicleStatus;
   search?: string;
+  kmMin?: number;
+  kmMax?: number;
 }
 
 interface PageArgs {
@@ -23,6 +25,14 @@ function buildWhere(filters: VehicleFilters): Prisma.VehicleWhereInput {
             { licensePlate: { contains: filters.search } },
             { model: { contains: filters.search } },
           ],
+        }
+      : {}),
+    ...(filters.kmMin !== undefined || filters.kmMax !== undefined
+      ? {
+          accumulatedKm: {
+            ...(filters.kmMin !== undefined ? { gte: filters.kmMin } : {}),
+            ...(filters.kmMax !== undefined ? { lte: filters.kmMax } : {}),
+          },
         }
       : {}),
   };

@@ -71,5 +71,9 @@ export const listMaintenancesQuerySchema = paginationSchema.extend({
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
   /** C-6 views: "scheduled" = PENDING + IN_PROGRESS, "history" = COMPLETED + CANCELLED. */
   view: z.enum(['scheduled', 'history']).optional(),
+  maintenanceTypeId: z.coerce.number().int().positive().optional(),
+  /** Range filter over scheduledAt. */
+  dateFrom: z.coerce.date().optional(),
+  dateTo: z.coerce.date().optional(),
 });
 export type ListMaintenancesQuery = z.infer<typeof listMaintenancesQuerySchema>;

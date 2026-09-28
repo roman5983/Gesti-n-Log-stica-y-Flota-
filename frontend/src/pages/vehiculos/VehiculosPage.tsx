@@ -40,6 +40,9 @@ export function VehiculosPage() {
   );
   const [search, setSearch] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
+  const [kmMin, setKmMin] = useState('');
+  const [kmMax, setKmMax] = useState('');
+  const [appliedKm, setAppliedKm] = useState({ min: '', max: '' });
 
   const fetchFn = useCallback(
     (params: PageParams) =>
@@ -47,8 +50,10 @@ export function VehiculosPage() {
         ...params,
         status: statusFilter || undefined,
         search: appliedSearch || undefined,
+        kmMin: appliedKm.min ? Number(appliedKm.min) : undefined,
+        kmMax: appliedKm.max ? Number(appliedKm.max) : undefined,
       }),
-    [statusFilter, appliedSearch],
+    [statusFilter, appliedSearch, appliedKm],
   );
 
   const { items, total, page, setPage, limit, setLimit, loading, error, reload } =
@@ -183,10 +188,28 @@ export function VehiculosPage() {
           size="small"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { setAppliedSearch(search); setPage(1); } }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { setAppliedSearch(search); setAppliedKm({ min: kmMin, max: kmMax }); setPage(1); } }}
           sx={{ minWidth: 260 }}
         />
-        <Button onClick={() => { setAppliedSearch(search); setPage(1); }}>Buscar</Button>
+        <TextField
+          label="Km desde"
+          type="number"
+          size="small"
+          value={kmMin}
+          onChange={(e) => setKmMin(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { setAppliedSearch(search); setAppliedKm({ min: kmMin, max: kmMax }); setPage(1); } }}
+          sx={{ minWidth: 130 }}
+        />
+        <TextField
+          label="Km hasta"
+          type="number"
+          size="small"
+          value={kmMax}
+          onChange={(e) => setKmMax(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { setAppliedSearch(search); setAppliedKm({ min: kmMin, max: kmMax }); setPage(1); } }}
+          sx={{ minWidth: 130 }}
+        />
+        <Button onClick={() => { setAppliedSearch(search); setAppliedKm({ min: kmMin, max: kmMax }); setPage(1); }}>Buscar</Button>
       </Stack>
 
       <DataTable

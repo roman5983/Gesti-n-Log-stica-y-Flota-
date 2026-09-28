@@ -62,7 +62,12 @@ async function getExistingOrFail(id: number): Promise<Vehicle> {
 
 export const vehiclesService = {
   async list(query: ListVehiclesQuery): Promise<PaginatedResult<VehicleResponse>> {
-    const filters: VehicleFilters = { status: query.status, search: query.search };
+    const filters: VehicleFilters = {
+      status: query.status,
+      search: query.search,
+      kmMin: query.kmMin,
+      kmMax: query.kmMax,
+    };
     const [vehicles, total] = await Promise.all([
       vehiclesRepository.findMany(filters, {
         skip: (query.page - 1) * query.limit,

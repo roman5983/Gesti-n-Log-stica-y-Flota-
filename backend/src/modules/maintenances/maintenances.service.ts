@@ -94,6 +94,9 @@ export const maintenancesService = {
       vehicleId: query.vehicleId,
       status: query.status,
       view: query.view,
+      maintenanceTypeId: query.maintenanceTypeId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
     };
     const [items, total] = await Promise.all([
       maintenancesRepository.findMany(filters, {

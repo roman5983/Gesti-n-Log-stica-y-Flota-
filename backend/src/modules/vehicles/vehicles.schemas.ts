@@ -32,9 +32,17 @@ export const updateVehicleSchema = z
   .refine((data) => Object.keys(data).length > 0, { message: 'Se requiere al menos un campo' });
 export type UpdateVehicleDto = z.infer<typeof updateVehicleSchema>;
 
-export const listVehiclesQuerySchema = paginationSchema.extend({
-  /** C-1 status filter for the fleet listing. */
-  status: z.enum(['AVAILABLE', 'INACTIVE', 'IN_WORKSHOP', 'ON_TRIP']).optional(),
-  search: z.string().max(100).optional(),
-});
+export const listVehiclesQuerySchema = paginationSchema
+  .extend({
+    /** C-1 status filter for the fleet listing. */
+    status: z.enum(['AVAILABLE', 'INACTIVE', 'IN_WORKSHOP', 'ON_TRIP']).optional(),
+    search: z.string().max(100).optional(),
+    /** Accumulated km range filter. */
+    kmMin: z.coerce.number().int().min(0).optional(),
+    kmMax: z.coerce.number().int().min(0).optional(),
+  })
+  .refine((data) => data.kmMin === undefined || data.kmMax === undefined || data.kmMin <= data.kmMax, {
+    message: 'El km mínimo no puede ser mayor al km máximo',
+    path: ['kmMin'],
+  });
 export type ListVehiclesQuery = z.infer<typeof listVehiclesQuerySchema>;

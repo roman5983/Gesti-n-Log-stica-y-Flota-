@@ -23,6 +23,8 @@ export interface ListVehiclesParams {
   limit: number;
   status?: VehicleStatus;
   search?: string;
+  kmMin?: number;
+  kmMax?: number;
 }
 
 export interface CreateVehicleInput {

@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma-client';
 import type { MaintenanceStatus, Prisma } from '../../generated/prisma/client';
+import { utcEndOfDay } from '../../shared/utils/dates';
 import type { DbClient } from '../audit-logs/audit-logs.repository';
 
 const maintenanceInclude = {
@@ -18,6 +19,9 @@ export interface MaintenanceFilters {
   status?: MaintenanceStatus;
   /** C-6: 'scheduled' → PENDING+IN_PROGRESS, 'history' → COMPLETED+CANCELLED. */
   view?: 'scheduled' | 'history';
+  maintenanceTypeId?: number;
+  dateFrom?: Date;
+  dateTo?: Date;
 }
 
 interface PageArgs {
@@ -26,13 +30,23 @@ interface PageArgs {
 }
 
 function buildWhere(filters: MaintenanceFilters): Prisma.MaintenanceWhereInput {
-  const where: Prisma.MaintenanceWhereInput = { vehicleId: filters.vehicleId };
+  const where: Prisma.MaintenanceWhereInput = {
+    vehicleId: filters.vehicleId,
+    maintenanceTypeId: filters.maintenanceTypeId,
+  };
   if (filters.status) {
     where.status = filters.status;
   } else if (filters.view === 'scheduled') {
     where.status = { in: ['PENDING', 'IN_PROGRESS'] };
   } else if (filters.view === 'history') {
     where.status = { in: ['COMPLETED', 'CANCELLED'] };
+  }
+  if (filters.dateFrom || filters.dateTo) {
+    // utcEndOfDay makes dateTo an inclusive upper bound (same fix as trips/reports).
+    where.scheduledAt = {
+      ...(filters.dateFrom ? { gte: filters.dateFrom } : {}),
+      ...(filters.dateTo ? { lte: utcEndOfDay(filters.dateTo) } : {}),
+    };
   }
   return where;
 }

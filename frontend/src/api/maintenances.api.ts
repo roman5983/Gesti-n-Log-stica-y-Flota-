@@ -31,6 +31,9 @@ export interface ListMaintenancesParams {
   vehicleId?: number;
   status?: MaintenanceStatus;
   view?: 'scheduled' | 'history';
+  maintenanceTypeId?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export interface CreateMaintenanceInput {
