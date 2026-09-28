@@ -43,7 +43,7 @@ const envSchema = z.object({
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
 
   /** Minutes between automatic alert evaluations. 0 disables the job. */
-  ALERTS_EVAL_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(10),
+  ALERTS_EVAL_INTERVAL_MIN: z.coerce.number().int().min(0).max(1440).default(60),
 });
 
 const parsed = envSchema.safeParse(process.env);

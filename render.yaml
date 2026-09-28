@@ -23,7 +23,7 @@ services:
       - key: TRUST_PROXY
         value: "2"
       - key: ALERTS_EVAL_INTERVAL_MIN
-        value: "10"
+        value: "60"
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
