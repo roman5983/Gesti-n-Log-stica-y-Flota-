@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { PageOutlet } from '@/components/PageOutlet/PageOutlet';
 import { AppBar, Avatar, Box, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Toolbar, Tooltip, Typography } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -125,7 +126,7 @@ export function SidebarLayout({ title, navItems }: SidebarLayoutProps) {
 
       <Box component="main" sx={{ flexGrow: 1, p: 3, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
         <Toolbar />
-        <Outlet />
+        <PageOutlet />
       </Box>
 
       <ConfirmDialog

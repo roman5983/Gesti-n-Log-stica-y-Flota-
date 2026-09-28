@@ -1337,6 +1337,8 @@ curl -X POST http://localhost:3000/api/v1/trips/13/assign \
 16. Unificar la política de códigos: hacer que `assertCanAccess` devuelva 404 en vez de 403, en coherencia con `getOwnedDocumentOrFail`. Evaluar el impacto en la experiencia de usuario.
 17. Agregar la documentación vigente al cálculo de `available`, en el repositorio **y** en el servicio, y escribir un test que compare ambas implementaciones sobre el mismo conjunto de datos.
 
+> **Actualización (28/09/2026) — «disponible» incluye la documentación (RN-4).** Desde que asignar un viaje exige la documentación completa y vigente, el filtro `available` y el campo `available` también la tienen en cuenta: DNI, licencia, ART y psicofísico cargados y sin vencer. La respuesta suma `documentsComplete`. Así el diálogo «Asignar viaje» solo ofrece choferes que la asignación va a aceptar. En la pantalla de Choferes, la etiqueta «No» muestra el motivo al pasar el mouse. Tests: `drivers.repository.test.ts` y `DriversPage.helpers.test.ts`.
+
 ---
 
 **Anterior:** [Capítulo 10 — El módulo de vehículos](10-modulo-vehicles.md) · **Siguiente:** Capítulo 12 — El módulo de viajes *(pendiente)*

@@ -1,6 +1,6 @@
 # Capítulo 21 — Componentes reutilizables y layouts
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Prerrequisitos:** [Capítulo 18](18-frontend-bootstrap.md) (React, JSX, hooks) y [Capítulo 20](20-frontend-auth-estado.md).
 > **Archivos que se explican aquí:** los 8 de `src/components/` (514 líneas), los 3 de `src/layouts/` (121), `src/hooks/usePaginatedList.ts` (49) y `src/lib/google-maps.ts` (28). Total: 712 líneas, todas.
@@ -18,7 +18,7 @@ Esta es la capa que evita que las 29 pantallas del capítulo 22 sean 29 implemen
 |:--|:--|:-:|:-:|
 | **Genéricos** | `DataTable`, `ConfirmDialog`, `KpiCard`, `PageHeader`, `DateRangeFilter` *(2026-09-18, §21.10)* | ❌ No | ❌ No |
 | **Semi-específicos** | `StatusChip`, `RouteMap`, `AddressAutocomplete` | ⚠️ Parcial | ❌ No |
-| **Estructurales** | `AppSidebarLayout` + los 3 layouts | ⚠️ Solo la sesión | ❌ No |
+| **Estructurales** | `SidebarLayout` + los 3 layouts | ⚠️ Solo la sesión | ❌ No |
 | **Lógica compartida** | `usePaginatedList` | ❌ No | ⚠️ Recibe la función |
 
 🔴 **Ninguno llama a la API directamente**, y esa restricción es lo que los hace reutilizables (§2.3.4). `DataTable` recibe sus filas por props, y por eso sirve igual para vehículos, viajes, choferes y auditoría.
@@ -311,7 +311,7 @@ graph TB
 
 ```tsx
 // — ejemplo ilustrativo del bug —
-function VehiculosPage() {
+function VehiclesPage() {
   const [search, setSearch] = useState('');
   const { items } = usePaginatedList((p) =>          // 🔴 función NUEVA en cada render
     vehiclesApi.list({ ...p, search }),
@@ -612,7 +612,7 @@ script.onerror = () => {
 
 ---
 
-## 21.6. `AppSidebarLayout` — un componente, dos aplicaciones
+## 21.6. `SidebarLayout` — un componente, dos aplicaciones
 
 ### 21.6.1. La parametrización
 
@@ -622,42 +622,42 @@ script.onerror = () => {
 27   path: string;
 28   icon: ReactNode;
 29 }
-34 export function AppSidebarLayout({ title, navItems }: { title: string; navItems: NavItem[] }) {
+34 export function SidebarLayout({ title, navItems }: { title: string; navItems: NavItem[] }) {
 ```
 
 🔴 **Dos props convierten un layout en dos.**
 
-`AdminLayout` (29 líneas) y `OperadorLayout` (21) **no tienen ninguna lógica**: solo declaran su lista de ítems y delegan.
+`AdminLayout` (29 líneas) y `OperatorLayout` (21) **no tienen ninguna lógica**: solo declaran su lista de ítems y delegan.
 
 ```tsx
 // AdminLayout.tsx — 10 ítems
 export function AdminLayout() {
-  return <AppSidebarLayout title="Administración" navItems={navItems} />;
+  return <SidebarLayout title="Administración" navItems={navItems} />;
 }
 
-// OperadorLayout.tsx — 6 ítems
-export function OperadorLayout() {
-  return <AppSidebarLayout title="Operación" navItems={navItems} />;
+// OperatorLayout.tsx — 6 ítems
+export function OperatorLayout() {
+  return <SidebarLayout title="Operación" navItems={navItems} />;
 }
 ```
 
 💡 **157 líneas compartidas, 50 de configuración.** Sin la parametrización habría dos copias de la barra superior, el cajón lateral, el menú móvil, el avatar y el diálogo de cierre de sesión — **y arreglar un bug de responsive requeriría hacerlo dos veces.**
 
-**Y el comentario de `OperadorLayout.tsx:9` documenta la diferencia funcional:**
+**Y el comentario de `OperatorLayout.tsx:9` documenta la diferencia funcional:**
 
 ```tsx
 /** Operator sidebar (DOC-5 §5.1) — no Users/Audit/Config/Reports. */
 ```
 
-✅ **Las cuatro secciones ausentes coinciden exactamente con el grupo de rutas solo-ADMIN de `App.tsx`** (§18.5.4) **y con los permisos del backend** (§7.4.1).
+✅ **Las cuatro secciones ausentes coinciden exactamente con el grupo de rutas solo-ADMIN de `App/App.tsx`** (§18.5.4) **y con los permisos del backend** (§7.4.1).
 
 🔴 **Es la tercera declaración del mismo modelo de permisos**, ahora como menú:
 
 | Declaración | Dónde | Formato |
 |:--|:--|:--|
 | 1 | `*.routes.ts` del backend | `authorize('ADMIN')` |
-| 2 | `App.tsx` | Grupos de `<Route>` |
-| 3 | `AdminLayout`/`OperadorLayout` | Listas de `NavItem` |
+| 2 | `App/App.tsx` | Grupos de `<Route>` |
+| 3 | `AdminLayout`/`OperatorLayout` | Listas de `NavItem` |
 
 ⚠️ **Nada verifica que las tres coincidan.** Si alguien agregara `/reportes` al menú del operador, aparecería la opción, el guard lo redirigiría al dashboard **sin explicación** (§20.4.2), y el usuario pensaría que la aplicación falla.
 
@@ -812,7 +812,7 @@ async function handleLogout() {
 
 💡 **Es una redundancia que resulta ser una corrección.**
 
-### 21.6.5. `ChoferLayout` — la aplicación móvil
+### 21.6.5. `DriverLayout` — la aplicación móvil
 
 ```tsx
 30 <Box sx={{ minHeight: '100vh', pb: 8, maxWidth: 480, mx: 'auto' }}>
@@ -853,7 +853,7 @@ La barra inferior repite `maxWidth: 480, mx: 'auto'` porque es `position: fixed`
 
 ⚠️ **El valor 480 está codificado dos veces** en el mismo archivo. Una constante lo evitaría.
 
-**Lo que NO tiene, comparado con `AppSidebarLayout`:**
+**Lo que NO tiene, comparado con `SidebarLayout`:**
 
 | Elemento | Sidebar | Chofer |
 |:--|:-:|:-:|
@@ -912,7 +912,7 @@ loading = false,
 
 ```mermaid
 graph TB
-    A["VehiculosPage"] --> B["PageHeader<br/>título + botón 'Nuevo'"]
+    A["VehiclesPage"] --> B["PageHeader<br/>título + botón 'Nuevo'"]
     A --> C["useCallback: fetchFn con los filtros"]
     C --> D["usePaginatedList(fetchFn)"]
     D --> E["useEffect → fetchFn({page, limit})"]
@@ -936,14 +936,14 @@ graph TB
 
 ```mermaid
 graph TB
-    A["App.tsx: &lt;Route&gt; sin path"] --> B["RequireAuth"]
+    A["App/App.tsx: &lt;Route&gt; sin path"] --> B["RequireAuth"]
     B --> C["RequireRole(['ADMIN','OPERATOR'])"]
     C --> D["RoleShellSwitch"]
-    D --> E["AdminLayout u OperadorLayout"]
-    E --> F["AppSidebarLayout(title, navItems)"]
+    D --> E["AdminLayout u OperatorLayout"]
+    E --> F["SidebarLayout(title, navItems)"]
     F --> G["AppBar + Drawer × 2 + main"]
     G --> H["&lt;Outlet /&gt;"]
-    H --> I["VehiculosPage"]
+    H --> I["VehiclesPage"]
 
     style F fill:#fff9c4,stroke:#f57f17
     style I fill:#e8f5e9,stroke:#2e7d32
@@ -958,7 +958,7 @@ graph TB
 ### Ejemplo 1 — El bucle infinito de `usePaginatedList`
 
 ```tsx
-// — modificación temporal en VehiculosPage —
+// — modificación temporal en VehiclesPage —
 const { items } = usePaginatedList((p) => vehiclesApi.list({ ...p }));   // 🔴 sin useCallback
 ```
 
@@ -1066,7 +1066,7 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 
 6. **El cambio de identidad de `fetchFn` ES el mecanismo de recarga por filtro** — elegante, y la misma propiedad que produce el bucle infinito si no se memoriza.
 
-7. **Dos props convierten `AppSidebarLayout` en dos aplicaciones.** 157 líneas compartidas, 50 de configuración.
+7. **Dos props convierten `SidebarLayout` en dos aplicaciones.** 157 líneas compartidas, 50 de configuración.
 
 8. **`RouteMap` y `lib/google-maps.ts` implementan la decisión de que las dependencias externas sean opcionales**, con degradación elegante y un mensaje que dice qué configurar.
 
@@ -1079,10 +1079,10 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
    | 3 | 🔴 **`usePaginatedList` no tiene bandera `cancelled`**, a diferencia de `useBootstrapSession`. Cambiar de página rápido puede mostrar los datos de una página con el número de otra. El escenario es **mucho más frecuente** que el que sí se protegió. | **Alta** |
    | 4 | 🔴 **El botón de notificaciones no hace nada.** Promete funcionalidad inexistente, y el sistema tiene alertas y una pantalla dedicada a las que podría enlazar. | Media |
    | 5 | ⚠️ **`DataTable` no tiene estado de error**, aunque `usePaginatedList` lo expone. Cada pantalla lo resuelve por su cuenta, con siete implementaciones distintas. | Media |
-   | 6 | ⚠️ **El modelo de permisos está declarado TRES veces** (rutas del backend, grupos de `App.tsx`, listas de `NavItem`) sin nada que verifique la coincidencia. | Media |
+   | 6 | ⚠️ **El modelo de permisos está declarado TRES veces** (rutas del backend, grupos de `App/App.tsx`, listas de `NavItem`) sin nada que verifique la coincidencia. | Media |
    | 7 | ⚠️ **`Record<string, …>` en `STATUS_MAP` no detecta errores de tipeo** ni entradas faltantes. Un tipo unión los convertiría en errores de compilación. | Media |
    | 8 | ⚠️ **`ConfirmDialog.loading` no se usa en el cierre de sesión**, así que no hay señal de progreso si la operación tarda. Y `onClose` no comprueba `loading`. | Baja |
-   | 9 | ⚠️ **`ChoferLayout` usa `pb: 8` (número mágico)** para compensar la barra fija, mientras la barra superior usa `<Toolbar/>` — que se adapta solo. Dos soluciones al mismo problema en el mismo archivo. | Baja |
+   | 9 | ⚠️ **`DriverLayout` usa `pb: 8` (número mágico)** para compensar la barra fija, mientras la barra superior usa `<Toolbar/>` — que se adapta solo. Dos soluciones al mismo problema en el mismo archivo. | Baja |
    | 10 | ⚠️ **`KpiCard` no formatea números:** `1234567` se muestra sin separadores. Un `toLocaleString` interno lo resolvería para todas las tarjetas. | Baja |
    | 11 | ⚠️ **La localización de MUI es parcial:** las tres etiquetas visibles están en español, pero los `aria-label` de los botones de paginación siguen en inglés. | Baja |
 
@@ -1130,11 +1130,11 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 
 11. Porque **MUI necesita variantes distintas según el tamaño de pantalla**: en móvil, un cajón `temporary` que se abre sobre el contenido con fondo oscuro; en escritorio, uno `permanent` que empuja el contenido. **Se muestran alternativamente por CSS** (`display: { xs: 'block', md: 'none' }` y viceversa), y la variable `drawer` evita duplicar el contenido.
 
-12. **Ocupa el espacio que la `AppBar` fija le quita al flujo del documento.** Como la barra tiene `position="fixed"`, sale del flujo y se superpondría al contenido; el `<Toolbar/>` vacío tiene **exactamente la misma altura** y lo empuja hacia abajo. **Es mejor que un margen fijo** porque la altura de la barra cambia según el punto de corte (56px en móvil, 64px en escritorio) y el `<Toolbar/>` la sigue automáticamente — a diferencia del `pb: 8` de `ChoferLayout`, que es un número mágico.
+12. **Ocupa el espacio que la `AppBar` fija le quita al flujo del documento.** Como la barra tiene `position="fixed"`, sale del flujo y se superpondría al contenido; el `<Toolbar/>` vacío tiene **exactamente la misma altura** y lo empuja hacia abajo. **Es mejor que un margen fijo** porque la altura de la barra cambia según el punto de corte (56px en móvil, 64px en escritorio) y el `<Toolbar/>` la sigue automáticamente — a diferencia del `pb: 8` de `DriverLayout`, que es un número mágico.
 
 13. **Es redundante** porque `logout()` limpia el store y `RequireAuth` redirige por su cuenta al detectar `user === null`. **Pero corrige un detalle importante**: la redirección del guard agrega `state={{ from: location }}`, así que tras volver a iniciar sesión el usuario **regresaría a la pantalla donde estaba** — lo contrario de lo deseado tras cerrar sesión voluntariamente. **La navegación explícita, sin estado, evita eso.**
 
-14. **Tres veces:** (1) los `authorize(...)` de los 13 archivos de rutas del backend; (2) los grupos de `<Route>` de `App.tsx`; (3) las listas de `NavItem` de `AdminLayout` y `OperadorLayout`. **Nada verifica que coincidan.** Si el menú del operador incluyera `/reportes`, la opción aparecería, el guard lo redirigiría al dashboard **sin ninguna explicación** (§20.4.2), y el usuario concluiría que la aplicación falla.
+14. **Tres veces:** (1) los `authorize(...)` de los 13 archivos de rutas del backend; (2) los grupos de `<Route>` de `App/App.tsx`; (3) las listas de `NavItem` de `AdminLayout` y `OperatorLayout`. **Nada verifica que coincidan.** Si el menú del operador incluyera `/reportes`, la opción aparecería, el guard lo redirigiría al dashboard **sin ninguna explicación** (§20.4.2), y el usuario concluiría que la aplicación falla.
 
 </details>
 
@@ -1153,7 +1153,7 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 
 5. Reproducir el **ejemplo 1** (bucle infinito) y contar las peticiones por segundo.
 6. Reproducir el **ejemplo 2** (carrera de páginas) con la red limitada.
-7. Quitar el `<Toolbar />` vacío de `AppSidebarLayout` y observar cómo la barra tapa el contenido.
+7. Quitar el `<Toolbar />` vacío de `SidebarLayout` y observar cómo la barra tapa el contenido.
 8. Cambiar la altura de `BottomNavigation` con `sx={{ height: 100 }}` y verificar que `pb: 8` deja de alcanzar.
 9. Agregar `/reportes` al menú del operador y documentar exactamente lo que ve el usuario al hacer clic.
 
@@ -1164,7 +1164,7 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 12. Conectar el botón de notificaciones: mostrar el conteo de alertas pendientes con un `Badge` y navegar a `/alertas`.
 13. Agregar una prop `error` a `DataTable` y eliminar las implementaciones dispersas en las pantallas.
 14. Usar la prop `loading` de `ConfirmDialog` en el cierre de sesión, con un indicador de progreso en el botón.
-15. Reemplazar `pb: 8` de `ChoferLayout` por una medición real de la altura de la barra, o extraer una constante compartida.
+15. Reemplazar `pb: 8` de `DriverLayout` por una medición real de la altura de la barra, o extraer una constante compartida.
 16. Rediseñar la API de `usePaginatedList` para recibir los filtros como objeto, haciendo imposible el bucle infinito. Comparar ergonomía y robustez con la versión actual.
 17. Agregar formato de números a `KpiCard` con `toLocaleString('es-AR')` y verificar en el dashboard.
 
@@ -1174,7 +1174,7 @@ UPDATE vehicles SET status = 'AVAILABLE' WHERE id = 1;
 
 > **Fecha:** 2026-09-18. El detalle completo —por qué se extrajo como componente compartido, cómo se resuelve el atajo activo, y por qué `LocalizationProvider` se montó una sola vez en `main.tsx`— está en §22B.9.1, donde se introdujo junto con el cambio que lo motivó (el selector de fecha nativo de Viajes y Reportes). Esta sección solo lo ubica en el catálogo de este capítulo.
 
-`DateRangeFilter.tsx` (96 líneas) cumple la misma regla que el resto de §21.1: **no conoce el dominio y no llama a la API.** Recibe `dateFrom`/`dateTo` como `string` y un `onChange`; no sabe si el rango que filtra es de viajes o de un informe. Es genérico en el mismo sentido que `DataTable<T>` — reutilizado tal cual por `ViajesPage` y `ReportesPage` (§22B.9.1, §22C.6.1) sin ninguna variación entre los dos usos.
+`DateRangeFilter.tsx` (96 líneas) cumple la misma regla que el resto de §21.1: **no conoce el dominio y no llama a la API.** Recibe `dateFrom`/`dateTo` como `string` y un `onChange`; no sabe si el rango que filtra es de viajes o de un informe. Es genérico en el mismo sentido que `DataTable<T>` — reutilizado tal cual por `TripsPage` y `ReportsPage` (§22B.9.1, §22C.6.1) sin ninguna variación entre los dos usos.
 
 **Por qué no es "semi-específico" como `StatusChip` o `RouteMap`.** Esos dos conocen tipos del dominio (`TripStatus`, coordenadas de viajes). `DateRangeFilter` no importa ningún tipo de `api/`; su único acoplamiento es al formato `YYYY-MM-DD` que ambas pantallas ya usaban antes de que el componente existiera — un acoplamiento de formato, no de dominio.
 
@@ -1186,7 +1186,7 @@ Con esta incorporación, el catálogo de §21.1 pasa de ocho a **nueve** compone
 
 > **Fecha:** 2026-09-22. Detalle y motivos en el DEVLOG, "Selector de fecha unificado".
 
-Hasta acá convivían dos formas de ingresar fechas: `DateRangeFilter` con el `DatePicker` de MUI (Viajes, Reportes), y el `<input type="date">` / `datetime-local` nativo en el resto (Auditoría, choferes, vehículos, documentos, viajes, mantenimientos). El nativo se ve y se ordena distinto según el navegador y el sistema operativo: dd/mm en uno, mm/dd en otro. Ahora hay un único control, `components/DateField.tsx`:
+Hasta acá convivían dos formas de ingresar fechas: `DateRangeFilter` con el `DatePicker` de MUI (Viajes, Reportes), y el `<input type="date">` / `datetime-local` nativo en el resto (Auditoría, choferes, vehículos, documentos, viajes, mantenimientos). El nativo se ve y se ordena distinto según el navegador y el sistema operativo: dd/mm en uno, mm/dd en otro. Ahora hay un único control, `components/DateField/DateField.tsx`:
 
 | Componente | Muestra / se tipea | Valor que recibe y entrega |
 |:--|:--|:--|

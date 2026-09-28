@@ -8,6 +8,7 @@ import { sha256 } from '../../shared/utils/crypto';
 import type { JwtPayload } from '../../shared/types/auth';
 import { usersRepository } from '../users/users.repository';
 import { driversRepository } from '../drivers/drivers.repository';
+import { auditLogsService } from '../audit-logs/audit-logs.service';
 import { authRepository } from './auth.repository';
 import type { LoginDto } from './auth.schemas';
 
@@ -85,7 +86,12 @@ export const authService = {
       throw new UnauthorizedError('Credenciales inválidas');
     }
 
-    return issueSession(user);
+    const session = await issueSession(user);
+    // Who entered and when. Failed attempts are not recorded: the audit row
+    // needs a user, and for an unknown email there is none (the rate limiter
+    // covers brute force).
+    await auditLogsService.record({ actorId: user.id, action: 'LOGIN', entity: 'USER', entityId: user.id });
+    return session;
   },
 
   /**
@@ -130,6 +136,13 @@ export const authService = {
     const stored = await authRepository.findByHash(sha256(refreshToken));
     if (stored && !stored.revoked) {
       await authRepository.revoke(stored.id);
+      // Only a real session end is recorded, not a repeated or expired logout.
+      await auditLogsService.record({
+        actorId: stored.userId,
+        action: 'LOGOUT',
+        entity: 'USER',
+        entityId: stored.userId,
+      });
     }
   },
 

@@ -12,6 +12,8 @@ export const AUDIT_ACTIONS = [
   'CANCEL',
   'RESOLVE',
   'VIEW_CREDENTIALS',
+  'LOGIN',
+  'LOGOUT',
 ] as const;
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -25,6 +27,8 @@ export const ACTION_LABELS: Record<string, string> = {
   CANCEL: 'Cancelación',
   RESOLVE: 'Resolución',
   VIEW_CREDENTIALS: 'Consulta de credenciales',
+  LOGIN: 'Inicio de sesión',
+  LOGOUT: 'Cierre de sesión',
 };
 
 /** Colors carry meaning here: destructive actions read red, the sensitive
@@ -40,6 +44,8 @@ export const ACTION_COLORS: Record<string, AuditChipColor> = {
   CANCEL: 'warning',
   RESOLVE: 'success',
   VIEW_CREDENTIALS: 'warning',
+  LOGIN: 'default',
+  LOGOUT: 'default',
 };
 
 /** Entities, in the order they are offered in the filter. */

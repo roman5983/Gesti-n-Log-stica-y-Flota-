@@ -1672,6 +1672,28 @@ graph TB
 13. Escribir el primer test de endpoint con `supertest` contra `createApp()`, sin abrir puerto. Empezar por `GET /health`, seguir por `GET /api/v1/vehicles` sin token (esperar 401).
 14. Agregar los manejadores de `unhandledRejection` y `uncaughtException`. Provocar cada uno deliberadamente y verificar el comportamiento.
 
+## Hallazgos consolidados del capítulo 5
+
+Agregada el 28/09/2026 para cerrar el hueco señalado en §25.2.2: este capítulo marcaba sus hallazgos en el cuerpo del texto (🔴 y ⚠️) pero no los consolidaba. Solo se listan los **problemas o deudas**. No entran las marcas que solo destacan un concepto (por ejemplo, por qué `password_hash` es `VARCHAR(60)`). La columna *Estado* se verificó contra el código de esa fecha. Lo que sigue abierto y conviene resolver para la entrega está en `PENDIENTES.md`.
+
+| # | Hallazgo | § | Gravedad | Estado al 28/09/2026 |
+|:-:|:--|:--|:--|:--|
+| 1 | `PORT` sin rango: `99999` pasa la validación y falla en `listen()`. | §5.3.2 | Baja | Abierto. |
+| 2 | `CORS_ORIGIN` admite un solo origen y es sensible a la barra final. | §5.3.2 | Baja | Aceptado: en producción el frontend llama a la API por el mismo origen (proxy de Vercel). |
+| 3 | No se valida que `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` sean distintos. | §5.3.2 | Media | Abierto. |
+| 4 | `ACCESS_TOKEN_TTL` es texto libre: un valor mal escrito puede producir tokens sin vencimiento (§8.9, hallazgo 3). | §5.3.2 | Alta | Abierto. |
+| 5 | `SMTP_PASS` no está marcado como secreto y `MAIL_FROM` no valida su formato. | §5.3.2 | Baja | Abierto. |
+| 6 | El tipo MIME lo declara el cliente: no se verifica el contenido real del archivo. | §5.4 | Media | Abierto. |
+| 7 | La carpeta de subidas dependía del directorio desde el que se lanzaba el proceso. | §5.4 | Media | Resuelto: los archivos se guardan en la base (22/09). |
+| 8 | Un único plazo de aviso (14 días) para licencias, seguros y documentación. | §5.4 | Baja | Abierto. |
+| 9 | No hay tests de endpoints (supertest). | §5.5.2 | Media | Abierto — `PENDIENTES.md`, test de integración. |
+| 10 | Un JSON malformado no tiene manejo propio: responde 500. | §5.5.3 | Baja | Abierto. |
+| 11 | `/health` es superficial: responde «ok» aunque la base esté caída. | §5.5.4 | Media | Abierto. |
+| 12 | `listen()` sin manejador de `'error'` (por ejemplo, puerto ocupado). | §5.6 | Baja | Abierto. |
+| 13 | Sin ESLint en el repositorio. | §5.6 | Media | Resuelto: ESLint configurado y sin warnings en los dos proyectos. |
+| 14 | El apagado no tiene temporizador de seguridad, y no se manejan `unhandledRejection` ni `uncaughtException`. | §5.6 | Media | Abierto. |
+| 15 | Prisma conecta en la primera consulta: el servidor anuncia que está escuchando aunque MySQL no responda. | §5.7 | Baja | Abierto. |
+
 ---
 
 **Anterior:** [Capítulo 4 — Prisma, migraciones y seed](04-prisma-migraciones-seed.md) · **Siguiente:** Capítulo 6 — La capa compartida *(pendiente)*

@@ -124,3 +124,5 @@ La migración fue mecánica y reproducible. Un script movió los archivos, renom
 - la carga de sesión al arrancar pasó de `App.tsx` a su propio hook, `useBootstrapSession`.
 
 **Verificación:** los tests del frontend (102 en ese momento; 144 con el smoke test agregado en la revisión posterior; 149 tras el merge del 24/09/2026), `tsc`, ESLint (sin errores ni warnings) y `vite build` pasan. El comportamiento no cambió.
+
+> **Actualización (28/09/2026).** `App/App.tsx` carga cada pantalla con `React.lazy`; sus imports son dinámicos (`import('@/pages/…')`), no estáticos. Los layouts ya no usan `<Outlet />` directamente, sino `components/PageOutlet`, que le agrega el `Suspense` con el indicador de carga. `utils/form-validation.ts` revisa los formularios con `noValidate` antes de enviarlos.

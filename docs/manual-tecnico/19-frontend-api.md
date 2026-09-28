@@ -1,6 +1,6 @@
 # Capítulo 19 — La capa API del frontend
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Prerrequisitos:** [Capítulo 1, §1.2.3-1.2.5](01-conceptos-previos.md) (HTTP, REST, JSON), [Capítulo 8](08-modulo-auth.md) (el esquema de doble token) y [Capítulo 18](18-frontend-bootstrap.md).
 > **Archivos que se explican aquí:** los 15 de `src/api/` (722 líneas) más `src/utils/blob.ts` (17) y `src/utils/datetime.ts` (25) con su test (24). Total: 788 líneas.
@@ -308,7 +308,7 @@ const isAuthEndpoint = original?.url?.includes('/auth/');
 
 **Doble protección, en realidad:** `refreshAccessToken` usa **`axios` crudo** (línea 29), no la instancia `api`, así que **no pasa por este interceptor**. El comentario de la línea 28 lo dice: *"A bare axios call (not `api`) to avoid recursive interceptors."*
 
-💡 **Es la misma técnica que `App.tsx`** (§18.5.1), y aquí **sí** está documentada.
+💡 **Es la misma técnica que `App/App.tsx`** (§18.5.1), y aquí **sí** está documentada.
 
 ⚠️ **`includes('/auth/')` es una comprobación por subcadena, no exacta.** Una URL que contuviera `/auth/` en otra posición —por ejemplo, `/drivers/1/auth/x`— también se excluiría. **Hoy no existe ninguna así**, pero `startsWith('/auth/')` sería más preciso.
 
@@ -789,7 +789,7 @@ it('round-trips a local input value without drift', () => {
 ```mermaid
 sequenceDiagram
     autonumber
-    participant P as 📄 VehiculosPage
+    participant P as 📄 VehiclesPage
     participant C as vehiclesApi
     participant IQ as interceptor de petición
     participant IR as interceptor de respuesta
@@ -1064,6 +1064,8 @@ localInputToIso('2026-08-01T11:00')   // → "2026-08-01T14:00:00.000Z"
 15. Traducir al español los mensajes de error del backend, o agregar un mapa de traducción por `code` en el frontend. Evaluar cuál es mejor.
 16. Extender `UpdateVehicleInput` para admitir `insuranceExpiryDate: string | null`, y verificar que borrar el vencimiento funciona de extremo a extremo.
 17. Fijar `TZ=America/Argentina/Cordoba` en la configuración de tests y confirmar con el ejercicio 9 que ahora la regresión sí se detecta.
+
+> **Actualización (28/09/2026) — tiempo límite.** El cliente Axios tiene `timeout: 60 000 ms` (`REQUEST_TIMEOUT_MS`), igual que la llamada de `refresh`. Sin él, un servidor que acepta la conexión pero no responde dejaba la pantalla cargando para siempre. El valor es amplio a propósito: el plan gratuito de Render tarda cerca de un minuto en despertar el servicio. Al vencerse, `apiErrorMessage` explica que el servidor tardó demasiado y que conviene reintentar.
 
 ---
 

@@ -3,6 +3,7 @@ import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack
 import { usersApi } from '@/api/users.api';
 import { apiErrorMessage } from '@/api/axios';
 import type { EditProfileDialogProps } from './EditProfileDialog.types';
+import { formValidationError } from '@/utils/form-validation';
 
 /**
  * Self-service edit for an Admin's own account (name/email/password), from
@@ -27,6 +28,11 @@ export function EditProfileDialog({ open, profile, onClose, onSaved }: EditProfi
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    const invalid = formValidationError(e.currentTarget as HTMLFormElement);
+    if (invalid) {
+      setError(invalid);
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {

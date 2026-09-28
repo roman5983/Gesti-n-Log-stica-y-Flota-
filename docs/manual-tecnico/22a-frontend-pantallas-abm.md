@@ -1,10 +1,10 @@
 # Capítulo 22A — Las pantallas: el patrón de listado y el ABM
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Prerrequisitos:** [Capítulo 19](19-frontend-api.md) (la capa API), [Capítulo 20](20-frontend-auth-estado.md) (sesión y guards) y [Capítulo 21](21-frontend-componentes.md) (`DataTable`, `usePaginatedList`, `StatusChip`).
-> **Archivos que se explican aquí:** `pages/vehiculos/` (2), `pages/usuarios/` (2), `pages/choferes/` (4). Total: 8 archivos, 1.261 líneas.
-> **Nota de método:** el patrón de pantalla de listado se explica **una vez, línea por línea**, usando `VehiculosPage` como caso canónico. Las otras dos pantallas se cubren **solo en lo que las diferencia**. Los diálogos sí se analizan completos, porque ahí vive la lógica específica.
+> **Archivos que se explican aquí:** `pages/vehicles/` (2), `pages/users/` (2), `pages/drivers/` (4). Total: 8 archivos, 1.261 líneas.
+> **Nota de método:** el patrón de pantalla de listado se explica **una vez, línea por línea**, usando `VehiclesPage` como caso canónico. Las otras dos pantallas se cubren **solo en lo que las diferencia**. Los diálogos sí se analizan completos, porque ahí vive la lógica específica.
 > **Al terminar** el lector podrá leer cualquiera de las siete pantallas de listado del proyecto, y habrá visto el bug de fechas que atraviesa toda la interfaz.
 
 ---
@@ -81,8 +81,8 @@ const canManage = user?.role === 'ADMIN';
 | # | Dónde | Formato |
 |:-:|:--|:--|
 | 1 | `*.routes.ts` del backend | `authorize('ADMIN')` |
-| 2 | `App.tsx` | Grupos de `<Route>` |
-| 3 | `AdminLayout` / `OperadorLayout` | Listas de `NavItem` |
+| 2 | `App/App.tsx` | Grupos de `<Route>` |
+| 3 | `AdminLayout` / `OperatorLayout` | Listas de `NavItem` |
 | **4** | **Cada pantalla** | **`canManage`** |
 
 ⚠️ **Nada verifica que las cuatro coincidan.** Y a diferencia de las tres primeras —que son groseras (una sección entera)— esta es **fina**: distingue permisos por acción dentro de una misma pantalla. **Es la más fácil de desincronizar.**
@@ -91,7 +91,7 @@ const canManage = user?.role === 'ADMIN';
 
 ## 22A.3. El patrón de listado, línea por línea
 
-Se usa `VehiculosPage.tsx` como caso canónico. **Las otras seis pantallas de listado del proyecto siguen esta misma estructura.**
+Se usa `VehiclesPage.tsx` como caso canónico. **Las otras seis pantallas de listado del proyecto siguen esta misma estructura.**
 
 ### 22A.3.1. Pieza 1 — El estado de filtros (líneas 26-32)
 
@@ -132,9 +132,9 @@ Se usa `VehiculosPage.tsx` como caso canónico. **Las otras seis pantallas de li
 ✅ **Verificado: las nueve pantallas que usan `usePaginatedList` lo hacen correctamente.**
 
 ```
-mantenimiento/TiposMantenimientoTab · mantenimiento/MaintenanceListTab · viajes/ViajesPage
-alertas/AlertasPage · choferes/ChoferesPage · usuarios/UsuariosPage
-chofer/MiHistorialPage · vehiculos/VehiculosPage · auditoria/AuditoriaPage
+mantenimiento/MaintenanceTypesTab · mantenimiento/MaintenanceListTab · viajes/TripsPage
+alertas/AlertsPage · choferes/DriversPage · usuarios/UsersPage
+chofer/MyTripHistoryPage · vehiculos/VehiclesPage · auditoria/AuditLogPage
 ```
 
 💡 **Y las dependencias `[statusFilter, appliedSearch]` son el mecanismo de recarga por filtro:** cuando cualquiera cambia, `fetchFn` cambia de identidad, y `usePaginatedList` recarga automáticamente. **No hace falta llamar a `reload()` al filtrar.**
@@ -329,7 +329,7 @@ async function confirmDelete() {
 
 💡 **`onClose` solo en el segundo** es correcto: un error de acción es puntual y se descarta; uno de carga persiste hasta recargar.
 
-🔴 **Y esto es la manifestación del hallazgo de §21.3.2:** `DataTable` no tiene prop de error, así que **cada pantalla lo resuelve por su cuenta**. `ChoferesPage:110` usa una sola línea (`{error && <Alert …>}`), `VehiculosPage` usa el ternario doble. **Dos implementaciones distintas del mismo requisito.**
+🔴 **Y esto es la manifestación del hallazgo de §21.3.2:** `DataTable` no tiene prop de error, así que **cada pantalla lo resuelve por su cuenta**. `DriversPage:110` usa una sola línea (`{error && <Alert …>}`), `VehiclesPage` usa el ternario doble. **Dos implementaciones distintas del mismo requisito.**
 
 **Línea 152 — `setPage(1)` al filtrar**
 
@@ -365,7 +365,7 @@ onSaved={() => { setFormOpen(false); void reload(); }}
 
 ## 22A.4. 🔴 El bug de fechas que atraviesa la interfaz
 
-**Línea 90 de `VehiculosPage`:**
+**Línea 90 de `VehiclesPage`:**
 
 ```tsx
 render: (v) =>
@@ -402,10 +402,10 @@ graph TB
 
 | Archivo | Línea | Qué muestra mal |
 |:--|:-:|:--|
-| `VehiculosPage` | 90 | **Vencimiento del seguro** |
-| `ChoferesPage` | 53 | **Vencimiento de la licencia** |
+| `VehiclesPage` | 90 | **Vencimiento del seguro** |
+| `DriversPage` | 53 | **Vencimiento de la licencia** |
 | `DriverDocumentsDialog` | 168 | **Vencimiento de cada documento** |
-| `MiDocumentacionPage` | 72 | Ídem, en la app del chofer |
+| `MyDocumentsPage` | 72 | Ídem, en la app del chofer |
 | `MaintenanceListTab` | 42 | Fecha programada *(es `DATETIME`, ver abajo)* |
 
 🔴 **Las cuatro primeras son exactamente los datos sobre los que el sistema genera alertas.** Un administrador ve *"Vence: 18/02/2027"* mientras el motor de alertas calcula sobre el 19 — **y ambos tienen razón desde su punto de vista.**
@@ -459,7 +459,7 @@ function formatDateOnly(iso: string): string {
 
 ## 22A.5. Lo específico de cada pantalla
 
-### 22A.5.1. `UsuariosPage` — el filtro que nunca muestra choferes
+### 22A.5.1. `UsersPage` — el filtro que nunca muestra choferes
 
 ```tsx
 33 const fetchFn = useCallback(
@@ -484,9 +484,9 @@ function formatDateOnly(iso: string): string {
 
 **Lo que NO tiene: `canManage`**
 
-`UsuariosPage` **no importa `useAuth`.** Todas las acciones se muestran siempre.
+`UsersPage` **no importa `useAuth`.** Todas las acciones se muestran siempre.
 
-✅ **Es correcto**, porque el módulo entero es solo para administradores (`users.routes.ts:16`, §9.3) y la ruta `/usuarios` está en el grupo solo-ADMIN de `App.tsx` (§18.5.4). **Quien llega a esta pantalla ya es administrador.**
+✅ **Es correcto**, porque el módulo entero es solo para administradores (`users.routes.ts:16`, §9.3) y la ruta `/usuarios` está en el grupo solo-ADMIN de `App/App.tsx` (§18.5.4). **Quien llega a esta pantalla ya es administrador.**
 
 #### 🔴 Las tres acciones que el backend rechaza sobre uno mismo
 
@@ -500,7 +500,7 @@ function formatDateOnly(iso: string): string {
 
 🔴 **La pantalla muestra los tres botones para la propia fila del administrador conectado.**
 
-**Y como `UsuariosPage` ni siquiera importa `useAuth`, no tiene forma de saber cuál fila es la suya.**
+**Y como `UsersPage` ni siquiera importa `useAuth`, no tiene forma de saber cuál fila es la suya.**
 
 **El resultado:** el administrador se ve a sí mismo en la lista, hace clic en "Desactivar", confirma, y recibe *"You cannot activate or deactivate your own account"* **en inglés** (§20.6.2).
 
@@ -523,7 +523,7 @@ const isSelf = (u: User) => u.id === user?.id;
 
 🔴 **Es la desincronización de la cuarta declaración de permisos** anunciada en §22A.2.2, materializada.
 
-### 22A.5.2. `VehiculosPage` — la regla que se oculta a medias
+### 22A.5.2. `VehiclesPage` — la regla que se oculta a medias
 
 ```tsx
 106 {v.status !== 'ON_TRIP' && (
@@ -553,7 +553,7 @@ if (existing.status === 'IN_WORKSHOP') throw new BusinessRuleError('A vehicle un
 
 **Ahí ocultar es imposible**, y lo correcto es lo que ya hace: intentar y mostrar el error. ⚠️ **Aunque el error quede tapado por el diálogo** (§22A.3.6).
 
-### 22A.5.3. `ChoferesPage` — tres diálogos y un chip con doble señal
+### 22A.5.3. `DriversPage` — tres diálogos y un chip con doble señal
 
 ```tsx
 47 {
@@ -644,7 +644,7 @@ render: (d) => <Chip size="small" label={d.available ? 'Sí' : 'No'} color={d.av
 
 💡 **Envolver el diálogo entero en un `<form>` da tres cosas gratis:** enviar con Enter, la validación nativa de `required`, y el rol de formulario para lectores de pantalla.
 
-✅ **Es lo que `VehiculosPage` **no** hace con su campo de búsqueda** (§22A.3.7), y por eso ahí hace falta el manejador de Enter manual.
+✅ **Es lo que `VehiclesPage` **no** hace con su campo de búsqueda** (§22A.3.7), y por eso ahí hace falta el manejador de Enter manual.
 
 **La normalización espejo del backend**
 
@@ -854,7 +854,7 @@ Formatos: PDF, JPG, PNG (máx. 1 MB). Un documento activo por tipo.
 sequenceDiagram
     autonumber
     participant U as 👤 Admin
-    participant P as VehiculosPage
+    participant P as VehiclesPage
     participant D as VehicleFormDialog
     participant A as vehiclesApi
     participant AX as api (axios)
@@ -1036,8 +1036,8 @@ Alert: "File exceeds the maximum size of 1024 KB"
    | 1 | 🔴 **Los vencimientos se muestran UN DÍA ANTES.** `new Date(x).toLocaleDateString('es-AR')` sobre columnas `DATE` resta el desplazamiento horario y cruza al día anterior. Afecta a licencias, seguros y documentos — **exactamente los datos sobre los que el sistema alerta**. Y el mismo dato **se muestra bien en el formulario de edición**, así que tabla y formulario discrepan. | **Alta** |
    | 2 | 🔴 **No hay forma de dar de baja a un chofer desde la interfaz.** `/choferes` no tiene la acción y `/usuarios` no los lista (filtro `ADMINISTRATIVE_ROLES`). El endpoint existe y ninguna pantalla lo expone. | **Alta** |
    | 3 | 🔴 **Cierre obsoleto en `toggleActive`:** el `useMemo` de columnas con dependencia `[canManage]` captura un `reload` con la página del primer render. **Actuar desde la página 3 recarga la página 1.** Un linter con `exhaustive-deps` lo habría detectado — **primera consecuencia concreta de no tener ESLint** (§5.6). | **Alta** |
-   | 4 | 🔴 **`UsuariosPage` muestra las tres acciones sobre la propia fila** del administrador conectado, que el backend rechaza con 422. Ni siquiera importa `useAuth`, así que no puede saber cuál es. | Media |
-   | 5 | 🔴 **`VehiculosPage` oculta el interruptor solo para `ON_TRIP`**, pero el backend también bloquea `IN_WORKSHOP`. Una de dos reglas replicada. | Media |
+   | 4 | 🔴 **`UsersPage` muestra las tres acciones sobre la propia fila** del administrador conectado, que el backend rechaza con 422. Ni siquiera importa `useAuth`, así que no puede saber cuál es. | Media |
+   | 5 | 🔴 **`VehiclesPage` oculta el interruptor solo para `ON_TRIP`**, pero el backend también bloquea `IN_WORKSHOP`. Una de dos reglas replicada. | Media |
    | 6 | ⚠️ **El error de `confirmDelete` queda tapado por el diálogo modal**, que además no se cierra. El usuario ve un diálogo que no responde. `ConfirmDialog` no tiene prop de error. | Media |
    | 7 | ⚠️ **`DriverDocumentsDialog` no valida el tamaño antes de subir**: transfiere un archivo de 8 MB para recibir un 413 en inglés. | Media |
    | 8 | ⚠️ **`DriverCredentialsDialog` valida solo `length >= 8`** de las tres reglas de contraseña; el texto de ayuda menciona las tres. | Baja |
@@ -1060,7 +1060,7 @@ Alert: "File exceeds the maximum size of 1024 KB"
 9. Trazar la cadena completa del bug de fechas, desde MySQL hasta la pantalla.
 10. ¿Por qué `.slice(0,10)` es correcto en el formulario y `toLocaleDateString` incorrecto en la tabla, si es el mismo dato?
 11. ¿Cuál es la diferencia entre columnas `DATE` y `DATETIME` a la hora de mostrarlas?
-12. ¿Por qué `UsuariosPage` no necesita `canManage` pero sí necesitaría `useAuth`?
+12. ¿Por qué `UsersPage` no necesita `canManage` pero sí necesitaría `useAuth`?
 13. Un administrador quiere dar de baja a un chofer. Describir los dos caminos que intenta y por qué ninguno funciona.
 14. ¿Por qué la contraseña del chofer no se pide al abrir el diálogo? ¿Qué relación tiene con la auditoría?
 15. ¿Por qué hace falta `fileInput.current.value = ''` en el `finally`?
@@ -1091,7 +1091,7 @@ Alert: "File exceeds the maximum size of 1024 KB"
 
 11. Una columna **`DATE`** (vencimientos) es un **día calendario** disfrazado de instante: hay que mostrarla **sin conversión de zona** (`slice` o `dayjs.utc`). Una columna **`DATETIME`** (`departureAt`, `occurredAt`) es un **instante real**: convertirla a hora local con `toLocaleString` es exactamente lo correcto, porque el usuario quiere saber a qué hora de **su** reloj ocurrió.
 
-12. **No necesita `canManage`** porque el módulo entero es solo para administradores: la ruta `/usuarios` está en el grupo solo-ADMIN de `App.tsx` y `users.routes.ts` exige `authorize('ADMIN')`. **Quien llega ya puede gestionar todo.** **Pero sí necesitaría `useAuth`** para saber **cuál fila es la suya** y ocultar (o deshabilitar) las tres acciones que el backend rechaza sobre uno mismo.
+12. **No necesita `canManage`** porque el módulo entero es solo para administradores: la ruta `/usuarios` está en el grupo solo-ADMIN de `App/App.tsx` y `users.routes.ts` exige `authorize('ADMIN')`. **Quien llega ya puede gestionar todo.** **Pero sí necesitaría `useAuth`** para saber **cuál fila es la suya** y ocultar (o deshabilitar) las tres acciones que el backend rechaza sobre uno mismo.
 
 13. **Camino 1:** ir a `/choferes` → las acciones son Editar, Credenciales y Documentación; **no hay Eliminar**, porque no existe `DELETE /drivers`. **Camino 2:** ir a `/usuarios` a buscarlo → **no aparece**, porque `fetchFn` fuerza `role: ADMINISTRATIVE_ROLES` y el filtro de rol solo ofrece Administrador y Operador. **Ninguna pantalla expone la baja de un chofer**, aunque `DELETE /api/v1/users/:id` funciona perfectamente con `curl`.
 
@@ -1127,8 +1127,8 @@ Alert: "File exceeds the maximum size of 1024 KB"
 
 11. Agregar `formatDateOnly` a `utils/datetime.ts` y corregir las cuatro apariciones sobre columnas `DATE`. Escribir un test que verifique que no depende de la zona horaria.
 12. Corregir el cierre obsoleto quitando el `useMemo` de columnas. Verificar con el ejercicio 5.
-13. Agregar `useAuth` a `UsuariosPage` y deshabilitar (con explicación en el tooltip) las tres acciones sobre la propia fila.
-14. Agregar `IN_WORKSHOP` a la condición que oculta el interruptor en `VehiculosPage`.
+13. Agregar `useAuth` a `UsersPage` y deshabilitar (con explicación en el tooltip) las tres acciones sobre la propia fila.
+14. Agregar `IN_WORKSHOP` a la condición que oculta el interruptor en `VehiclesPage`.
 15. Agregar una prop `error` a `ConfirmDialog` y mostrar ahí el fallo de `confirmDelete`, sin cerrar el diálogo.
 16. Validar `file.size` antes de subir, con un mensaje en español que indique el tamaño real y el máximo.
 17. Exponer la baja de choferes: agregar la acción a `/choferes` llamando a `usersApi.remove`, con una confirmación que advierta que se revocan sus sesiones.
@@ -1140,13 +1140,13 @@ Alert: "File exceeds the maximum size of 1024 KB"
 
 > **Fecha:** 2026-09-20. **Motivación:** pendiente de producto: *"el backend tiene endpoint deactivate, pero la UI no lo expone para choferes"*. Un chofer es un `User` con rol `DRIVER`, así que la acción usa `usersApi.setActive(id, active)` (`POST /users/:id/activate|deactivate`, solo ADMIN); no hizo falta un endpoint nuevo.
 
-`ChoferesPage` agrega, en la columna de acciones (solo ADMIN), un ícono **Dar de baja** (`BlockIcon`, rojo) o **Reactivar** (`CheckCircleIcon`, verde) según `driver.isActive`, y un chip **Inactivo** junto al nombre. Ambas acciones pasan por `ConfirmDialog` (§21): el estado `toToggle` guarda el chofer y `confirmToggle` llama a la API y hace `reload()`.
+`DriversPage` agrega, en la columna de acciones (solo ADMIN), un ícono **Dar de baja** (`BlockIcon`, rojo) o **Reactivar** (`CheckCircleIcon`, verde) según `driver.isActive`, y un chip **Inactivo** junto al nombre. Ambas acciones pasan por `ConfirmDialog` (§21): el estado `toToggle` guarda el chofer y `confirmToggle` llama a la API y hace `reload()`.
 
 **Por qué el manejador vive fuera del `useMemo` de columnas.** Las columnas siguen con dependencias `[canManage]`; el ícono solo llama a `setToToggle` (setter de `useState`, identidad estable), que es el caso seguro de §22B.3.1. La llamada a `reload` está en `confirmToggle`, fuera del memo, así que **no** reproduce el cierre obsoleto de §22A.3.5.
 
 **Reglas que vienen del backend:** no se puede desactivar la propia cuenta ni al último admin (`RN-ULTIMO-ADMIN`), la baja cierra las sesiones abiertas del chofer, y —agregado en esta actualización— **no se puede dar de baja a un chofer con un viaje en curso** (ver capítulo 9). Los errores se muestran en el mismo `Alert` de la pantalla.
 
-**Verificación:** `tsc` limpio; probado en el navegador (baja con confirmación, chip "Inactivo", reactivación, y rechazo para un chofer en viaje). **Archivos:** `frontend/src/pages/choferes/ChoferesPage.tsx`, `backend/src/modules/users/users.service.ts`.
+**Verificación:** `tsc` limpio; probado en el navegador (baja con confirmación, chip "Inactivo", reactivación, y rechazo para un chofer en viaje). **Archivos:** `frontend/src/pages/drivers/DriversPage/DriversPage.tsx`, `backend/src/modules/users/users.service.ts`.
 
 ---
 

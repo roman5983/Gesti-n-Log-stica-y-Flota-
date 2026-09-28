@@ -1393,6 +1393,8 @@ FROM refresh_tokens;
 16. Agregar `POST /api/v1/auth/logout-all`, reutilizando `revokeAllForUser`. Verificar que cierra la sesión en todos los dispositivos.
 17. Agregar limitación de velocidad a `/refresh` y `/logout` con un límite más generoso que el del login, y validación de formato de la cookie para rechazar tokens obviamente inválidos antes de consultar la base.
 
+> **Actualización (28/09/2026) — hallazgo 4 resuelto.** `login` registra `LOGIN` en la auditoría y `logout` registra `LOGOUT` cuando cierra una sesión real. En los dos casos el actor es el propio usuario, y un logout repetido o con token desconocido no deja registro. Los intentos fallidos no se registran: la fila de auditoría necesita un usuario, y con un email desconocido no hay ninguno. Contra fuerza bruta sigue actuando el limitador de intentos. Tests: `auth.service.test.ts`.
+
 ---
 
 **Anterior:** [Capítulo 7 — Los middlewares](07-backend-middlewares.md) · **Siguiente:** Capítulo 9 — El módulo de usuarios *(pendiente)*

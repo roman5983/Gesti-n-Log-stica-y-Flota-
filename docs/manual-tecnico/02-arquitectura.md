@@ -518,6 +518,8 @@ Para un proyecto de esta escala, con un solo ORM y sin planes de cambiarlo, el c
 
 💡 **La deuda concreta que esto genera:** los servicios no se pueden testear con un repositorio falso sin usar herramientas de mocking a nivel de módulo. Es exactamente por eso que los 23 tests del backend prueban criptografía, fechas y schemas —todo funciones puras— y no prueban servicios. El capítulo 25 desarrolla las dos formas de resolverlo.
 
+> **Actualización (28/09/2026).** Esto ya no es así: hoy hay 163 tests en el backend y 167 en el frontend. Hay tests de **servicios** (viajes, mantenimientos, documentos, alertas, usuarios, vehículos, auth, auditoría) con mocking a nivel de módulo, de **repositorios** (los constructores de filtros y orden de viajes, mantenimientos, alertas y choferes), de **componentes** (DateField, SearchField, AlertCard, AuditLogDetailDialog, VehicleFormDialog) y un **smoke test** que recorre todas las pantallas de cada rol. Siguen faltando los tests de **endpoints** (Supertest), los que corren contra una **base real** y los de las **carreras de concurrencia** del capítulo 23 — ver `PENDIENTES.md`. La lista completa está en `docs/PLAN-DE-PRUEBAS.md`.
+
 ### 2.4.4. Arquitectura Hexagonal (Puertos y Adaptadores)
 
 **Qué es.** Propuesta de Alistair Cockburn. La aplicación es un hexágono; a su alrededor hay *puertos* (interfaces que define la aplicación) y *adaptadores* (implementaciones que hablan con el mundo). La idea clave: la aplicación define lo que necesita, y el mundo se adapta a ella, no al revés.
@@ -1124,7 +1126,7 @@ Las dos dependencias externas están punteadas porque son **opcionales**: sin SM
 
 8. **El patrón es Layered + Modular Monolith.** Toma de Clean/Hexagonal la separación de capas, pero omite la inversión formal por interfaces. Toma de DDD el lenguaje ubicuo y los repositorios, pero mantiene un modelo anémico. Cada omisión es defendible al tamaño de este proyecto, y cada una tiene un costo identificado.
 
-9. **SOLID: 4 de 5 cumplidos con solidez, DIP a medias.** La consecuencia medible de esa media es la ausencia de tests de servicios.
+9. **SOLID: 4 de 5 cumplidos con solidez, DIP a medias.** La consecuencia medible de esa media era la ausencia de tests de servicios *(ya los hay, con mocking a nivel de módulo: ver la actualización de §2.4.3)*.
 
 10. **En Express, el orden de `app.use()` es semántica, no estilo.** Los manejadores de error van siempre al final, y la autenticación siempre antes que la validación.
 
@@ -1190,6 +1192,18 @@ Las dos dependencias externas están punteadas porque son **opcionales**: sin SM
 8. Mover una regla de negocio del servicio al controlador y documentar exactamente qué se rompe: ¿qué test falla? ¿qué se vuelve imposible de reutilizar?
 9. Escribir la interfaz `IVehiclesRepository` que Clean Architecture pediría, hacer que `vehicles.service.ts` dependa de ella, e inyectar la implementación. Medir: ¿cuántas líneas de código nuevo? ¿qué se gana concretamente?
 10. Extraer el módulo `alerts` a un microservicio separado. Enumerar todo lo que habría que resolver: comunicación, consistencia, despliegue, observabilidad. Estimar el esfuerzo y compararlo con el beneficio.
+
+## Hallazgos consolidados del capítulo 2
+
+Agregada el 28/09/2026 para cerrar el hueco señalado en §25.2.2: este capítulo marcaba sus hallazgos en el cuerpo del texto (🔴 y ⚠️) pero no los consolidaba. Solo se listan los **problemas o deudas**. No entran las marcas que solo destacan un concepto (por ejemplo, por qué `password_hash` es `VARCHAR(60)`). La columna *Estado* se verificó contra el código de esa fecha. Lo que sigue abierto y conviene resolver para la entrega está en `PENDIENTES.md`.
+
+| # | Hallazgo | § | Gravedad | Estado al 28/09/2026 |
+|:-:|:--|:--|:--|:--|
+| 1 | Los tipos **no se comparten** entre backend y frontend: cada lado define su versión de los DTO y nada verifica que coincidan. | §2.3.1 | Media | Abierto — `PENDIENTES.md`, «solo si el proyecto sigue» (paquete Zod compartido). |
+| 2 | `req.params as unknown as { id: number }` y `req.user!`: aserciones que dependen de que la ruta tenga el `validate`/`authenticate` correspondiente. | §2.3.2 | Baja | Abierto (convención; el tipado de Express no permite propagarlo). |
+| 3 | Principio abierto/cerrado incumplido en `error-handler.ts`: cada error de librería nueva obliga a sumar otro `if`. | §2.5 (O) | Baja | Abierto. |
+| 4 | DIP a medias: los servicios importan los repositorios directamente. Probarlos exige mocking a nivel de módulo. | §2.4.3 / 2.5 (D) | Baja | Aceptado: hoy los tests de servicios usan `vi.mock` (ver la actualización de §2.4.3). |
+| 5 | Sin configuración de despliegue (ni Dockerfile, ni CI, ni variables de producción). | §2.10 | Media | Resuelto: `render.yaml`, `frontend/vercel.json` y la sección «Deploy» del README (22/09). |
 
 ---
 

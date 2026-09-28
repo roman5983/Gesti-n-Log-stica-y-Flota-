@@ -1810,6 +1810,26 @@ graph LR
 13. Escribir la migración manual que agrega las restricciones `CHECK` de `trips` (las ocho invariantes de §3.4.9). Aplicarla y verificar que un `UPDATE` inválido ahora falla en la base.
 14. Medir el impacto real de `BCRYPT_ROUNDS`: escribir un script que hashee 100 contraseñas con coste 10, 12 y 14, y graficar el tiempo. Decidir, con datos, qué valor debería usar el proyecto.
 
+## Hallazgos consolidados del capítulo 4
+
+Agregada el 28/09/2026 para cerrar el hueco señalado en §25.2.2: este capítulo marcaba sus hallazgos en el cuerpo del texto (🔴 y ⚠️) pero no los consolidaba. Solo se listan los **problemas o deudas**. No entran las marcas que solo destacan un concepto (por ejemplo, por qué `password_hash` es `VARCHAR(60)`). La columna *Estado* se verificó contra el código de esa fecha. Lo que sigue abierto y conviene resolver para la entrega está en `PENDIENTES.md`.
+
+| # | Hallazgo | § | Gravedad | Estado al 28/09/2026 |
+|:-:|:--|:--|:--|:--|
+| 1 | Posible N+1 en el motor de alertas. | §4.2.3 | Media | Resuelto: `scanConditions` trae cada conjunto en una consulta y cruza en memoria. |
+| 2 | `prisma.config.ts` usa `DATABASE_URL ?? ''`: sin la variable, el error aparece tarde y críptico. | §4.3 | Baja | Abierto. |
+| 3 | El comando del seed está declarado dos veces (`prisma.config.ts` y `package.json`). | §4.3 | Baja | Abierto. |
+| 4 | `allowPublicKeyRetrieval=true` en la URL de conexión: aceptable solo en desarrollo. | §4.3 | Media | Abierto — se resuelve al configurar la base en internet con TLS (`PENDIENTES.md`, deploy). |
+| 5 | Pool de 10 conexiones sin calibrar y sin logging de consultas. | §4.4 | Baja | Abierto. |
+| 6 | El flujo de migraciones de producción (`migrate deploy`) no estaba documentado. | §4.6.4 | Media | Resuelto: script `prisma:deploy` y README, sección «Deploy». |
+| 7 | `BCRYPT_ROUNDS = 10` fijo en tres archivos, sin variable de entorno. | §4.7.1 | Baja | Abierto. |
+| 8 | `bcryptjs` (JavaScript puro) bloquea el event loop mientras calcula. | §4.7.4 | Baja | Aceptado para el volumen del proyecto. |
+| 9 | Hallazgos del seed original (unión de roles escrita a mano, archivos de ejemplo inexistentes, un viaje que llega antes de salir, `process.exit` que corta el `finally`). | §4.7 | Baja | Superado: el seed se reescribió (DEVLOG, «Seed ampliado»). |
+| 10 | El seed borra con `deleteMany` los viajes y registros de las cuentas de demostración, cuyas contraseñas publica el README: correrlo contra producción borra datos reales. | §4.7.5 | Media | Abierto — correr el seed solo en una base de demostración. |
+| 11 | `nextMaintenanceKm` no se calcula: lo manda el cliente. | §4.7.5 | Baja | Abierto. |
+| 12 | No hay tareas programadas: las alertas se evalúan solo a mano. | §4.7.5 | Media | Resuelto: evaluación diaria + cada hora (§14, actualizaciones del 23 y 28/09). |
+| 13 | `P2025` (registro inexistente) no tiene manejo: llega como 500. | §4.9 | Baja | Abierto (los servicios validan la existencia antes, así que es raro). |
+
 ---
 
 **Anterior:** [Capítulo 3 — La base de datos](03-base-de-datos.md) · **Siguiente:** Capítulo 5 — Bootstrap del backend *(pendiente)*

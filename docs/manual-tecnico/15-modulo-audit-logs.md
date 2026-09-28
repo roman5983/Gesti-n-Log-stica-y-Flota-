@@ -849,6 +849,8 @@ export function sanitize(data: unknown) {
 
 **Archivos:** `backend/src/modules/audit-logs/audit-logs.service.ts`, `backend/src/modules/audit-logs/audit-logs.service.test.ts` (nuevo).
 
+> **Actualización (28/09/2026).** El vocabulario de acciones suma `LOGIN` y `LOGOUT` (§8), que en la pantalla de Auditoría figuran como «Inicio de sesión» y «Cierre de sesión».
+
 ---
 
 **Anterior:** [Capítulo 14 — El motor de alertas](14-modulo-alerts.md) · **Siguiente:** Capítulo 16 — Dashboard y reportes *(pendiente)*

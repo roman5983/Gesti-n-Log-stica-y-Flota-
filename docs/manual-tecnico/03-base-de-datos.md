@@ -1453,6 +1453,24 @@ Los enums `TripStatus` y `MaintenanceStatus` ganan el valor `CANCELLED`. En MySQ
 
 **Consecuencias:** las máquinas de estado del viaje y del mantenimiento (§3.3.2) pasan de 3 a 4 estados (`PENDING_ASSIGNMENT → IN_PROGRESS → COMPLETED`, más `CANCELLED` alcanzable desde los dos primeros) y la del mantenimiento igual (`PENDING → IN_PROGRESS → COMPLETED`, más `CANCELLED` desde los dos primeros). El DER definitivo (`docs/etapa-2-der-definitivo.md`) se actualizó. Detalle de reglas en §12.14 y §13.10.
 
+## Hallazgos consolidados del capítulo 3
+
+Agregada el 28/09/2026 para cerrar el hueco señalado en §25.2.2: este capítulo marcaba sus hallazgos en el cuerpo del texto (🔴 y ⚠️) pero no los consolidaba. Solo se listan los **problemas o deudas**. No entran las marcas que solo destacan un concepto (por ejemplo, por qué `password_hash` es `VARCHAR(60)`). La columna *Estado* se verificó contra el código de esa fecha. Lo que sigue abierto y conviene resolver para la entrega está en `PENDIENTES.md`.
+
+| # | Hallazgo | § | Gravedad | Estado al 28/09/2026 |
+|:-:|:--|:--|:--|:--|
+| 1 | Las máquinas de estado (vehículo, viaje, mantenimiento) no están en la base: sin `CHECK`, un `UPDATE` directo puede dejar un estado imposible. | §3.3.2 | Media | Abierto (limitación de Prisma; se valida en los servicios). |
+| 2 | `encrypted_password`: la contraseña del chofer se guarda reversible por el requisito A-9. | §3.4.3 | Media | Aceptado (requisito del negocio). |
+| 3 | Archivos fuera de la transacción: `safeUnlink` best-effort y archivos huérfanos en disco. | §3.4.4 | Media | Resuelto: los archivos se guardan en la base desde el 22/09 (§6.7). |
+| 4 | `ON DELETE CASCADE` en comprobantes borra la fila pero no el archivo del disco. | §3.4.8 | Baja | Resuelto: el archivo vive en la fila (22/09). |
+| 5 | `accumulated_km` es un campo derivado mantenido a mano: un error en la acumulación queda para siempre. | §3.4.5 | Media | Abierto. |
+| 6 | El origen fijo de los viajes está escrito dos veces (`schema.prisma` y `constants.ts`). | §3.4.9 | Baja | Abierto. |
+| 7 | `alert_type` y `entity_type` son texto libre y la relación de la alerta con su entidad no tiene clave foránea. | §3.4.10 | Baja | Aceptado (deliberado: agregar tipos sin migrar). |
+| 8 | Riesgo de que `passwordHash` quede guardado en `audit_logs`. | §3.4.11 | Alta | Resuelto: `sanitize` redacta los campos sensibles a cualquier profundidad. |
+| 9 | `company_settings` no impide una segunda fila (`id = 2`). | §3.4.12 | Baja | Abierto. |
+| 10 | Los valores de cada enum están escritos a mano en tres lugares (Prisma, Zod, frontend). | §3.5 | Baja | Abierto — mismo remedio que el paquete Zod compartido. |
+| 11 | La colación `_ci` hace que `Admin@…` y `admin@…` colisionen, y el login no normaliza el email. | §3.5 | Baja | Abierto (funciona por la colación de MySQL; ver también §8.9). |
+| 12 | Paginación con `OFFSET`: lenta con tablas grandes. | §3.7 | Baja | Aceptado para el volumen del proyecto. |
 
 ---
 

@@ -25,7 +25,7 @@ El capítulo cubre:
 
 2. **El bloqueo consultivo de MySQL** (`GET_LOCK`), la tercera técnica de concurrencia del proyecto — y la que tiene un hueco sutil.
 
-3. **Ocho tipos de alerta**, cada uno con su lógica de detección.
+3. **Ocho tipos de alerta** *(nueve desde el 24/09/2026: se sumó `VOYAGE_NOT_ASSIGNED`, ver la actualización al final del capítulo)*, cada uno con su lógica de detección.
 
 4. **Y la contradicción**: `vehicles.service.ts` afirma que un vehículo sin fecha de seguro queda *"surfaced as alertable"*. **El motor de alertas no lo alerta.**
 
@@ -155,7 +155,7 @@ alertType: z.string().max(50).optional(),          // ← abierto
 
 💡 **El argumento a favor de dejarlo abierto** sería la extensibilidad: si se agregara un tipo nuevo, el filtro funcionaría sin tocar el esquema. **Pero eso es exactamente al revés de lo deseable en un filtro**: quien consulta quiere saber si escribió mal, no recibir silencio.
 
-**Los ocho tipos, ordenados por par:**
+**Los ocho tipos originales, ordenados por par** *(el noveno, `VOYAGE_NOT_ASSIGNED`, está descrito al final del capítulo)*:
 
 | Par | Condición "EXPIRING" | Condición "EXPIRED" | Entidad |
 |:--|:--|:--|:--|

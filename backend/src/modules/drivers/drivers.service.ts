@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../../database/prisma-client';
 import type { LicenseCategory } from '../../generated/prisma/client';
 import { ConflictError, NotFoundError } from '../../shared/errors/app-error';
+import { REQUIRED_DRIVER_DOCUMENT_TYPES } from '../../config/constants';
 import { decrypt, encrypt } from '../../shared/utils/crypto';
 import { utcStartOfToday } from '../../shared/utils/dates';
 import { sendCredentialsEmail } from '../../shared/services/mailer';
@@ -29,7 +30,9 @@ export interface DriverResponse {
   licenseExpiryDate: Date;
   /** License valid today (expiry >= today). */
   licenseValid: boolean;
-  /** RN-19: active user + valid license + no active trip. */
+  /** RN-4: an active, unexpired document of every required type. */
+  documentsComplete: boolean;
+  /** Assignable today: active user + valid license + no active trip (RN-19) + complete documentation (RN-4). */
   available: boolean;
   completedTrips: number;
   avgKm: number;
@@ -43,6 +46,8 @@ function isLicenseValid(expiry: Date): boolean {
 function toResponse(driver: DriverWithUser): DriverResponse {
   const licenseValid = isLicenseValid(driver.licenseExpiryDate);
   const hasActiveTrip = driver.trips.length > 0;
+  const validTypes = new Set(driver.documents.map((d) => d.documentType));
+  const documentsComplete = REQUIRED_DRIVER_DOCUMENT_TYPES.every((t) => validTypes.has(t));
   return {
     id: driver.userId,
     name: driver.user.name,
@@ -52,7 +57,8 @@ function toResponse(driver: DriverWithUser): DriverResponse {
     licenseCategory: driver.licenseCategory,
     licenseExpiryDate: driver.licenseExpiryDate,
     licenseValid,
-    available: driver.user.isActive && licenseValid && !hasActiveTrip,
+    documentsComplete,
+    available: driver.user.isActive && licenseValid && !hasActiveTrip && documentsComplete,
     completedTrips: driver.completedTrips,
     avgKm: Number(driver.avgKm),
   };

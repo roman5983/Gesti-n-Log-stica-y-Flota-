@@ -1,9 +1,9 @@
 # Capítulo 18 — Arranque del frontend
 
-> **Rutas de archivo (23/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (por ejemplo, `pages/viajes/ViajesPage.tsx` es ahora `pages/trips/TripsPage/TripsPage.tsx`). Las rutas de este capítulo son las anteriores; la equivalencia está en §21B.
+> **Rutas de archivo (actualizadas el 28/09/2026).** El frontend pasó a una carpeta por componente, con el código en inglés (§21B). Las rutas y nombres de archivo de este capítulo ya son los actuales, pero **los números de línea y los fragmentos de código citados corresponden a la versión anterior**: el código se movió y se partió en varios archivos (`.types.ts`, `.data.ts`, `.helpers.ts`…), así que una cita como `TripsPage.tsx:120` sirve para ubicar el tema, no la línea exacta.
 
 > **Prerrequisitos:** [Capítulo 1](01-conceptos-previos.md) completo (especialmente JavaScript, TypeScript y el navegador como runtime) y [Capítulo 2, §2.3.4](02-arquitectura.md).
-> **Archivos que se explican aquí:** `frontend/index.html` (12 líneas), `vite.config.ts` (9), `tsconfig.json` (23), `vitest.config.ts` (13), `src/vite-env.d.ts` (10), `src/main.tsx` (14), `src/App.tsx` (150), `src/theme.ts` (24). Total: 255 líneas, todas.
+> **Archivos que se explican aquí:** `frontend/index.html` (12 líneas), `vite.config.ts` (9), `tsconfig.json` (23), `vitest.config.ts` (13), `src/vite-env.d.ts` (10), `src/main.tsx` (14), `src/App/App.tsx` (150), `src/theme/theme.ts` (24). Total: 255 líneas, todas.
 > **Al terminar** el lector entenderá React desde cero —JSX, componentes, Virtual DOM, hooks, re-render— y sabrá exactamente qué ocurre entre que el navegador pide una URL y aparece la primera pantalla.
 
 ---
@@ -27,8 +27,8 @@ Este capítulo cubre:
 2. **Vite**: qué hace en desarrollo, qué hace al construir, y por qué es distinto de Webpack.
 3. **React desde cero**: JSX, componentes, el Virtual DOM, el ciclo de renderizado, y los hooks.
 4. **`main.tsx`**: catorce líneas que montan la aplicación.
-5. **`App.tsx`**: el router completo, la rehidratación de sesión, y el problema que resuelve el token en memoria.
-6. **`theme.ts`**: el sistema de diseño en veinticuatro líneas.
+5. **`App/App.tsx`**: el router completo, la rehidratación de sesión, y el problema que resuelve el token en memoria.
+6. **`theme/theme.ts`**: el sistema de diseño en veinticuatro líneas.
 
 ---
 
@@ -518,13 +518,13 @@ createRoot(root).render(…);
 2. **Ejecuta cada `useEffect` dos veces** (montar → desmontar → montar), para detectar limpiezas faltantes.
 3. Advierte sobre APIs obsoletas.
 
-🔴 **El punto 2 tiene una consecuencia directa en este proyecto**, y explica un detalle de `App.tsx` que de otro modo parecería innecesario.
+🔴 **El punto 2 tiene una consecuencia directa en este proyecto**, y explica un detalle de `App/App.tsx` que de otro modo parecería innecesario.
 
 **`useBootstrapSession` llama a `/auth/refresh` en un `useEffect`.** Con `StrictMode`, ese efecto **se ejecuta dos veces en desarrollo**, disparando **dos** peticiones de refresh.
 
 **Y con la rotación de tokens del backend** (§8.6.5), la segunda usaría un token ya revocado por la primera → **401 → sesión perdida.**
 
-💡 **Por eso `App.tsx` implementa la bandera `cancelled`** (§18.5.2). **Sin `StrictMode` nadie habría detectado el problema en desarrollo — y habría aparecido en producción con dos pestañas abiertas.**
+💡 **Por eso `App/App.tsx` implementa la bandera `cancelled`** (§18.5.2). **Sin `StrictMode` nadie habría detectado el problema en desarrollo — y habría aparecido en producción con dos pestañas abiertas.**
 
 **Líneas 9-12 — el orden de los proveedores**
 
@@ -555,7 +555,7 @@ createRoot(root).render(…);
 
 ---
 
-## 18.5. `App.tsx` — el router y la sesión
+## 18.5. `App/App.tsx` — el router y la sesión
 
 ### 18.5.1. Los imports y el problema que anuncian
 
@@ -847,7 +847,7 @@ const user = await authApi.me();
 95    }
 96  >
 97    <Route path="/dashboard" element={<DashboardPage />} />
-98    <Route path="/viajes" element={<ViajesPage />} />
+98    <Route path="/viajes" element={<TripsPage />} />
 …
 103 </Route>
 ```
@@ -859,7 +859,7 @@ const user = await authApi.me();
 ```
 RequireAuth
   └── RequireRole(['ADMIN','OPERATOR'])
-        └── RoleShellSwitch  (AdminLayout u OperadorLayout)
+        └── RoleShellSwitch  (AdminLayout u OperatorLayout)
               └── <Outlet /> → la página que corresponda a la URL
 ```
 
@@ -873,7 +873,7 @@ RequireAuth
 |:--|:--|:--|:--|
 | Operación | ADMIN, OPERATOR | `/dashboard`, `/viajes`, `/vehiculos`, `/choferes`, `/mantenimiento`, `/alertas` | Según rol |
 | Administración | **ADMIN** | `/usuarios`, `/auditoria`, `/reportes`, `/configuracion` | `AdminLayout` |
-| Chofer | **DRIVER** | `/mi-viaje`, `/mi-documentacion`, `/mi-historial` | `ChoferLayout` |
+| Chofer | **DRIVER** | `/mi-viaje`, `/mi-documentacion`, `/mi-historial` | `DriverLayout` |
 
 ✅ **La correspondencia con los permisos del backend es exacta** (§7.4.1). El administrador ve 10 secciones, el operador 6, el chofer 3.
 
@@ -888,13 +888,13 @@ RequireAuth
  */
 function RoleShellSwitch() {
   const role = useAuthStore((s) => s.user?.role);
-  return role === 'ADMIN' ? <AdminLayout /> : <OperadorLayout />;
+  return role === 'ADMIN' ? <AdminLayout /> : <OperatorLayout />;
 }
 ```
 
 💡 **Resuelve un caso que las rutas anidadas solas no cubren:** dos roles comparten las mismas URLs pero necesitan menús distintos.
 
-🔴 **El ternario tiene un sesgo hacia `OperadorLayout`:** cualquier rol que no sea `ADMIN` cae ahí, **incluido `undefined`**.
+🔴 **El ternario tiene un sesgo hacia `OperatorLayout`:** cualquier rol que no sea `ADMIN` cae ahí, **incluido `undefined`**.
 
 **En la práctica no ocurre** —`RequireRole` ya filtró a los dos roles permitidos y `RequireAuth` garantiza que hay usuario— pero **la protección viene del ensamblaje, no de este código**. Un `switch` exhaustivo sería más robusto.
 
@@ -933,7 +933,7 @@ Captura **cualquier** ruta no reconocida y la redirige al inicio del rol.
 
 ---
 
-## 18.6. `theme-tokens.ts` y `theme.ts` — el sistema de diseño
+## 18.6. `theme/theme.tokens.ts` y `theme/theme.ts` — el sistema de diseño
 
 > Reescrito el 23/09/2026 con el sistema de color acordado por el equipo. La versión anterior del tema (verde petróleo, y antes azul `#1e88e5`) quedó en el historial de git.
 
@@ -941,10 +941,10 @@ El color vive en dos archivos con responsabilidades separadas:
 
 | Archivo | Qué contiene | Quién lo lee |
 |:--|:--|:--|
-| `theme-tokens.ts` | **Todos** los valores hexadecimales de la app, por modo (claro/oscuro), y la matemática de color (contraste WCAG, mezcla, escala del gráfico) | `theme.ts`, el gráfico del dashboard y los tests |
-| `theme.ts` | Traduce los tokens a la paleta de MUI y fija las reglas de interacción de cada componente (`components`) | `AppThemeProvider` (§18.4) |
+| `theme/theme.tokens.ts` | **Todos** los valores hexadecimales de la app, por modo (claro/oscuro), y la matemática de color (contraste WCAG, mezcla, escala del gráfico) | `theme/theme.ts`, el gráfico del dashboard y los tests |
+| `theme/theme.ts` | Traduce los tokens a la paleta de MUI y fija las reglas de interacción de cada componente (`components`) | `AppThemeProvider` (§18.4) |
 
-🔴 **Regla: ningún componente escribe un hexadecimal.** Si una pantalla necesita un color, lo pide al tema (`'text.secondary'`, `color="error"`, `toneText(theme, 'success')`). Cambiar un color es cambiar una línea de `theme-tokens.ts`.
+🔴 **Regla: ningún componente escribe un hexadecimal.** Si una pantalla necesita un color, lo pide al tema (`'text.secondary'`, `color="error"`, `toneText(theme, 'success')`). Cambiar un color es cambiar una línea de `theme/theme.tokens.ts`.
 
 ### Los cuatro grupos de color
 
@@ -961,7 +961,7 @@ El modo oscuro tiene los mismos roles con otros valores (escala 400 de cada colo
 
 | Regla | Cómo se cumple |
 |:--|:--|
-| **Contraste WCAG AA** (4.5:1 texto, 3:1 gráficos y bordes de controles) | `theme-tokens.test.ts` verifica cada par de colores que la UI dibuja, en los dos modos. Si alguien cambia un hex y rompe la legibilidad, el test falla. |
+| **Contraste WCAG AA** (4.5:1 texto, 3:1 gráficos y bordes de controles) | `theme/theme.tokens.test.ts` verifica cada par de colores que la UI dibuja, en los dos modos. Si alguien cambia un hex y rompe la legibilidad, el test falla. |
 | **Sin negro puro** (halación) | El texto más oscuro es `#1F2937`; el test rechaza `#000000` en cualquier token. |
 | **Estados visibles** (heurística de Nielsen n.º 1) | Cada color de acción tiene default / hover (~10 % más oscuro) / presionado (~20 %) / deshabilitado (gris plano). El foco del teclado dibuja un anillo de 2 px del primario (`Mui-focusVisible`). |
 | **60-30-10 y Von Restorff** | Chips "suaves" (tinte del color + texto del mismo tono) en vez de bloques saturados; el color fuerte queda para el 10 % que importa. |
@@ -1028,8 +1028,8 @@ sequenceDiagram
 
     R->>R: re-render: BrowserRouter resuelve /viajes
     R->>R: RequireAuth ✅ · RequireRole(['ADMIN','OPERATOR']) ✅
-    R->>R: RoleShellSwitch → OperadorLayout
-    R->>N: 🎨 pinta el layout + ViajesPage
+    R->>R: RoleShellSwitch → OperatorLayout
+    R->>N: 🎨 pinta el layout + TripsPage
     R->>A: GET /api/v1/trips?page=1&limit=10
     A-->>R: 200 {data, meta}
     R->>N: 🎨 pinta la tabla
@@ -1110,7 +1110,7 @@ useEffect(() => {
 ### Ejemplo 4 — El parpadeo sin `initializing`
 
 ```tsx
-// — modificación temporal en App.tsx —
+// — modificación temporal en App/App.tsx —
 // if (initializing) { return <CircularProgress />; }   ← comentar
 ```
 
@@ -1177,14 +1177,14 @@ curl -X POST .../vehicles -H "Authorization: Bearer $ADMIN" \
    | # | Hallazgo | Gravedad |
    |:-:|:--|:--|
    | 1 | 🔴 **`BrowserRouter` requiere configuración del servidor** en producción (toda ruta → `index.html`) y el proyecto **no lo documenta**. Causa clásica de "funciona en desarrollo y falla al desplegar". | **Alta** |
-   | 2 | 🔴 **`API_URL` está duplicada** entre `App.tsx:27` y `api/axios.ts:5`, con el mismo valor por defecto. Cambiar uno solo produce dos clientes apuntando a servidores distintos. | Media |
+   | 2 | 🔴 **`API_URL` está duplicada** entre `App/App.tsx:27` y `api/axios.ts:5`, con el mismo valor por defecto. Cambiar uno solo produce dos clientes apuntando a servidores distintos. | Media |
    | 3 | 🔴 **`path="*"` redirige silenciosamente al inicio.** Un chofer que escribe `/usuarios` es movido a `/mi-viaje` sin explicación; el backend le habría dicho 403. Criterio opuesto al `notFoundHandler`. | Media |
    | 4 | ⚠️ **Sin `<noscript>`:** con JavaScript desactivado, el usuario ve una página en blanco sin ninguna explicación. | Media |
    | 5 | ⚠️ **Sin `strictPort: true`:** si el 5173 está ocupado, Vite usa otro puerto y **todas** las peticiones fallan por CORS, sin que el error mencione el puerto. | Media |
-   | 6 | ⚠️ **El import de `axios` crudo en `App.tsx` no tiene comentario**, a diferencia del mismo caso en `api/axios.ts:28`. Alguien podría "unificarlo" y romper la rehidratación con un bucle de refresh. | Media |
+   | 6 | ⚠️ **El import de `axios` crudo en `App/App.tsx` no tiene comentario**, a diferencia del mismo caso en `api/axios.ts:28`. Alguien podría "unificarlo" y romper la rehidratación con un bucle de refresh. | Media |
    | 7 | ⚠️ **La bandera `cancelled` no cancela la petición**, solo descarta el resultado. Un `AbortController` la cancelaría de verdad. | Baja |
    | 8 | ⚠️ **El `catch` vacío absorbe todos los errores**, incluida una API caída: el usuario ve el login sin saber que el servidor no responde. | Baja |
-   | 9 | ⚠️ **`RoleShellSwitch` cae en `OperadorLayout` para cualquier rol que no sea ADMIN**, incluido `undefined`. La protección viene del ensamblaje de rutas, no del código. | Baja |
+   | 9 | ⚠️ **`RoleShellSwitch` cae en `OperatorLayout` para cualquier rol que no sea ADMIN**, incluido `undefined`. La protección viene del ensamblaje de rutas, no del código. | Baja |
    | 10 | ⚠️ **`vitest.config.ts` duplica `plugins: [react()]`** en vez de fusionar con `vite.config.ts`; y usa `globals: true` mientras el backend importa explícitamente. Dos configuraciones divergentes de la misma herramienta. | Baja |
    | 11 | ⚠️ **`lang="es"` codificado** aunque `company_settings.language` sea configurable — más evidencia de §17.5. | Baja |
 
@@ -1207,7 +1207,7 @@ curl -X POST .../vehicles -H "Authorization: Bearer $ADMIN" \
 13. ¿Por qué `CssBaseline` debe ir dentro de `ThemeProvider` y antes de `App`?
 14. ¿Por qué existe `useBootstrapSession`? ¿Qué decisión del capítulo 8 lo hace necesario?
 15. ¿Para qué sirve la bandera `cancelled`? Describir la carrera que previene.
-16. ¿Por qué `App.tsx` usa `axios` crudo y no la instancia `api`?
+16. ¿Por qué `App/App.tsx` usa `axios` crudo y no la instancia `api`?
 17. ¿Qué pasa si se quita el retorno temprano de `initializing`?
 18. ¿Por qué `<Navigate replace />` y no `<Navigate />`?
 
@@ -1276,10 +1276,10 @@ curl -X POST .../vehicles -H "Authorization: Bearer $ADMIN" \
 
 11. Agregar `<noscript>` con un mensaje útil y verificar con el ejercicio 9.
 12. Agregar `strictPort: true` y verificar con el ejercicio 8 que ahora falla al arrancar con un mensaje claro.
-13. Exportar `API_URL` desde `api/axios.ts` y eliminar la duplicación de `App.tsx`.
+13. Exportar `API_URL` desde `api/axios.ts` y eliminar la duplicación de `App/App.tsx`.
 14. Reemplazar la bandera `cancelled` por un `AbortController` y verificar en *Network* que la primera petición se cancela.
 15. Crear una página 404 explícita en lugar de la redirección de `path="*"`, y una pantalla 403 para cuando el rol no coincide.
-16. Agregar un comentario al import de `axios` crudo en `App.tsx` explicando por qué no puede usar `api`.
+16. Agregar un comentario al import de `axios` crudo en `App/App.tsx` explicando por qué no puede usar `api`.
 17. Fusionar `vitest.config.ts` con `vite.config.ts` usando `mergeConfig` y verificar que los tests siguen pasando.
 18. Agregar modo oscuro al tema y mover los colores del sidebar desde los layouts al tema.
 

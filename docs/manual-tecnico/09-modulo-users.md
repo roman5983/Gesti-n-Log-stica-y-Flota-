@@ -1498,6 +1498,8 @@ Va **después** del retorno idempotente y antes de la transacción. Solo aplica 
 
 **Verificación:** con María Gómez (viaje en curso en el seed) la baja devuelve 422 con ese mensaje (en español, ver capítulo 6); con Juan Pérez (sin viaje) se da de baja, aparece el chip "Inactivo" y se reactiva. **Archivo:** `backend/src/modules/users/users.service.ts`.
 
+> **Actualización (28/09/2026) — un chofer con viaje en curso no se puede eliminar ni desactivar.** Antes solo estaba bloqueada la desactivación, con una consulta previa a la transacción. Ahora `setActive(false)` y `softDelete` comprueban dentro de la transacción, después de tomar el mismo bloqueo de fila del chofer que usa la asignación de viajes (`tripsRepository.lockDriver`). Si una asignación confirma primero, la baja ve el viaje y se rechaza. Si la baja confirma primero, la asignación relee al chofer como inactivo y se rechaza. Tests: `users.service.test.ts`.
+
 ---
 
 **Anterior:** [Capítulo 8 — El módulo de autenticación](08-modulo-auth.md) · **Siguiente:** Capítulo 10 — El módulo de vehículos *(pendiente)*

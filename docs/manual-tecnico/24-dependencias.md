@@ -667,6 +667,8 @@ verifica precisamente el ida y vuelta sin deriva que §22B.2.4 explicó.
 - ❌ Ningún **flujo completo**
 - ❌ Ninguna de las **carreras de concurrencia** del capítulo 23
 
+> **Actualización (28/09/2026).** Esto ya no es así: hoy hay 163 tests en el backend y 167 en el frontend. Hay tests de **servicios** (viajes, mantenimientos, documentos, alertas, usuarios, vehículos, auth, auditoría) con mocking a nivel de módulo, de **repositorios** (los constructores de filtros y orden de viajes, mantenimientos, alertas y choferes), de **componentes** (DateField, SearchField, AlertCard, AuditLogDetailDialog, VehicleFormDialog) y un **smoke test** que recorre todas las pantallas de cada rol. Siguen faltando los tests de **endpoints** (Supertest), los que corren contra una **base real** y los de las **carreras de concurrencia** del capítulo 23 — ver `PENDIENTES.md`. La lista completa está en `docs/PLAN-DE-PRUEBAS.md`.
+
 Se prueba lo fácil de probar: funciones puras sin dependencias. `trips.service.assign`, con
 sus siete validaciones y dos cerrojos, **no tiene una sola prueba**. Y es el código que más
 la necesita.
@@ -917,6 +919,8 @@ Para una aplicación interna de escritorio no es dramático. Es la optimización
 retorno del frontend si alguna vez importa el tiempo de carga inicial, y `React.lazy` +
 `<Suspense>` son tres líneas.
 
+> **Actualización (28/09/2026).** Hecho: todas las pantallas salvo el login se cargan con `React.lazy` (`App/App.tsx`), y los layouts muestran un indicador de carga mientras llega cada una (`components/PageOutlet`). React y MUI van en paquetes propios (`vite.config.ts`, `manualChunks`), que el navegador mantiene en caché entre versiones. La carga inicial pasó de 1,28 MB a unos 620 KB sin comprimir. Recharts (~375 KB) solo se descarga al abrir el Dashboard.
+
 **Alternativas.** Chart.js (canvas, más ligero, imperativo), Victory, Nivo, visx (de
 Airbnb, más control), o D3 directo.
 
@@ -1028,7 +1032,7 @@ en `AddressAutocomplete.tsx:30,35`. Sin él, todo el SDK sería `any`.
 | 7 | ⚠️ Media | **`express-rate-limit` cuenta en memoria del proceso.** Con dos instancias, el límite efectivo se duplica. Sin almacén compartido. | `middlewares/rate-limiter.ts` |
 | 8 | ⚠️ Baja | **Las pruebas cubren solo funciones puras.** 28 casos: utilidades y esquemas Zod. Cero servicios, repositorios, endpoints, componentes o concurrencia. Falta la infraestructura, no la voluntad. | 8 archivos |
 | 9 | ⚠️ Baja | **`jsdom` se carga sin hacer falta.** `environment: 'jsdom'` en la configuración, ninguna prueba toca el DOM. `'node'` sería más rápido. | `frontend/vitest.config.ts:9` |
-| 10 | ⚠️ Baja | **`recharts` (~500 KB) para un solo gráfico**, sin división de código. `React.lazy` son tres líneas. | `DashboardPage.tsx` |
+| 10 | ⚠️ Baja | **`recharts` (~500 KB) para un solo gráfico**, sin división de código. `React.lazy` son tres líneas. *(Resuelto el 28/09/2026: ver la actualización en la sección de recharts.)* | `DashboardPage.tsx` |
 | 11 | ⚠️ Baja | **`dotenv` es prescindible.** Node 20.6+ trae `--env-file` nativo y el proyecto declara Node 20+. | `config/env.ts` |
 | 12 | ⚠️ Baja | **`react-router-dom` infrautilizado.** No usa `loader`/`action` (evitarían el parpadeo de carga) ni `useSearchParams` (resolvería §22C, hallazgo 10). | `RouteMap.tsx` |
 | 13 | ✅ Bueno | **Prisma 7 con `@prisma/adapter-mariadb`.** Sin binario Rust: contenedores más pequeños, arranque inmediato, sin problemas de arquitectura. Decisión de 2025 en un TP. | `package.json` |
