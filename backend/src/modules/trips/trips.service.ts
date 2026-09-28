@@ -1,7 +1,7 @@
 import { prisma } from '../../database/prisma-client';
 import type { TripStatus } from '../../generated/prisma/client';
 import { BusinessRuleError, ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
-import { FIXED_TRIP_ORIGIN } from '../../config/constants';
+import { FIXED_TRIP_ORIGIN, REQUIRED_DRIVER_DOCUMENT_TYPES } from '../../config/constants';
 import { utcStartOfToday } from '../../shared/utils/dates';
 import type { AuthenticatedUser } from '../../shared/types/auth';
 import type { PaginatedResult } from '../../shared/schemas';
@@ -210,13 +210,20 @@ export const tripsService = {
       if (lockedDriver.licenseExpiryDate < utcStartOfToday()) {
         throw new BusinessRuleError('La licencia del chofer está vencida', 'RN-1');
       }
-      // RN-4: no EXPIRED active documentation blocks assignment.
-      // Deliberate simplification (business decision for this case): the
-      // ABSENCE of documents does NOT block — a driver with no documents
-      // loaded is still assignable. This avoids day-to-day operational
-      // blocks; it is intentional, not an oversight.
-      if (await documentsRepository.hasExpiredActive(dto.driverId, tx)) {
-        throw new BusinessRuleError('El chofer tiene documentación vencida', 'RN-4');
+      // RN-4: the driver must have an active, unexpired document for every
+      // required type (DNI, Licencia, ART, Psicofísico). Missing documentation
+      // blocks assignment the same as expired documentation.
+      if (
+        !(await documentsRepository.hasCompleteValidDocuments(
+          dto.driverId,
+          REQUIRED_DRIVER_DOCUMENT_TYPES,
+          tx,
+        ))
+      ) {
+        throw new BusinessRuleError(
+          'El chofer no tiene la documentación completa y vigente (DNI, Licencia, ART y Psicofísico)',
+          'RN-4',
+        );
       }
       // RN-19/RN-6: driver must not already be on an active trip.
       if (await tripsRepository.hasActiveTrip(dto.driverId, tx)) {

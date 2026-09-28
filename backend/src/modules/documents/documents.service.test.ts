@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { documentsService } from './documents.service';
-import { ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
+import { BusinessRuleError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
 
 /**
  * Files live in the database (hosting disks are ephemeral): the upload must
@@ -17,8 +17,11 @@ const m = vi.hoisted(() => {
       activeTypeExists: vi.fn(),
       create: vi.fn(),
       findContent: vi.fn(),
+      findById: vi.fn(),
+      softDelete: vi.fn(),
     },
     driversRepository: { findById: vi.fn() },
+    tripsRepository: { hasActiveTrip: vi.fn() },
     record: vi.fn(),
   };
 });
@@ -28,6 +31,7 @@ vi.mock('../../database/prisma-client', () => ({
 }));
 vi.mock('./documents.repository', () => ({ documentsRepository: m.documentsRepository }));
 vi.mock('../drivers/drivers.repository', () => ({ driversRepository: m.driversRepository }));
+vi.mock('../trips/trips.repository', () => ({ tripsRepository: m.tripsRepository }));
 vi.mock('../audit-logs/audit-logs.service', () => ({ auditLogsService: { record: m.record } }));
 
 const ADMIN = { id: 1, role: 'ADMIN' as const };
@@ -106,5 +110,35 @@ describe('documentsService — files stored in the database', () => {
     await expect(
       documentsService.getForDownload(6, 10, { id: 5, role: 'DRIVER' }),
     ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('refuses to delete a document from a driver with a trip in progress', async () => {
+    m.documentsRepository.findById.mockResolvedValue({
+      id: 10,
+      driverId: 5,
+      documentType: 'LICENSE',
+      expiryDate: new Date('2027-01-01T00:00:00Z'),
+      deletedAt: null,
+    });
+    m.tripsRepository.hasActiveTrip.mockResolvedValue(true);
+
+    await expect(documentsService.remove(5, 10, ADMIN)).rejects.toBeInstanceOf(BusinessRuleError);
+    expect(m.documentsRepository.softDelete).not.toHaveBeenCalled();
+  });
+
+  it('deletes the document when the driver has no active trip', async () => {
+    m.documentsRepository.findById.mockResolvedValue({
+      id: 10,
+      driverId: 5,
+      documentType: 'LICENSE',
+      expiryDate: new Date('2027-01-01T00:00:00Z'),
+      deletedAt: null,
+    });
+    m.tripsRepository.hasActiveTrip.mockResolvedValue(false);
+    m.documentsRepository.softDelete.mockResolvedValue({});
+
+    await documentsService.remove(5, 10, ADMIN);
+
+    expect(m.documentsRepository.softDelete).toHaveBeenCalledWith(10, m.TX);
   });
 });

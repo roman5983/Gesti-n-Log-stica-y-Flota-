@@ -60,6 +60,29 @@ export const documentsRepository = {
     return existing !== null;
   },
 
+  /**
+   * True if the driver has an active, unexpired document for every type in
+   * `requiredTypes` (RN-4). A missing type and an expired one are the same
+   * failure here — both mean the driver isn't fully documented.
+   */
+  async hasCompleteValidDocuments(
+    driverId: number,
+    requiredTypes: DocumentType[],
+    db: DbClient = prisma,
+  ): Promise<boolean> {
+    const docs = await db.driverDocument.findMany({
+      where: {
+        driverId,
+        deletedAt: null,
+        documentType: { in: requiredTypes },
+        expiryDate: { gte: utcStartOfToday() },
+      },
+      select: { documentType: true },
+    });
+    const validTypes = new Set(docs.map((d) => d.documentType));
+    return requiredTypes.every((t) => validTypes.has(t));
+  },
+
   findById(id: number, db: DbClient = prisma): Promise<DocumentRow | null> {
     return db.driverDocument.findFirst({ where: { id, deletedAt: null }, omit: withoutContent });
   },
