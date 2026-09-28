@@ -728,7 +728,7 @@ Se revisó todo lo de las entradas anteriores buscando fallas que tsc, ESLint y 
 
 ## Tests de Santiago — participación individual (26/09/2026)
 
-La consigna exige que cada integrante tenga al menos un test de su autoría (punto 13 de `PENDIENTES.md`). Santiago no tenía commits en el repo oficial. Se crearon cinco archivos de test nuevos (tres en backend, dos en frontend) y se actualizó la documentación de pruebas.
+La consigna exige que cada integrante tenga al menos un test de su autoría (punto 13 de `PENDIENTES.md`). Se crearon cinco archivos de test nuevos (tres en backend, dos en frontend) y se actualizó la documentación de pruebas.
 
 **Backend — 3 archivos nuevos.**
 
