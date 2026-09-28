@@ -150,7 +150,7 @@ El seed carga una empresa con ~200 días de operación (más de 400 viajes, mant
 **Automatizadas (sin base de datos):**
 
 ```bash
-cd backend  && npm test      # 97 tests: crypto, fechas UTC, schemas, filtros/orden/búsqueda, concurrencia de servicios, archivos en la base, job de alertas diario, alerta de viaje sin asignar, seed
+cd backend  && npm test      # 101 tests: crypto, fechas UTC, schemas, filtros/orden/búsqueda, concurrencia de servicios, archivos en la base, job de alertas diario + horario, alerta de viaje sin asignar, documentación completa para asignar, seed
 cd frontend && npm test      # 149 tests: todas las pantallas por rol en modo claro y oscuro (smoke), contraste de la paleta (WCAG AA), buscador, tarjetas de alerta, mensajes de error, fechas, selector de fecha, rutas por rol, auditoría
 ```
 
