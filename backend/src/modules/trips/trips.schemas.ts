@@ -50,6 +50,7 @@ export type FinishTripDto = z.infer<typeof finishTripSchema>;
 
 export const listTripsQuerySchema = paginationSchema.extend({
   status: z.enum(['PENDING_ASSIGNMENT', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
+  id: z.coerce.number().int().positive().optional(),
   driverId: z.coerce.number().int().positive().optional(),
   vehicleId: z.coerce.number().int().positive().optional(),
   dateFrom: z.coerce.date().optional(),

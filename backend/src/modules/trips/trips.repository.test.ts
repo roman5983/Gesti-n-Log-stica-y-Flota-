@@ -32,6 +32,18 @@ describe('buildTripWhere — trips search box (driver or destination)', () => {
   });
 });
 
+describe('buildTripWhere — id filter', () => {
+  it('matches an exact trip id', () => {
+    expect(buildTripWhere({ id: 615 }).id).toBe(615);
+  });
+
+  it('combines with the other filters', () => {
+    const where = buildTripWhere({ id: 615, status: 'COMPLETED' });
+    expect(where.id).toBe(615);
+    expect(where.status).toBe('COMPLETED');
+  });
+});
+
 describe('listTripsQuerySchema.search', () => {
   it('trims spaces and treats blank text as "no search"', () => {
     expect(listTripsQuerySchema.parse({ search: '  Rosario ' }).search).toBe('Rosario');
