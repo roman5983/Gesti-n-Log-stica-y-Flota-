@@ -726,6 +726,36 @@ Se revisó todo lo de las entradas anteriores buscando fallas que tsc, ESLint y 
 
 ---
 
+## Trabajo en paralelo con la reorganización del frontend, y rehecho sobre `main` (28/09/2026)
+
+**Qué pasó.** Mientras se trabajaba en la rama `justino-actualizacion-pendientes` sobre cinco pedidos del usuario (ver abajo), en paralelo se mergeó a `main` la reorganización completa del frontend en carpetas por componente con el código en inglés (entrada anterior, "Una carpeta por componente") más una implementación equivalente de los filtros de Vehículos/Mantenimiento/Viajes (con `sortBy`/`sortOrder` de más) y el cambio de la evaluación de alertas a una vez al día. Los cinco commits de la rama quedaron construidos sobre archivos que ya no existían con ese nombre ni esa forma.
+
+**Cómo se resolvió.** En vez de mergear con conflictos línea por línea (inviable: el frontend cambió de carpeta y de idioma), se guardó la rama original completa en `backup/sesion-filtros-docs-2026-09-28` y se creó `justino-actualizacion-pendientes-v2` desde el último commit de `main`. Se hizo una lista de los cinco commits originales y, contra el `main` actualizado, se los clasificó:
+
+| Commit original | Qué pasó |
+|:--|:--|
+| Filtro por km en Vehículos, tipo/fecha en Mantenimiento | **Descartado** — ya estaba en `main`, con ordenamiento de más |
+| Alertas cada 60 min (reemplazando el intervalo por uno fijo) | **Descartado tal cual** — `main` ya lo había reemplazado por una evaluación diaria a hora fija, más sofisticada (huso horario, arranque en frío de Render) |
+| RN-4: documentación completa y vigente para asignar un viaje | **Rehecho** sobre los archivos actuales (sin conflicto real de lógica, solo de ubicación) |
+| Bloquear borrado de documentación con viaje en curso + confirmación al eliminar | **Rehecho** sobre `DriverDocumentsDialog` en su nueva carpeta |
+| `noValidate` en los formularios (validación propia, no del navegador) | **Rehecho** sobre los 8 formularios en sus nuevas rutas |
+| Versión de escritorio del layout de Chofer | **Rehecho** sobre `DriverLayout`/`SidebarLayout` (antes `ChoferLayout`/`AppSidebarLayout`) |
+
+**Alertas: ni lo uno ni lo otro, las dos cosas.** El usuario había pedido "cada 1 hora"; `main` ya evaluaba una vez al día. En vez de elegir, se agregó la cadencia horaria **encima** de la diaria: `startAlertsScheduler` ahora toma un `intervalMin` opcional y arma un segundo `setTimeout` encadenado (`intervalTimer`), independiente del diario (`dailyTimer`), con su propio `unref()` y su propio `clearTimeout`. `ALERTS_EVAL_INTERVAL_MIN` vuelve a existir en `env.ts`/`.env.example`/`render.yaml`, con un rol distinto al de antes: ya no reemplaza la evaluación diaria, la complementa (default `60`, `0` la desactiva). Esto resuelve de paso el punto 19 histórico de `PENDIENTES.md` ("la alerta de viaje sin asignar casi nunca salta sola" porque la evaluación era solo diaria): con una pasada cada hora, el peor caso pasa de "hasta 24 h de demora" a "hasta 1 h".
+
+**RN-4, la decisión de negocio que se revirtió.** El código de `main` (idéntico al que traía la rama original) documentaba como *"intentional, not an oversight"* que un chofer **sin ningún documento cargado** sí era asignable — solo bloqueaba uno **vencido**. El equipo decidió lo contrario: la ausencia de documentación es, para efectos de cumplimiento, peor que un vencimiento conocido, así que ahora bloquea igual. `documentsRepository.hasExpiredActive` (buscaba solo vencidos) fue reemplazada por `hasCompleteValidDocuments(driverId, requiredTypes, tx)`, que exige una fila activa y vigente para cada uno de los 4 tipos obligatorios (`REQUIRED_DRIVER_DOCUMENT_TYPES` — DNI, LICENSE, ART, PSYCHOPHYSICAL — nueva constante en `config/constants.ts`). `hasExpiredActive` se dejó intacta porque `alerts.service.ts` todavía la usa para otra cosa (generar la alerta de documentación vencida, que es un caso distinto de RN-4).
+
+Como consecuencia simétrica, `documentsService.remove` ahora rechaza borrar cualquier documento de un chofer con un viaje `IN_PROGRESS` (`tripsRepository.hasActiveTrip`) — para que no se pueda dejar a un chofer circulando sin la documentación que se le exigió para salir, ni usar el borrado para "arreglar" en caliente su estado de cumplimiento (la técnica que ya describía el capítulo 11 del manual, §11.7.1).
+
+**Validación propia de la app.** Los 8 formularios con `<form onSubmit={...}>` (login, chofer, vehículo, viaje, usuario, tipo de mantenimiento, registrar mantenimiento, configuración) tenían `required` en sus campos sin `noValidate`, así que el navegador mostraba su propio cartel ("Please fill out this field") en vez del `Alert` de Material UI que usa el resto de la app. Se agregó `noValidate` a los 8, y en Login se sumó una validación mínima propia (mensaje "Completá usuario y contraseña") porque no tenía ninguna verificación antes de llamar a la API. En `DriverDocumentsDialog`, el flujo de subida usaba un `<form>` solo para poder llamar a `reportValidity()` del navegador antes de abrir el selector de archivo; se sacó el `<form>` y la validación quedó en el `onClick` del botón "Elegir archivo", reusando el mismo texto de error que ya mostraba `handleUpload`.
+
+**Versión de escritorio para Chofer.** `DriverLayout` (antes `ChoferLayout`) estaba fijo en un shell mobile de 480px con navegación inferior, sin importar el tamaño de pantalla — un chofer que entra desde una computadora quedaba con una columna angosta en el medio. Ahora usa `useMediaQuery(theme.breakpoints.up('md'))` para decidir: por debajo de `md`, el shell mobile de siempre (renombrado `DriverMobileLayout`); desde `md`, el mismo `SidebarLayout` que ya usan Admin y Operador, con la misma navegación (`DriverLayout.data.ts`, sin cambios).
+
+**Documentación actualizada.** Los capítulos 11, 12, 14, 23 y 26 del manual técnico describían la interpretación laxa de RN-4 y la evaluación diaria como el estado final del sistema — varios con ejercicios cuya respuesta cambió. Se agregaron notas "Actualización (28/09/2026)" en cada punto afectado, sin borrar el análisis original (sigue siendo válido para entender *por qué* se tomó la decisión que después se revirtió), y se aplicó el mismo patrón de tachado + "✅ *(resuelto ...)*" que ya usaba el manual para hallazgos cerrados. `PENDIENTES.md` perdió el punto 19 (resuelto) y se renumeró correlativamente del 20 en adelante.
+
+**Tests nuevos/actualizados.** `alerts.scheduler.test.ts` (+2: la pasada horaria corre independiente de la diaria; `intervalMin` en 0 no agrega pasadas). `documents.service.test.ts` (+2: rechaza borrar con viaje en curso, permite borrar sin él). `trips.service.test.ts` y `documents.service.test.ts` existentes actualizados al mock nuevo (`hasCompleteValidDocuments` en vez de `hasExpiredActive`).
+
+**Verificación.** Backend: 101 tests, `tsc`, ESLint y build (`tsc -p tsconfig.build.json`) limpios. Frontend: 149 tests, `tsc`, ESLint y `vite build` limpios (el aviso de bundle > 500 kB es el pendiente 25, no nuevo).
 ## Tests de Santiago — participación individual (26/09/2026)
 
 La consigna exige que cada integrante tenga al menos un test de su autoría (punto 13 de `PENDIENTES.md`). Se crearon cinco archivos de test nuevos (tres en backend, dos en frontend) y se actualizó la documentación de pruebas.

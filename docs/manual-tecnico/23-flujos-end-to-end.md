@@ -483,7 +483,7 @@ Y entonces empieza lo interesante — `trips.service.ts:171-248`:
 
     línea 192   ③ ¿lockedDriver.user.isActive?                → 422
     línea 196   ④ ¿licenseExpiryDate >= utcStartOfToday()?    → 422 (RN-1)
-    línea 204   ⑤ ¿hasExpiredActive(3, tx)?                   → 422 (RN-4)
+    línea 204   ⑤ ¿hasCompleteValidDocuments(3, ..., tx)?     → 422 (RN-4)
     línea 208   ⑥ ¿hasActiveTrip(3, tx)?                      → 409 (RN-19)
 
     línea 213   pickAvailableVehicle(tx)
@@ -582,7 +582,7 @@ cuatro archivos es incorrecto leído solo**.
 | ② | El chofer existe | 179 | No | 404 |
 | ③ | El chofer está activo | 192 | **Sí** | 422 |
 | ④ | Licencia vigente (RN-1) | 196 | **Sí** | 422 |
-| ⑤ | Sin documentación vencida (RN-4) | 204 | **Sí** | 422 |
+| ⑤ | Documentación completa y vigente (RN-4) | 204 | **Sí** | 422 |
 | ⑥ | Sin otro viaje activo (RN-19) | 208 | **Sí** | 409 |
 | ⑦ | Hay vehículo disponible (RN-12) | 214 | **Sí** | 409 |
 
@@ -606,10 +606,17 @@ Un chofer **sin ningún documento cargado** es asignable; uno con un documento v
 Puede parecer al revés de lo razonable, y el comentario se adelanta a la objeción:
 *"it is intentional, not an oversight"*.
 
-**La decisión es defendible** —evita que el sistema se bloquee mientras se digitaliza el
-archivo— y está documentada, que es lo que la separa de un descuido. Pero abre un hueco
-real: la forma de saltarse RN-4 es **no cargar el documento**. Y la pantalla del chofer
-tampoco le dice cuáles le faltan (§22C, hallazgo 14).
+**La decisión era defendible** —evita que el sistema se bloquee mientras se digitaliza el
+archivo— y estaba documentada, que es lo que la separa de un descuido. Pero abría un hueco
+real: la forma de saltarse RN-4 era **no cargar el documento**.
+
+> **Actualización (28/09/2026): el hueco se cerró.** `hasExpiredActive` fue reemplazada por
+> `hasCompleteValidDocuments` (`documents.repository.ts`), que exige un documento activo y
+> vigente para **cada uno** de los 4 tipos obligatorios (`REQUIRED_DRIVER_DOCUMENT_TYPES`).
+> Hoy un chofer sin ningún documento cargado **no** es asignable — el comentario "intentional,
+> not an oversight" describe una decisión que el equipo terminó revirtiendo (capítulo 12). La
+> pantalla del chofer sigue sin decir cuáles documentos le faltan (§22C, hallazgo 14): eso no
+> cambió.
 
 ### 23.4.5 · Diagrama: dos operadores asignando a la vez
 
@@ -1172,7 +1179,7 @@ Es exactamente el hueco que este capítulo existía para llenar.
 | 3 | ⚠️ Media | **El canal de tiempo delata las cuentas existentes.** Email inexistente ≈2 ms; email real ≈60 ms por `bcrypt.compare`. El comentario dice *"never reveal which credential failed"* y el reloj lo revela. Mitigación: comparar siempre contra un hash señuelo. | `auth.service.ts:58-68` |
 | 4 | ⚠️ Media | **`avgKm` deriva y nadie la reconcilia.** Media incremental sobre un `Decimal` convertido a flotante, sin proceso de recálculo. El error es despreciable pero **irrecuperable**. | `trips.service.ts:306-307` |
 | 5 | ⚠️ Media | **Los archivos huérfanos se acumulan.** `safeUnlink` compensa el `INSERT` fallido, pero si el proceso muere entre la escritura y la compensación, el archivo queda. No hay tarea de limpieza. | `documents.service` + `files.ts` |
-| 6 | ⚠️ Baja | **RN-4 se salta no cargando el documento.** La ausencia no bloquea, solo lo vencido. Está **comentado y es deliberado** (`trips.service.ts:199-203`), pero el hueco existe y la pantalla del chofer no le dice qué le falta. | `trips.service.ts:204` |
+| 6 | ✅ *(resuelto 2026-09-28)* ~~**RN-4 se salta no cargando el documento.** La ausencia no bloquea, solo lo vencido. Está **comentado y es deliberado** (`trips.service.ts:199-203`), pero el hueco existe y la pantalla del chofer no le dice qué le falta.~~ `hasCompleteValidDocuments` exige los 4 tipos, activos y vigentes; la ausencia ahora bloquea igual que lo vencido. Sigue sin resolverse que la pantalla del chofer no diga qué le falta. | `trips.service.ts:204` |
 | 7 | ⚠️ Baja | **El criterio de selección de vehículo no se comunica.** `ORDER BY accumulated_km ASC` reparte el desgaste; la interfaz solo dice "según reglas de negocio". | `trips.repository.ts` vs `AssignTripDialog:93` |
 | 8 | ⚠️ Baja | **La asignación absoluta del odómetro no está comentada.** `accumulatedKm: dto.arrivalKm` es la decisión correcta —el odómetro es una lectura del mundo, no un agregado— pero se lee como si pudiera ser un descuido. | `trips.service.ts:298` |
 | 9 | ✅ Bueno | **`FOR UPDATE SKIP LOCKED`.** Diez operadores obtienen diez vehículos en paralelo en lugar de esperarse en fila. Construcción canónica de cola de trabajo. | `trips.repository.ts` |

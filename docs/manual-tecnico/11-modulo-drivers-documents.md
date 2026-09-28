@@ -425,7 +425,7 @@ available: driver.user.isActive && licenseValid && !hasActiveTrip
 
 💡 **Es duplicación inevitable en cierta medida** —SQL y TypeScript son lenguajes distintos— pero mitigable: un test que compare ambas implementaciones sobre el mismo conjunto de datos detectaría la divergencia. Ese test no existe.
 
-🔴 **Y de hecho las dos implementaciones YA divergen del enunciado de RN-4.** La documentación vigente **no** entra en el cálculo de `available`, aunque RN-4 la exige para asignar un viaje. La comprobación existe (`documentsRepository.hasExpiredActive`) pero se aplica **solo al asignar** (capítulo 12), no al listar. **Un chofer con el ART vencido aparece como "disponible" y falla al asignarlo.**
+🔴 **Y de hecho las dos implementaciones YA divergen del enunciado de RN-4.** La documentación vigente **no** entra en el cálculo de `available`, aunque RN-4 la exige para asignar un viaje. La comprobación existe (`documentsRepository.hasCompleteValidDocuments`, antes `hasExpiredActive` — ver la actualización del 28/09/2026 en el capítulo 12) pero se aplica **solo al asignar** (capítulo 12), no al listar. **Un chofer con el ART vencido, o directamente sin ningún documento cargado, aparece como "disponible" y falla al asignarlo** — el segundo caso es nuevo desde que RN-4 pasó a exigir los 4 documentos, no solo que ninguno esté vencido.
 
 **Línea 57 — `avgKm: Number(driver.avgKm)`**
 
@@ -738,6 +738,10 @@ El montaje es `apiV1.use('/drivers/:driverId/documents', documentsRoutes)` (`app
 | Borrar un documento vencido | Ocultar su incumplimiento — **y como RN-4 comprueba documentos vencidos, borrarlo lo "arregla"** |
 
 🔴 **La tercera es la más grave y la menos obvia.** `hasExpiredActive` (`documents.repository.ts:20-26`) busca documentos **activos y vencidos**. Un documento borrado lógicamente ya no es "activo", así que **borrarlo elimina la señal de incumplimiento**. Si el chofer pudiera borrar, "arreglaría" su estado destruyendo la evidencia.
+
+> **Actualización (28/09/2026): la misma técnica, aplicada por un Admin, ahora se bloquea en un caso concreto.** `documentsService.remove` chequea `tripsRepository.hasActiveTrip(driverId)` antes de borrar: **no se puede eliminar ningún documento de un chofer con un viaje `IN_PROGRESS`**, esté vencido o no. La motivación es la asignación (§12), que ahora exige documentación completa y vigente (RN-4 estricta, ver el capítulo 12): borrar un documento a mitad de viaje dejaría a un chofer circulando sin la documentación que se le exigió para salir. **Esto no cierra el hallazgo de arriba en general** — un Admin todavía puede borrar el documento vencido de un chofer que NO está en viaje, y `hasExpiredActive`/`hasCompleteValidDocuments` seguirían sin verlo — pero sí cierra el caso más urgente: el chofer ya circulando.
+
+
 
 💡 **Es un ejemplo claro de por qué la separación de deberes importa:** quien es evaluado no debe controlar la evidencia de su evaluación.
 
@@ -1211,6 +1215,8 @@ curl -X POST http://localhost:3000/api/v1/trips/13/assign \
 ```
 
 **El resultado depende de si RN-4 comprueba "documentos vencidos" o "documentos completos"** — se verifica en el capítulo 12. **Si comprueba completitud, Carlos figura disponible y falla al asignarlo.** La lista miente.
+
+> **Actualización (28/09/2026): esto dejó de ser hipotético.** RN-4 pasó a comprobar completitud (capítulo 12), así que hoy Carlos efectivamente figura "disponible" en este listado y el `curl` de arriba devuelve 422 con `rule='RN-4'`. El ejercicio predijo con exactitud el comportamiento actual del sistema — la corrección pendiente (que `available` también considere la documentación) sigue sin hacerse.
 
 ---
 

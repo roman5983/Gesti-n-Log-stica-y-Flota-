@@ -647,6 +647,8 @@ if (!lockedDriver) throw new NotFoundError(`Driver ${dto.driverId} not found`);
 
 #### Líneas 192-210 — las cuatro reglas de negocio
 
+> ⚠️ **Código histórico (hasta el 27/09/2026).** El bloque de RN-4 de abajo ya no está vigente — ver la actualización del 28/09/2026 más adelante en esta sección. Se conserva íntegro porque el análisis que sigue explica *por qué* se tomó la decisión original y por qué luego se revirtió; es el mismo razonamiento con el que hay que evaluar cualquier "simplificación deliberada" futura.
+
 ```ts
 if (!lockedDriver.user.isActive) {
   throw new BusinessRuleError('Driver is not active');
@@ -691,6 +693,21 @@ if (await tripsRepository.hasActiveTrip(dto.driverId, tx)) {
 💡 **Que esté documentada como intencional es lo importante.** Sin ese comentario, un auditor futuro la leería como un bug y la "arreglaría", rompiendo la operación.
 
 🔴 **Y confirma la divergencia señalada en §11.6.1:** el listado de choferes calcula `available` **sin** considerar la documentación. Con la interpretación laxa, la divergencia es menor de lo que parecía: solo María figuraría disponible y fallaría al asignarse. **Pero la divergencia existe** — el listado y el asignador aplican criterios distintos.
+
+> **Actualización (28/09/2026): la interpretación laxa se abandonó.** El equipo decidió que un chofer sin documentación cargada **no** debe ser asignable — la lectura correcta de RN-4 es la interpretación **estricta** de la tabla de arriba, no la laxa. El código pasó a:
+>
+> ```ts
+> // RN-4: the driver must have an active, unexpired document for every
+> // required type (DNI, Licencia, ART, Psicofísico). Missing documentation
+> // blocks assignment the same as expired documentation.
+> if (!(await documentsRepository.hasCompleteValidDocuments(dto.driverId, REQUIRED_DRIVER_DOCUMENT_TYPES, tx))) {
+>   throw new BusinessRuleError('El chofer no tiene la documentación completa y vigente (DNI, Licencia, ART y Psicofísico)', 'RN-4');
+> }
+> ```
+>
+> `hasCompleteValidDocuments` (`documents.repository.ts`) reemplaza a `hasExpiredActive`: en vez de buscar solo documentos vencidos, cuenta cuántos de los 4 tipos requeridos (`REQUIRED_DRIVER_DOCUMENT_TYPES`, en `config/constants.ts`) tienen una fila activa y vigente, y exige los 4. Con esto, **Carlos y Lucía (sin documentos) ya no son asignables**, tal como predecía la fila "Estricta" de la tabla — el argumento de adopción (§ anterior) se consideró menos importante que el riesgo de compliance de dejar viajar a un chofer sin ART ni psicofísico. La divergencia con `available` (párrafo anterior) **sigue existiendo y ahora es más notoria**: un chofer sin ningún documento cargado sigue figurando "disponible" en el listado y ahora falla al asignarse por la razón más básica posible (no por vencimiento, por ausencia total). Sigue sin resolverse — ver Ejemplo 5 (§11, "El filtro `available` y su divergencia con RN-4").
+>
+> De paso, se agregó una regla simétrica en `documents.service.ts`: **no se puede borrar un documento de un chofer con un viaje en curso** (`tripsRepository.hasActiveTrip`), para que no se pueda usar la técnica descrita en §11.6.2 ("borrar el vencido para parecer cumplido") sobre un chofer que ya está en ruta.
 
 **Línea 208 — RN-19 y por qué es `ConflictError` y no `BusinessRuleError`**
 
@@ -1021,7 +1038,7 @@ sequenceDiagram
     S->>DB: 🔒 SELECT user_id FROM drivers WHERE user_id=3 FOR UPDATE
     S->>DR: findById(3, tx) — RELECTURA bajo el bloqueo
     Note over S: isActive ✅ · licencia vigente ✅ (RN-1)
-    S->>DOC: hasExpiredActive(3, tx) → false ✅ (RN-4)
+    S->>DOC: hasCompleteValidDocuments(3, ..., tx) → true ✅ (RN-4)
     S->>DB: hasActiveTrip(3, tx) → false ✅ (RN-19)
     S->>DB: 🔒 SELECT id FROM vehicles WHERE status='AVAILABLE'<br/>ORDER BY accumulated_km ASC LIMIT 1 FOR UPDATE SKIP LOCKED
     DB-->>S: id = 1
@@ -1123,7 +1140,9 @@ curl -X POST .../trips/13/assign -d '{"driverId":<maria>}'
 
 # Carlos: SIN ningún documento cargado
 curl -X POST .../trips/13/assign -d '{"driverId":<carlos>}'
-# → 200 ✅  la simplificación deliberada de RN-4: la AUSENCIA no bloquea
+# Hasta el 27/09/2026 → 200 ✅ (simplificación deliberada de RN-4: la AUSENCIA no bloqueaba)
+# Desde el 28/09/2026 → 422 {"message":"El chofer no tiene la documentación completa y vigente (DNI, Licencia, ART y Psicofísico)"}
+#   rule='RN-4' — ver la actualización en "Líneas 192-210" más arriba.
 ```
 
 ### Ejemplo 3 — Demostrar que el seguro vencido NO bloquea
@@ -1218,7 +1237,7 @@ curl -X POST .../trips/12/finish -d '{"arrivalKm":45000}'   # mismo km que la sa
 
 7. **El borrado es físico y está justificado:** un viaje pendiente es una intención, no un hecho.
 
-8. **La simplificación de RN-4 (la ausencia de documentos no bloquea) está documentada como intencional**, lo que impide que un auditor futuro la "arregle" y rompa la operación.
+8. ⚠️ *(revertido 2026-09-28)* ~~**La simplificación de RN-4 (la ausencia de documentos no bloquea) está documentada como intencional**, lo que impide que un auditor futuro la "arregle" y rompa la operación.~~ El equipo decidió lo contrario: la ausencia de documentos **sí** bloquea, igual que uno vencido (interpretación estricta, ver la actualización en "Líneas 192-210"). El punto pedagógico sigue siendo válido en general — documentar una simplificación deliberada evita que se la confunda con un bug — solo que en este caso terminó revertida.
 
 9. **Once hallazgos concretos:**
 

@@ -57,7 +57,7 @@ export function MaintenanceTypeFormDialog({ open, type, onClose, onSaved }: Main
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle>{isEdit ? 'Editar tipo de mantenimiento' : 'Nuevo tipo de mantenimiento'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>

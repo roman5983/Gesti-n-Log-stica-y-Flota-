@@ -1,10 +1,11 @@
 import { prisma } from '../../database/prisma-client';
-import { ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
+import { BusinessRuleError, ConflictError, ForbiddenError, NotFoundError } from '../../shared/errors/app-error';
 import { utcStartOfToday } from '../../shared/utils/dates';
 import type { AuthenticatedUser } from '../../shared/types/auth';
 import { toBytes, type StoredFile } from '../../shared/utils/files';
 import { auditLogsService } from '../audit-logs/audit-logs.service';
 import { driversRepository } from '../drivers/drivers.repository';
+import { tripsRepository } from '../trips/trips.repository';
 import { documentsRepository, type DocumentRow } from './documents.repository';
 import type { CreateDocumentDto, UpdateDocumentDto } from './documents.schemas';
 
@@ -176,6 +177,15 @@ export const documentsService = {
   ): Promise<void> {
     assertCanAccess(actor, driverId);
     const existing = await getOwnedDocumentOrFail(driverId, documentId);
+
+    // A driver on an active trip must stay documented for its whole duration —
+    // deleting any of their documents mid-trip would leave them assigned
+    // without the paperwork RN-4 requires to have assigned them in the first place.
+    if (await tripsRepository.hasActiveTrip(driverId)) {
+      throw new BusinessRuleError(
+        'No se puede eliminar documentación de un chofer con un viaje en curso',
+      );
+    }
 
     await prisma.$transaction(async (tx) => {
       await documentsRepository.softDelete(documentId, tx);

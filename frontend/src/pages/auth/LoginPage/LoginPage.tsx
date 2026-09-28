@@ -40,6 +40,10 @@ export function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!email || !password) {
+      setError('Completá usuario y contraseña');
+      return;
+    }
     setSubmitting(true);
     try {
       await login(email, password);
@@ -79,7 +83,7 @@ export function LoginPage() {
             </Typography>
           </Stack>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <Stack spacing={2}>
               {error && <Alert severity="error">{error}</Alert>}
               <TextField

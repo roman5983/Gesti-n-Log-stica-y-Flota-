@@ -1,4 +1,5 @@
 /** Project-wide constants derived from the functional document. */
+import type { DocumentType } from '../generated/prisma/client';
 
 /** F-9: maximum attachment size — 1 MB. */
 export const MAX_FILE_SIZE_BYTES = 1024 * 1024;
@@ -15,3 +16,11 @@ export const UNASSIGNED_TRIP_LEAD_MS = 60 * 60 * 1000;
 /** RN-21: fixed origin for every trip. */
 export const FIXED_TRIP_ORIGIN =
   'Ciudad Industria, Autopista Córdoba - Rosario, Rosario, Santa Fe';
+
+/** RN-4: documentation a driver must have active and unexpired to be assigned a trip. */
+export const REQUIRED_DRIVER_DOCUMENT_TYPES: DocumentType[] = [
+  'DNI',
+  'LICENSE',
+  'ART',
+  'PSYCHOPHYSICAL',
+];

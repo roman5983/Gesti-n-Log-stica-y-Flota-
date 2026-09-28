@@ -199,7 +199,7 @@ cruzar al menos dos capítulos.
 
 3. El chofer está activo — `:192`
 4. Licencia vigente, RN-1 — `:196`
-5. Sin documentación vencida, RN-4 — `:204`
+5. Documentación completa y vigente, RN-4 — `:204`
 6. Sin otro viaje activo, RN-19 — `:208`
 7. Hay vehículo disponible, RN-12 — `:214`
 

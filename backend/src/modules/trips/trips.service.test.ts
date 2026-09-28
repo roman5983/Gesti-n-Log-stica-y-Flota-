@@ -23,7 +23,7 @@ const t = vi.hoisted(() => {
       update: vi.fn(),
     },
     driversRepository: { findById: vi.fn() },
-    documentsRepository: { hasExpiredActive: vi.fn() },
+    documentsRepository: { hasCompleteValidDocuments: vi.fn() },
     vehiclesRepository: { findById: vi.fn(), update: vi.fn() },
     record: vi.fn(),
   };
@@ -82,7 +82,7 @@ describe('tripsService.assign — decides from the locked trip', () => {
       user: { isActive: true, name: 'Juan' },
       licenseExpiryDate: new Date('2099-01-01T00:00:00Z'),
     });
-    t.documentsRepository.hasExpiredActive.mockResolvedValue(false);
+    t.documentsRepository.hasCompleteValidDocuments.mockResolvedValue(true);
     t.tripsRepository.hasActiveTrip.mockResolvedValue(false);
     t.tripsRepository.pickAvailableVehicle.mockResolvedValue(7);
     t.vehiclesRepository.findById.mockResolvedValue({ id: 7, accumulatedKm: 1000 });

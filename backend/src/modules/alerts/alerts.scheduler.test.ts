@@ -64,6 +64,39 @@ describe('alerts scheduler', () => {
     await vi.advanceTimersByTimeAsync(3 * 24 * 60 * 60_000);
     expect(evaluate).toHaveBeenCalledTimes(1);
   });
+
+  it('also runs every intervalMin minutes, independently of the daily time', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-23T06:00:00.000Z')); // 03:00 local → next 06:00 is 3 h away
+    findFirst.mockResolvedValue({ id: 1 });
+    evaluate.mockResolvedValue({ evaluated: 0, created: 0, autoResolved: 0 });
+
+    startAlertsScheduler({ time: '06:00', timeZone: 'America/Argentina/Buenos_Aires', intervalMin: 60 });
+
+    await vi.advanceTimersByTimeAsync(15_000); // startup pass
+    expect(findFirst).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(60 * 60_000); // +1 h → hourly pass only (daily is still 2 h away)
+    expect(findFirst).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(60 * 60_000); // +2 h → another hourly pass
+    expect(findFirst).toHaveBeenCalledTimes(3);
+  });
+
+  it('intervalMin 0 (default) means no extra pass besides the daily one', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-23T08:00:00.000Z'));
+    findFirst.mockResolvedValue({ id: 1 });
+    evaluate.mockResolvedValue({ evaluated: 0, created: 0, autoResolved: 0 });
+
+    startAlertsScheduler({ time: '06:00', timeZone: 'America/Argentina/Buenos_Aires' });
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(findFirst).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(30 * 60_000); // well under the daily gap, no interval configured
+    expect(findFirst).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('msUntilNextRun (daily time in the company timezone)', () => {

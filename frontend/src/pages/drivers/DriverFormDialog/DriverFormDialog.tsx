@@ -50,7 +50,7 @@ export function DriverFormDialog({ open, driver, onClose, onSaved }: DriverFormD
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle>{isEdit ? 'Editar chofer' : 'Nuevo chofer'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
