@@ -29,7 +29,7 @@ Corren sin base de datos.
   bloqueada), `auth.service` (LOGIN/LOGOUT en la auditoría), y `drivers.repository` ("disponible" exige la
   documentación completa, RN-4).
 
-**Frontend** (`cd frontend && npm test`) — 167 tests en 19 archivos:
+**Frontend** (`cd frontend && npm test`) — 168 tests en 20 archivos:
 - `datetime`: round-trip datetime-local ↔ ISO sin desplazamiento de zona horaria,
   formatDateOnly conserva el día UTC, formatRelativeDay (Hoy/Ayer/fecha completa).
 - `date-input`: parseo estricto, serialización, validación con mensajes en español.
@@ -45,7 +45,8 @@ Corren sin base de datos.
 - `form-validation`: mensajes propios para campos vacíos, formato, rango y los de
   DateField/AddressAutocomplete (formularios con `noValidate`).
 - Componentes (Testing Library + jsdom): DateField, SearchField, AlertCard,
-  AuditLogDetailDialog, VehicleFormDialog (un formulario vacío no se envía), App smoke test.
+  AuditLogDetailDialog, VehicleFormDialog (un formulario vacío no se envía), EditProfileDialog (un
+  email inválido no se envía), App smoke test.
 
 ## 2. Preparación del entorno de integración
 
