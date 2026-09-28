@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Alert, Box, Card, CardContent, CircularProgress, Divider, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, Typography } from '@mui/material';
 import { PageHeader } from '@/components/PageHeader/PageHeader';
 import { StatusChip } from '@/components/StatusChip/StatusChip';
 import { authApi } from '@/api/auth.api';
 import { apiErrorMessage } from '@/api/axios';
 import type { UserProfile } from '@/api/types';
+import { useNotify } from '@/hooks/useNotify';
 import { formatDateOnly, formatLocalDate } from '@/utils/datetime';
+import { EditProfileDialog } from '@/pages/profile/EditProfileDialog/EditProfileDialog';
 import { LICENSE_LABELS } from './MyProfilePage.data';
 
 /** One label/value line inside a data card. */
@@ -34,24 +36,20 @@ export function MyProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const notify = useNotify();
+
+  const load = useCallback(() => {
+    return authApi
+      .profile()
+      .then((p) => setProfile(p))
+      .catch((err) => setError(apiErrorMessage(err)));
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    authApi
-      .profile()
-      .then((p) => {
-        if (!cancelled) setProfile(p);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(apiErrorMessage(err));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setLoading(true);
+    void load().finally(() => setLoading(false));
+  }, [load]);
 
   if (loading) {
     return (
@@ -69,13 +67,26 @@ export function MyProfilePage() {
     year: 'numeric',
   });
 
+  const canEdit = profile.role === 'ADMIN';
+
   return (
     <Box>
-      <PageHeader title="Mis datos" />
+      <PageHeader
+        title="Mis datos"
+        action={
+          canEdit ? (
+            <Button variant="contained" onClick={() => setEditOpen(true)}>
+              Editar mis datos
+            </Button>
+          ) : undefined
+        }
+      />
 
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Esta información es solo de consulta. Para modificar tus datos, contactá a un administrador.
-      </Alert>
+      {!canEdit && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Esta información es solo de consulta. Para modificar tus datos, contactá a un administrador.
+        </Alert>
+      )}
 
       <Stack spacing={3} sx={{ maxWidth: 640 }}>
         <Card>
@@ -126,6 +137,19 @@ export function MyProfilePage() {
           </Card>
         )}
       </Stack>
+
+      {canEdit && (
+        <EditProfileDialog
+          open={editOpen}
+          profile={profile}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            notify.success('Datos actualizados');
+            setEditOpen(false);
+            void load();
+          }}
+        />
+      )}
     </Box>
   );
 }
