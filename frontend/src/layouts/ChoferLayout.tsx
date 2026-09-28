@@ -1,6 +1,17 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { AppBar, Box, BottomNavigation, BottomNavigationAction, IconButton, Paper, Toolbar, Typography } from '@mui/material';
+import {
+  AppBar,
+  Box,
+  BottomNavigation,
+  BottomNavigationAction,
+  IconButton,
+  Paper,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import DescriptionIcon from '@mui/icons-material/Description';
 import HistoryIcon from '@mui/icons-material/History';
@@ -9,16 +20,32 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../auth/use-auth';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ColorModeToggle } from '../components/ColorModeToggle';
+import { AppSidebarLayout, type NavItem } from '../components/AppSidebarLayout';
 
-/** Driver layout: mobile-style with bottom navigation (DOC-5 §5.3). */
-const navItems = [
+/** Driver nav: shared between the mobile bottom bar and the desktop sidebar. */
+const navItems: NavItem[] = [
   { label: 'Viaje', path: '/mi-viaje', icon: <LocalShippingIcon /> },
   { label: 'Documentación', path: '/mi-documentacion', icon: <DescriptionIcon /> },
   { label: 'Historial', path: '/mi-historial', icon: <HistoryIcon /> },
   { label: 'Mis datos', path: '/mi-perfil', icon: <AccountCircleIcon /> },
 ];
 
+/**
+ * Driver layout: bottom-navigation mobile shell below `md`, the same
+ * sidebar shell as Admin/Operador at `md` and up (DOC-5 §5.3 was mobile-only;
+ * a driver at a desk shouldn't be stuck in a 480px-wide phone layout).
+ */
 export function ChoferLayout() {
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
+  if (isDesktop) {
+    return <AppSidebarLayout title="Mi cuenta" navItems={navItems} />;
+  }
+  return <ChoferMobileLayout />;
+}
+
+function ChoferMobileLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
