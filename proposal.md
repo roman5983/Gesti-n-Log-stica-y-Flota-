@@ -7,7 +7,31 @@
 * 54140 - Filippini, Santiago
 
 ### Repositorios
-[Enlace al repositorio](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-)
+[Enlace al repositorio](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-) (backend y frontend en el mismo repositorio: carpetas `backend/` y `frontend/`)
+
+### Pull requests
+Todo cambio entra a `main` por pull request. Estos son los que se integraron:
+
+|PR|Fecha|Contenido|
+|:-|:-|:-|
+|[#1](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/1)|09/09/2026|Primeras tareas pendientes (regla del último administrador, "Mis datos", accesos del dashboard)|
+|[#2](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/2)|17/09/2026|Alertas: navegación al origen y confirmación al resolver|
+|[#3](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/3)|18/09/2026|Selector de fechas con atajos, alertas con polling y viajes sin fecha pasada|
+|[#4](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/4)|20/09/2026|Job de evaluación de alertas en el servidor|
+|[#5](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/5)|20/09/2026|Baja de choferes, paginador de historial, autocompletado estricto y mensajes en español|
+|[#6](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/6)|21/09/2026|Auditoría con sanitize recursivo y asignación solo con seguro vigente|
+|[#7](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/7)|21/09/2026|Cancelación de viajes y mantenimientos, y tope de 366 días en informes|
+|[#8](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/8)|22/09/2026|Alertas: chofer vinculado, "ir al origen", traducciones y errores al resolver|
+|[#9](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/9)|23/09/2026|Alerta de viaje sin asignar y cancelación solo de viajes pendientes|
+|[#10](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/10)|24/09/2026|Mejoras de UX: buscador, filtros y orden, alertas en tarjetas, sistema de color, frontend por componente|
+|[#11](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/11)|24/09/2026|Resumen técnico del backend en Markdown|
+|[#13](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/13)|28/09/2026|Tests unitarios (backend y frontend) y validación de variables de entorno|
+|[#14](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/14)|28/09/2026|Documentación completa para asignar (RN-4), evaluación horaria de alertas, validación de formularios y escritorio del chofer|
+|[#15](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/15)|28/09/2026|Revisión: validación de formularios con `noValidate`|
+|[#16](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/16)|28/09/2026|Puerto SMTP: acepta los puertos de correo (integrado por línea de comandos)|
+|[#17](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/17)|28/09/2026|Bajas con bloqueo de fila, tiempo límite, disponibilidad con RN-4, auditoría de sesiones, carga por pantalla|
+
+El [#12](https://github.com/roman5983/Gesti-n-Log-stica-y-Flota-/pull/12) se cerró sin integrar: su contenido llegó en el #14.
 
 
 ## Tema

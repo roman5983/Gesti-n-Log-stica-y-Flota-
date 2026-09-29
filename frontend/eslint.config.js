@@ -28,7 +28,7 @@ const RAW_DATE_FORMATTING = {
     'Formateá fechas con utils/datetime (formatDateOnly para @db.Date, formatDateTime / formatLocalDate para instantes).',
 };
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage'] },
+  { ignores: ['dist', 'node_modules', 'coverage', 'playwright-report', 'test-results'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -59,7 +59,7 @@ export default tseslint.config(
   },
   {
     // Config and test files run in Node; Vitest configs use a triple-slash ref.
-    files: ['*.{js,ts}', '**/*.test.{ts,tsx}', 'src/setupTests.ts'],
+    files: ['*.{js,ts}', '**/*.test.{ts,tsx}', 'src/setupTests.ts', 'e2e/**/*.ts'],
     languageOptions: { globals: { ...globals.node } },
     rules: { '@typescript-eslint/triple-slash-reference': 'off' },
   },

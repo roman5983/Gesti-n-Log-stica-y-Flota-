@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { tripsService } from './trips.service';
-import { BusinessRuleError } from '../../shared/errors/app-error';
+import { BusinessRuleError, ConflictError } from '../../shared/errors/app-error';
 
 /**
  * Concurrency guard for trip assignment. No database: the race is simulated by
@@ -112,5 +112,22 @@ describe('tripsService.assign — decides from the locked trip', () => {
 
     expect(t.order).toEqual(['read-outside', 'lock-trip', 'read-in-tx', 'lock-driver']);
     expect(t.vehiclesRepository.update).toHaveBeenCalledWith(7, { status: 'ON_TRIP' }, t.TX);
+  });
+  it('an insured vehicle locked by another assignment is a shortage (409), not an insurance problem', async () => {
+    // Found by the integration tests: SKIP LOCKED skipped the vehicle another
+    // assignment was taking, and the error said "ninguno tiene el seguro vigente".
+    stateChangesConcurrently('PENDING_ASSIGNMENT', 'PENDING_ASSIGNMENT');
+    t.tripsRepository.pickAvailableVehicle.mockResolvedValue(null);
+    t.tripsRepository.hasAvailableVehicle.mockImplementation(async (_tx: unknown, opts?: { insured?: boolean }) => opts?.insured === true);
+
+    await expect(tripsService.assign(1, { driverId: 5 }, 99)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it('available vehicles that are all uninsured are a policy block (422)', async () => {
+    stateChangesConcurrently('PENDING_ASSIGNMENT', 'PENDING_ASSIGNMENT');
+    t.tripsRepository.pickAvailableVehicle.mockResolvedValue(null);
+    t.tripsRepository.hasAvailableVehicle.mockImplementation(async (_tx: unknown, opts?: { insured?: boolean }) => !opts?.insured);
+
+    await expect(tripsService.assign(1, { driverId: 5 }, 99)).rejects.toThrow('ninguno tiene el seguro vigente');
   });
 });

@@ -8,6 +8,8 @@
 - **Frontend:** las peticiones tienen tiempo límite, "Asignar viaje" solo ofrece choferes con la documentación completa, y cada pantalla se carga por separado.
 - **Auditoría:** registra el inicio y el cierre de sesión.
 - **Dependencias:** se actualizaron las que no requieren cambio de versión mayor (de 18 a 9 vulnerabilidades en el backend y de 8 a 4 en el frontend), y el lockfile del frontend quedó sincronizado.
+- **Decisiones del equipo (28/09):** las diferencias con la propuesta (vistas de detalle, dos métricas del dashboard, redacción de los CRUD) no se consideran un problema. Una avería de un camión en ruta queda fuera del alcance (se supone que no pasa). La zona horaria, el idioma y el formato de fecha quedan fijos y no se pueden modificar.
+- **Aprobación (28/09):** tests de integración contra MySQL (23) y E2E con Playwright (12), los dos pasando; documentación de la API con Swagger (`/api/v1/docs`); links a los PR en `proposal.md`. Los tests de integración encontraron un error real de concurrencia, que ya está corregido (transacciones en READ COMMITTED).
 - **Manual técnico:** se puso al día (tests, nueve tipos de alerta, rutas de los capítulos 18 a 22C y hallazgos tabulados de los capítulos 02 a 07).
 
 ---
@@ -22,33 +24,18 @@
 
 ## 🟠 Falta para cumplir la consigna (aprobación)
 
-6. **Test de integración del backend contra una base real.** Por ejemplo: crear, asignar y finalizar un viaje con supertest. Conviene incluir las carreras de concurrencia del capítulo 23.
-7. **Test E2E automatizado** con Playwright o Cypress. La guía E2E actual es manual.
-8. **Documentación de la API** con Swagger/OpenAPI.
-9. **Video de demostración.**
-10. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
-11. **Links a los pull requests en `proposal.md`.** Ya se piden para la regularidad.
-12. **Links del deploy y credenciales** para la entrega, cuando esté online.
-
-## 🟠 Diferencias entre la propuesta y lo implementado
-
-13. **Vista de detalle de Vehículo.** La consigna exige un detalle al seleccionar un elemento de cada listado. Choferes, Usuarios y Alertas tampoco tienen vista de detalle.
-14. **Dashboard:** faltan "Kilometraje total por vehículo" y "Alertas abiertas por tipo".
-15. **Reescribir "CRUD Auditoría" y "CRUD Alerta" en la propuesta.** La auditoría no se edita a propósito, y las alertas solo se crean y se resuelven. Así escrito, parece que falta algo.
-
-## 🟠 Decisiones de producto
-
-16. **Qué hacer con un camión que se rompe en ruta.** Desde el 24/09 un viaje en curso ya no se puede cancelar, así que la única forma de cerrarlo es "Finalizar", que lo cuenta como completado y suma los km y el viaje al chofer. Opciones: volver a permitir cancelar viajes en curso, o agregar una acción "interrumpir viaje" que libere el vehículo sin sumar estadísticas.
-17. **Configuración de la empresa:** zona horaria, idioma y formato de fecha se guardan, pero la app no los usa. Hay que decidir si se aplican o se quitan de la pantalla (capítulo 25, punto 19).
+6. **Video de demostración.**
+7. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
+8. **Links del deploy y credenciales** para la entrega, cuando esté online.
 
 ## 🟢 Menores / prolijidad
 
-18. **Vulnerabilidades que quedan en las dependencias:** 9 en el backend y 4 en el frontend (`npm audit` del 28/09). Todas requieren un cambio de versión mayor o una corrección de terceros, así que no se tocan antes de la entrega. En el backend vienen de versiones que Prisma 7 fija internamente (`mariadb`, `mysql2` y las herramientas del CLI); `npm audit fix --force` bajaría a Prisma 6, así que **no hay que correrlo**. Se resuelven cuando Prisma publique una versión que las actualice. En el frontend las piden Vite 5 (esbuild) y React Router 6, y solo se arreglan pasando a Vite 8 y React Router 7.
+9. **Vulnerabilidades que quedan en las dependencias:** 10 en el backend y 4 en el frontend (`npm audit` del 28/09). Todas requieren un cambio de versión mayor o una corrección de terceros, así que no se tocan antes de la entrega. En el backend vienen de versiones que Prisma 7 fija internamente (`mariadb`, `mysql2` y las herramientas del CLI); `npm audit fix --force` bajaría a Prisma 6, así que **no hay que correrlo**. Se resuelven cuando Prisma publique una versión que las actualice. La de `nodemailer` (un aviso nuevo, que solo afecta a quien usa varios transportes SMTP a la vez) se arregla pasando a la versión 10. En el frontend las piden Vite 5 (esbuild) y React Router 6, y solo se arreglan pasando a Vite 8 y React Router 7.
 
 ## ⚪ Solo si el proyecto sigue después de la entrega
 
-19. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
+10. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
 
 ---
 
-**Prioridad sugerida** (primera entrega: 12 al 16 de octubre): primero el deploy (1 a 5), después los tests de integración y E2E junto con la documentación de la API (6 a 8), y después la vista de detalle (13), por ser un requisito explícito de la consigna. Las decisiones de producto pendientes (16 y 17) conviene charlarlas en equipo antes de tocar código.
+**Orden sugerido** (primera entrega: 12 al 16 de octubre): el deploy (1 a 5) es lo más urgente. Después, el video (6) y los links y credenciales (8), que dependen de tenerlo online. La gestión del proyecto (7) no depende del deploy.

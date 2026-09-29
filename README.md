@@ -65,6 +65,7 @@ Toda la documentación de diseño y desarrollo está en `docs/`: (índice comple
 - **`schema.sql`** — DDL de referencia de la base de datos.
 - **`DEVLOG.md`** — bitácora de desarrollo: historial de decisiones técnicas, etapa por etapa.
 - **`PLAN-DE-PRUEBAS.md`** — plan de pruebas (automatizadas + manuales).
+- **API:** documentación OpenAPI navegable en `/api/v1/docs` (Swagger UI), generada desde `backend/src/docs/openapi.ts`.
 
 ---
 
@@ -150,11 +151,21 @@ El seed carga una empresa con ~200 días de operación (más de 400 viajes, mant
 **Automatizadas (sin base de datos):**
 
 ```bash
-cd backend  && npm test      # 165 tests: crypto, fechas UTC, schemas, filtros/orden/búsqueda, concurrencia de servicios, archivos en la base, job de alertas diario + horario, alerta de viaje sin asignar, documentación completa para asignar, seed
-cd frontend && npm test      # 168 tests: todas las pantallas por rol en modo claro y oscuro (smoke), contraste de la paleta (WCAG AA), buscador, tarjetas de alerta, mensajes de error, fechas, selector de fecha, rutas por rol, auditoría
+cd backend  && npm test      # 171 tests: crypto, fechas UTC, schemas, filtros/orden/búsqueda, concurrencia de servicios, archivos en la base, job de alertas diario + horario, alerta de viaje sin asignar, documentación completa para asignar, seed
+cd frontend && npm test      # 169 tests: todas las pantallas por rol en modo claro y oscuro (smoke), contraste de la paleta (WCAG AA), buscador, tarjetas de alerta, mensajes de error, fechas, selector de fecha, rutas por rol, auditoría
+```
+
+**Con base de datos (integración y E2E):** usan una base MySQL aparte, `TEST_DATABASE_URL` en `backend/.env` (ver `backend/.env.example`). Su nombre tiene que terminar en `_test`, porque los tests la vacían y la vuelven a sembrar. Se crea y se migra sola.
+
+```bash
+cd backend  && npm run test:integration   # 23 tests: la API real (supertest) contra MySQL: flujo de viajes, reglas, permisos, alertas, sesión y carreras de concurrencia
+cd frontend && npx playwright install chromium   # una sola vez
+cd frontend && npm run test:e2e           # 12 tests: navegador real (Playwright) contra todo el sistema: login por rol, viaje completo, pantallas de administración
 ```
 
 **Manuales (end-to-end):** ver `GUIA-PRUEBAS-E2E.md` — guion paso a paso por rol contra la app corriendo.
+
+**Documentación de la API (Swagger):** con el backend corriendo, `http://localhost:3000/api/v1/docs` (y el JSON en `/api/v1/openapi.json`). Para probar los endpoints protegidos, hacé login en `POST /auth/login` y pegá el `accessToken` en **Authorize**.
 
 ---
 

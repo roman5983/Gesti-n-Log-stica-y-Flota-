@@ -67,14 +67,15 @@ const list = <T,>(items: T[]) => ({ data: items, meta: { page: 1, limit: 10, tot
 
 let role: Role = 'ADMIN';
 /** Every request the app made (method, path, query params), for the wiring tests. */
-let requests: { method: string; url: string; params: Record<string, unknown> }[] = [];
+let requests: { method: string; url: string; params: Record<string, unknown>; body?: unknown }[] = [];
 /** Per-path overrides: a response body, or a rejection with a server message. */
 let overrides: Record<string, unknown | { fail: number; message: string }> = {};
 
 function respond(config: InternalAxiosRequestConfig): unknown {
   const url = (config.url ?? '').replace(/^\/api\/v1/, '');
   const method = (config.method ?? 'get').toLowerCase();
-  requests.push({ method, url, params: (config.params ?? {}) as Record<string, unknown> });
+  const body = typeof config.data === 'string' ? (JSON.parse(config.data) as unknown) : config.data;
+  requests.push({ method, url, params: (config.params ?? {}) as Record<string, unknown>, body });
   const override = overrides[`${method.toUpperCase()} ${url}`];
   if (override && typeof override === 'object' && 'fail' in override) {
     const o = override as { fail: number; message: string };
@@ -283,6 +284,16 @@ describe('wiring — the new controls reach the API and explain rejections', () 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar viaje' }));
     await waitFor(() => expect(within(dialog).getByText('No se puede cancelar un viaje asignado')).toBeTruthy());
     expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('Configuración: timezone, language and date format are shown but not sent (fixed)', async () => {
+    renderApp('ADMIN', '/configuracion');
+    const tz = await screen.findByLabelText('Zona horaria');
+    expect((tz as HTMLInputElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await screen.findByRole('alert');
+    const put = requests.find((r) => r.method === 'put' && r.url === '/settings');
+    expect(put?.body).toEqual({ companyName: 'Transportes SA', taxId: '30-1', address: 'Calle 1', phone: '341', email: 'a@b.com' });
   });
 
   it('a successful action confirms it with a notice', async () => {

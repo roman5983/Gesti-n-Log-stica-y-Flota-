@@ -1,4 +1,5 @@
-import express from 'express';
+import express, { type Router } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -19,6 +20,27 @@ import { alertsRoutes } from './modules/alerts/alerts.routes';
 import { auditLogsRoutes } from './modules/audit-logs/audit-logs.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { settingsRoutes } from './modules/settings/settings.routes';
+import { openApiDocument } from './docs/openapi';
+
+/**
+ * Every module router and where it is mounted under /api/v1. Exported so the
+ * OpenAPI test can check that each route is documented.
+ */
+export const API_ROUTES: [prefix: string, router: Router][] = [
+  ['/auth', authRoutes],
+  ['/users', usersRoutes],
+  ['/drivers', driversRoutes],
+  ['/drivers/:driverId/documents', documentsRoutes],
+  ['/vehicles', vehiclesRoutes],
+  ['/maintenance-types', maintenanceTypesRoutes],
+  ['/maintenances', maintenancesRoutes],
+  ['/trips', tripsRoutes],
+  ['/reports', reportsRoutes],
+  ['/alerts', alertsRoutes],
+  ['/audit-logs', auditLogsRoutes],
+  ['/dashboard', dashboardRoutes],
+  ['/settings', settingsRoutes],
+];
 
 /**
  * Express app assembly. Kept separate from server.ts so tests can import
@@ -39,6 +61,8 @@ export function createApp(): express.Express {
   app.use(cookieParser());
   app.use(
     pinoHttp({
+      // Tests fire hundreds of requests: a log line each would bury the results.
+      enabled: env.NODE_ENV !== 'test',
       transport: isProduction ? undefined : { target: 'pino-pretty' },
       redact: ['req.headers.authorization', 'req.headers.cookie'], // never log credentials
       // The client IP as Express resolves it (after trust proxy): the same
@@ -60,19 +84,19 @@ export function createApp(): express.Express {
     res.set('Cache-Control', 'no-store');
     next();
   });
-  apiV1.use('/auth', authRoutes);
-  apiV1.use('/users', usersRoutes);
-  apiV1.use('/drivers', driversRoutes);
-  apiV1.use('/drivers/:driverId/documents', documentsRoutes);
-  apiV1.use('/vehicles', vehiclesRoutes);
-  apiV1.use('/maintenance-types', maintenanceTypesRoutes);
-  apiV1.use('/maintenances', maintenancesRoutes);
-  apiV1.use('/trips', tripsRoutes);
-  apiV1.use('/reports', reportsRoutes);
-  apiV1.use('/alerts', alertsRoutes);
-  apiV1.use('/audit-logs', auditLogsRoutes);
-  apiV1.use('/dashboard', dashboardRoutes);
-  apiV1.use('/settings', settingsRoutes);
+  // API documentation (OpenAPI 3): the JSON spec and Swagger UI to browse it.
+  apiV1.get('/openapi.json', (_req, res) => {
+    res.json(openApiDocument());
+  });
+  apiV1.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(undefined, {
+      customSiteTitle: 'API — Gestión Logística',
+      swaggerOptions: { url: '/api/v1/openapi.json' },
+    }),
+  );
+  for (const [prefix, router] of API_ROUTES) apiV1.use(prefix, router);
 
   app.use('/api/v1', apiV1);
 
