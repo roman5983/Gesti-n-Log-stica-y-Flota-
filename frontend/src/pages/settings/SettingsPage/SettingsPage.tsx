@@ -50,8 +50,8 @@ export function SettingsPage() {
     setSaving(true);
     setError(null);
     try {
-      const { companyName, taxId, address, phone, email, timezone, language, dateFormat } = settings;
-      const updated = await settingsApi.update({ companyName, taxId, address, phone, email, timezone, language, dateFormat });
+      const { companyName, taxId, address, phone, email } = settings;
+      const updated = await settingsApi.update({ companyName, taxId, address, phone, email });
       setSettings(updated);
       notify.success('Configuración guardada');
     } catch (err) {
@@ -102,15 +102,18 @@ export function SettingsPage() {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>Preferencias del sistema</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Son fijas: el sistema trabaja siempre con la hora de Argentina, en castellano y con fechas dd/mm/aaaa.
+              </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
-                  <TextField label="Zona horaria" value={settings.timezone} onChange={(e) => setField('timezone', e.target.value)} fullWidth required />
+                  <TextField label="Zona horaria" value={settings.timezone} fullWidth disabled />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <TextField label="Idioma" value={settings.language} onChange={(e) => setField('language', e.target.value)} fullWidth required />
+                  <TextField label="Idioma" value={settings.language} fullWidth disabled />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <TextField label="Formato de fecha" value={settings.dateFormat} onChange={(e) => setField('dateFormat', e.target.value)} fullWidth required />
+                  <TextField label="Formato de fecha" value={settings.dateFormat} fullWidth disabled />
                 </Grid>
               </Grid>
             </CardContent>

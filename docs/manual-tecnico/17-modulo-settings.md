@@ -604,6 +604,8 @@ SELECT occurred_at,
 13. Hacer que `FIXED_TRIP_ORIGIN` salga de `company_settings.address`: quitar la constante, quitar el `@default` del esquema, y leerlo en `trips.create`. Evaluar el impacto en el rendimiento (una consulta extra por viaje) y si conviene cachearlo.
 14. Hacer que el frontend consuma `dateFormat` y `timezone` reales en las tres interfaces, y verificar con el ejercicio 7 que ahora sí cambia algo.
 
+> **Actualización (28/09/2026) — zona horaria, idioma y formato de fecha fijos.** Por decisión del equipo, estos tres valores quedan como están: hora de Argentina, castellano y dd/mm/aaaa. `GET /settings` los sigue devolviendo, pero `updateSettingsSchema` es `.strict()` y rechaza un `PUT` que los incluya con un 400 que explica que son fijos. Así se resuelve la duda del capítulo 25 (punto 19), porque la app nunca los usó para nada. En la pantalla de Configuración se muestran deshabilitados, con una aclaración. Tests: `settings.schemas.test.ts` y un caso del smoke test que verifica que el guardado no los envía.
+
 ---
 
 **Anterior:** [Capítulo 16 — Dashboard y reportes](16-modulo-dashboard-reports.md) · **Siguiente:** Capítulo 18 — Arranque del frontend *(pendiente)*

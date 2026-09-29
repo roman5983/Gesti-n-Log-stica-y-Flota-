@@ -13,7 +13,8 @@ export interface CompanySettings {
   updatedAt: string;
 }
 
-export type UpdateSettingsInput = Partial<Omit<CompanySettings, 'updatedAt'>>;
+/** Timezone, language and date format are fixed: the API rejects them on update. */
+export type UpdateSettingsInput = Partial<Pick<CompanySettings, 'companyName' | 'taxId' | 'address' | 'phone' | 'email'>>;
 
 export const settingsApi = {
   async get(): Promise<CompanySettings> {

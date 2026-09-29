@@ -121,9 +121,14 @@ export const tripsRepository = {
   },
 
   /** Whether any AVAILABLE vehicle exists, insured or not (to explain a failed pick). */
-  async hasAvailableVehicle(tx: Prisma.TransactionClient): Promise<boolean> {
+  /** Plain read (no lock): also sees vehicles another transaction holds locked. */
+  async hasAvailableVehicle(tx: Prisma.TransactionClient, { insured = false } = {}): Promise<boolean> {
     const found = await tx.vehicle.findFirst({
-      where: { status: 'AVAILABLE', deletedAt: null },
+      where: {
+        status: 'AVAILABLE',
+        deletedAt: null,
+        ...(insured ? { insuranceExpiryDate: { gte: utcStartOfToday() } } : {}),
+      },
       select: { id: true },
     });
     return found !== null;

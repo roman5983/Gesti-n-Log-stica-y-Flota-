@@ -1450,6 +1450,8 @@ ORDER BY accumulated_km ASC LIMIT 1 FOR UPDATE SKIP LOCKED
 
 > **Actualización (24/09/2026) — solo se cancelan viajes pendientes.** Por decisión del equipo (cambio de Justino, rama `justino-actualizacion-pendientes`), `cancel` ahora acepta **solo `PENDING_ASSIGNMENT`**; un viaje `IN_PROGRESS` → **422** *"Solo se pueden cancelar viajes pendientes"*. Se quitó la liberación del vehículo y el botón "Cancelar" de los viajes en curso en la pantalla de Viajes. Consecuencia: los pasos 3 y 4 de arriba ya no aplican a viajes en curso, y **el camión averiado vuelve a no tener salida limpia**: la única forma de cerrar su viaje es "Finalizar", que cuenta el viaje y los km como completados. Qué hacer con una avería quedó anotado en `PENDIENTES.md`.
 
+> **Decisión del equipo (28/09/2026) — averías fuera del alcance.** El sistema supone que un viaje en curso siempre termina: una avería en ruta queda fuera del alcance del trabajo práctico. Por eso no se agrega una acción para interrumpir un viaje, y un viaje en curso solo se puede finalizar.
+
 ---
 
 **Anterior:** [Capítulo 11 — Choferes y documentación](11-modulo-drivers-documents.md) · **Siguiente:** Capítulo 13 — Mantenimiento *(pendiente)*

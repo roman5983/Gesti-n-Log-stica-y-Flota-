@@ -8,7 +8,7 @@ seed corriendo). Fuente de verdad: `analisis-funcional-gestion-logistica.md`.
 
 Corren sin base de datos.
 
-**Backend** (`cd backend && npm test`) — 165 tests en 26 archivos:
+**Backend** (`cd backend && npm test`) — 171 tests en 27 archivos:
 - `crypto`: round-trip AES-256-GCM, IV aleatorio, detección de manipulación, SHA-256 (A-9).
 - `dates`: `utcStartOfToday`/`utcEndOfDay` (fronteras UTC, RN-1, rangos inclusivos).
 - `like`: escape de wildcards LIKE para búsquedas seguras.
@@ -24,12 +24,13 @@ Corren sin base de datos.
 - Servicios y repositorios: alertas (evaluación, scheduler, repository), mantenimientos
   (repository, service), viajes (repository, service), auditoría, documentos.
 - Prisma: seed-history (generación de historial puro), sample-pdf.
+- Documentación de la API (`docs/openapi.test.ts`): las 60 rutas de Express están documentadas, y ninguna de más; cada ruta protegida declara sus roles y los errores 401/403; los bodies salen de los esquemas de validación; `/api/v1/openapi.json` y `/api/v1/docs` responden.
 - Servicios nuevos (28/09): `users.service` (un chofer con viaje en curso no se elimina ni se desactiva; la
   comprobación corre bajo el bloqueo del chofer), `vehicles.service` (baja y eliminación deciden con la fila
   bloqueada), `auth.service` (LOGIN/LOGOUT en la auditoría), y `drivers.repository` ("disponible" exige la
   documentación completa, RN-4).
 
-**Frontend** (`cd frontend && npm test`) — 168 tests en 20 archivos:
+**Frontend** (`cd frontend && npm test`) — 169 tests en 20 archivos:
 - `datetime`: round-trip datetime-local ↔ ISO sin desplazamiento de zona horaria,
   formatDateOnly conserva el día UTC, formatRelativeDay (Hoy/Ayer/fecha completa).
 - `date-input`: parseo estricto, serialización, validación con mensajes en español.
@@ -141,8 +142,20 @@ Cada caso: acción → resultado esperado. ✅ = probar contra la app real.
 - Achicar la ventana (< breakpoint md) → aparece el botón hamburguesa y el menú lateral se abre.
 - Formularios con datos inválidos → muestran el error del backend tal cual (400/409/422).
 
-## 4. Automatización futura (opcional)
+## 4. Pruebas automatizadas con base de datos
 
-Tests de integración con una base MySQL de test (o Testcontainers) que ejerciten los flujos
-de §3.7–3.8 de forma programática, y tests de componente (Testing Library) para los diálogos
-de formulario. Requieren infraestructura de BD en CI; quedan fuera del alcance actual.
+Las dos suites usan una base MySQL aparte: `TEST_DATABASE_URL` en `backend/.env`. Su nombre tiene que terminar en `_test`, porque los tests la vacían y la resiembran. Se crea y se migra sola con `prisma migrate deploy`. Resultado en la máquina de Román el 28/09/2026: 23/23 de integración y 12/12 E2E.
+
+**Integración** (`cd backend && npm run test:integration`, `backend/test/integration/`) — 23 tests. Usan la app Express real (supertest) contra MySQL; cada archivo vacía la base y crea solo los datos que necesita:
+- `trips.int.test.ts`: crear → asignar (vehículo con menos km y seguro vigente) → finalizar, con los efectos en el vehículo, el chofer y la auditoría; RN-1, RN-4, RN-5, sin vehículos, solo sin seguro (RN-SEGURO), cancelar y eliminar solo pendientes, origen fijo; permisos por rol (el chofer solo ve lo suyo; el operador, sin secciones de admin; sin token, 401).
+- `concurrency.int.test.ts`: las carreras del capítulo 23 disparadas en paralelo: dos asignaciones del mismo viaje, el mismo chofer en dos viajes, dos viajes y un solo vehículo, dos cierres del mismo viaje, la baja de un vehículo o la eliminación de un chofer durante una asignación (5 rondas cada una) y dos altas con la misma patente. Verifican la respuesta HTTP y el estado final de la base.
+- `alerts-auth.int.test.ts`: la evaluación de alertas (tipos esperados, sin duplicados, dos evaluaciones simultáneas, auto-resolución); la sesión (login, refresh con cookie, logout, LOGIN/LOGOUT en la auditoría, reúso de un refresh token rotado, mismo 401 para contraseña incorrecta y cuenta inexistente).
+
+En su primera corrida encontraron un error real de aislamiento de transacciones, que ya está corregido (ver el DEVLOG y el capítulo 23 del manual).
+
+**E2E** (`cd frontend && npm run test:e2e`, `frontend/e2e/`) — 12 tests con Playwright en Chromium. Levantan su propio backend (puerto 3100) y frontend (puerto 5180) contra la base de test, resembrada con los datos de demostración en cada corrida:
+- `login.spec.ts`: contraseña incorrecta; pantalla de inicio y secciones visibles por rol; el operador no entra a una URL de administración escribiéndola a mano.
+- `trip-flow.spec.ts`: el operador crea un viaje y lo asigna; el chofer lo ve en "Mi viaje" y lo cierra con el kilometraje; el operador lo ve finalizado.
+- `admin.spec.ts`: alta de un vehículo; formulario vacío con el mensaje de la app; evaluación de alertas en tarjetas; inicio de sesión en la auditoría; zona horaria, idioma y formato de fecha no editables.
+
+La guía manual de la sección 3 sigue sirviendo para lo que no está automatizado (archivos, mapas, reportes, modo oscuro).

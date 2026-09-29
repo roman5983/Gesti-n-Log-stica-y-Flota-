@@ -1539,5 +1539,9 @@ migrar los demás.
 
 ---
 
+> **Actualización (28/09/2026) — las carreras, probadas contra MySQL.** Los tests de integración (`backend/test/integration/concurrency.int.test.ts`, `npm run test:integration`) disparan de verdad, en paralelo y contra una base real, las carreras de este capítulo: dos asignaciones del mismo viaje, el mismo chofer en dos viajes, dos viajes para un solo vehículo, dos cierres del mismo viaje, una baja o eliminación durante una asignación y dos altas con la misma patente.
+>
+> **Encontraron un error real.** Dos asignaciones simultáneas del mismo chofer se aceptaban las dos, y un chofer eliminado mientras se lo asignaba terminaba en un viaje. La causa era el nivel de aislamiento: con el REPEATABLE READ de MySQL, una lectura normal hecha "bajo el bloqueo" no ve lo último, sino la foto tomada en la primera lectura de la transacción, que en la asignación es anterior al bloqueo del chofer. Se corrigió en `database/prisma-client.ts`, con todas las transacciones en READ COMMITTED. También se corrigió un mensaje engañoso: si otro proceso tenía bloqueado el único vehículo, la respuesta decía "ninguno tiene el seguro vigente"; ahora responde 409 "No hay vehículos disponibles para asignar en este momento".
+
 > **Siguiente:** [Capítulo 24 — Las 44 dependencias, una por una](./24-dependencias.md)
 > **Anterior:** [Capítulo 22C — Pantallas del chofer, tableros y consulta](./22c-frontend-chofer-tableros.md)

@@ -822,3 +822,26 @@ Se resolvieron todos los bugs y menores anotados en `PENDIENTES.md`. El de `SMTP
 **Verificación** (en copias temporales, con las dependencias nuevas instaladas desde cero con `npm ci`): backend con 163 tests (165 junto con lo último de `main`: el filtro por número de viaje y la edición del propio perfil de Justino, y el arreglo de Santiago), y `tsc`, ESLint y build limpios; frontend con 167 tests, y `tsc`, ESLint y `vite build` limpios, sin avisos.
 
 **Sin probar contra una base real:** el SQL de los bloqueos nuevos es el mismo patrón que ya usan viajes y mantenimientos. Conviene repetir la sección 3 de `GUIA-PRUEBAS-E2E.md`: dar de baja y eliminar vehículos y choferes, asignar un viaje, y revisar la auditoría después de entrar y salir.
+
+---
+
+## Decisiones del equipo sobre los pendientes (28/09/2026)
+
+- **Diferencias con la propuesta:** las vistas de detalle, las dos métricas del dashboard y la redacción de "CRUD Auditoría" y "CRUD Alerta" no se consideran un problema. Salen de `PENDIENTES.md`.
+- **Avería en ruta:** queda fuera del alcance y se supone que no pasa. Un viaje en curso solo se finaliza (nota en §12.14).
+- **Zona horaria, idioma y formato de fecha:** quedan fijos en hora de Argentina, castellano y dd/mm/aaaa. El backend rechaza modificarlos con `updateSettingsSchema.strict()`, que devuelve un 400 explicando que son fijos. La pantalla de Configuración los muestra deshabilitados, con una aclaración, y el guardado ya no los envía. Se ajustaron los dos tests de Santiago que probaban que se podían editar. Backend: 165 tests; frontend: 169, con un caso nuevo en el smoke test. `tsc` y ESLint quedan limpios en los dos.
+
+---
+
+## Pendientes 6, 7, 8 y 11 (28/09/2026) — primera corrida
+
+- **6 · Tests de integración** (`backend/test/integration`, `npm run test:integration`). Usan supertest contra una base MySQL aparte (`TEST_DATABASE_URL`, cuyo nombre tiene que terminar en `_test`), que se migra sola. Cubren el flujo de un viaje con sus efectos, RN-1, RN-4, RN-5, el seguro, los permisos por rol, las alertas (idempotencia y auto-resolución), la sesión (cookie, rotación, reúso y auditoría) y las carreras del capítulo 23.
+- **7 · E2E** (`frontend/e2e`, `npm run test:e2e`). Playwright levanta su propio backend (puerto 3100) y frontend (puerto 5180) contra esa misma base, resembrada en cada corrida. Prueba el login por rol, el viaje completo (el operador lo crea y lo asigna, el chofer lo cierra) y las pantallas de administración.
+- **8 · Swagger.** La documentación está en `/api/v1/docs` y el JSON en `/api/v1/openapi.json`. Los requests se documentan con los mismos esquemas Zod que validan las rutas, y un test verifica que las 60 rutas estén documentadas.
+- **11 · Links a los PR** en `proposal.md`.
+
+**Primera corrida en la máquina de Román:** 19 de 22 tests de integración pasaron. Los 3 que fallaron mostraron un error real de concurrencia: dos asignaciones simultáneas del mismo chofer se aceptaban las dos, y un chofer eliminado durante una asignación quedaba en un viaje. La causa estaba en el aislamiento REPEATABLE READ de MySQL: la relectura "bajo el bloqueo" veía una foto previa al bloqueo. Se corrigió pasando las transacciones a READ COMMITTED (`database/prisma-client.ts`). Con un adaptador falso se verificó que Prisma le pasa `READ COMMITTED` al driver. También se corrigió el mensaje "ninguno tiene el seguro vigente", que aparecía cuando el vehículo solo estaba bloqueado por otra asignación: ahora es un 409. Se sumaron tests unitarios e integración para los dos casos, y se apagó el log de cada request mientras corren los tests.
+
+**Segunda y tercera corrida (28/09/2026).** Integración: 23/23, con lo que quedó confirmado el arreglo de concurrencia. E2E: en la primera corrida fallaron los tests que iniciaban sesión, por un selector mal armado en los tests (la etiqueta del campo obligatorio es "Contraseña \*", no "Contraseña"). Tampoco se encontraban los links del menú, porque las tarjetas del Dashboard también son links con las mismas palabras. Con los selectores corregidos pasan 12/12. Se bajó el tiempo de espera de cada acción a 15 s para que un selector que no encuentra nada falle rápido y diga qué buscaba.
+
+**Dependencias nuevas.** Backend: `@asteasolutions/zod-to-openapi` y `swagger-ui-express` (Swagger), y `supertest` (tests). Se agregó `scarfSettings.enabled: false` para que `swagger-ui-dist` no envíe estadísticas de instalación. Frontend: `@playwright/test` y `@types/node`. Además se actualizó `undici`, que usa jsdom, por un aviso nuevo. Los lockfiles se generaron y se verificaron con npm 10: `npm ci` funciona y `npm install` no los cambia.

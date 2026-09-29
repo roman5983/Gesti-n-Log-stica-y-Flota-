@@ -29,20 +29,24 @@ describe('updateSettingsSchema', () => {
   });
 
   it('rejects empty string fields (min 1)', () => {
-    expect(() => updateSettingsSchema.parse({ timezone: '' })).toThrow();
-    expect(() => updateSettingsSchema.parse({ language: '' })).toThrow();
-    expect(() => updateSettingsSchema.parse({ dateFormat: '' })).toThrow();
+    expect(() => updateSettingsSchema.parse({ companyName: '' })).toThrow();
+    expect(() => updateSettingsSchema.parse({ address: '' })).toThrow();
+    expect(() => updateSettingsSchema.parse({ phone: '' })).toThrow();
   });
 
-  it('accepts valid timezone and language values', () => {
-    const parsed = updateSettingsSchema.parse({
-      timezone: 'America/Argentina/Buenos_Aires',
-      language: 'es',
-      dateFormat: 'DD/MM/YYYY',
-    });
-    expect(parsed.timezone).toBe('America/Argentina/Buenos_Aires');
-    expect(parsed.language).toBe('es');
-    expect(parsed.dateFormat).toBe('DD/MM/YYYY');
+  it('rejects timezone, language and date format: they are fixed (28/09/2026)', () => {
+    for (const body of [
+      { timezone: 'America/Argentina/Buenos_Aires' },
+      { language: 'en' },
+      { dateFormat: 'MM/DD/YYYY' },
+      { companyName: 'Transportes SA', timezone: 'UTC' },
+    ]) {
+      const result = updateSettingsSchema.safeParse(body);
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.message).toBe(
+        'La zona horaria, el idioma y el formato de fecha son fijos y no se pueden modificar',
+      );
+    }
   });
 
   it('rejects taxId over 13 characters', () => {

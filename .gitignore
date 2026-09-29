@@ -28,3 +28,7 @@ _preview*.jpg
 # Editor
 .vscode/
 .idea/
+
+# Playwright (E2E)
+frontend/playwright-report/
+frontend/test-results/
