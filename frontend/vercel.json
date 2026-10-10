@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://gestion-logistica-api.onrender.com/api/:path*"
+      "destination": "https://gestion-logistica-api-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",
