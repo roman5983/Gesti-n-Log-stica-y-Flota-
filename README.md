@@ -109,30 +109,53 @@ NODE_ENV=production npm start # node dist/server.js
 
 En producción se usa `prisma migrate deploy`, no `migrate dev`: este último puede ofrecer resetear la base si detecta diferencias. Los archivos subidos (documentos y comprobantes) se guardan en la base de datos, así que el servidor no necesita disco persistente.
 
-### Deploy (Vercel + Render)
+### Deploy (Vercel + Railway)
 
 ```mermaid
 flowchart LR
     B[Navegador] -->|"/ y /api/*"| V[Vercel<br/>frontend estático]
-    V -->|"/api/* (rewrite)"| R[Render<br/>backend Node]
-    R --> DB[(MySQL)]
+    V -->|"/api/* (rewrite)"| R[Railway<br/>backend Node]
+    R --> DB[(Railway<br/>MySQL)]
 ```
 
-El navegador habla solo con Vercel. Vercel sirve el frontend y reenvía `/api/*` al backend en Render (`frontend/vercel.json`). En desarrollo, el proxy de Vite hace lo mismo con `localhost:3000` (`frontend/vite.config.ts`). Así la cookie de sesión es del mismo sitio que la app. Si el frontend llamara directo a `onrender.com`, sería una cookie de terceros: Safari la bloquea y la sesión se perdería en cada recarga.
+El navegador habla solo con Vercel. Vercel sirve el frontend y reenvía `/api/*` al backend en Railway (`frontend/vercel.json`). En desarrollo, el proxy de Vite hace lo mismo con `localhost:3000` (`frontend/vite.config.ts`). Así la cookie de sesión es del mismo sitio que la app. Si el frontend llamara directo a `up.railway.app`, sería una cookie de terceros: Safari la bloquea y la sesión se perdería en cada recarga.
 
-1. **Base de datos:** una instancia de MySQL 8 accesible desde internet. Su URL de conexión va en `DATABASE_URL`.
-2. **Backend (Render):** *New → Blueprint* sobre este repositorio. Toma `render.yaml`, que define build, arranque, health check y variables. Render pide las que no puede generar:
-   - `DATABASE_URL`;
-   - `PASSWORD_ENCRYPTION_KEY`, que se genera con `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`;
-   - `CORS_ORIGIN` y `APP_URL`: las dos con la URL de Vercel.
+**1. Base de datos.** En el proyecto de Railway: *+ New → Database → MySQL*.
 
-   Las migraciones se aplican solas al arrancar. El seed de demostración se corre una vez desde la *Shell* del servicio: `npx prisma db seed`.
-3. **Frontend (Vercel):** *Add New → Project*, con *Root Directory* `frontend`. El resto lo detecta solo (Vite). No necesita variables de entorno. Si Render le asignó al servicio una URL distinta de `gestion-logistica-api.onrender.com`, hay que corregirla en `frontend/vercel.json`.
-4. **Calibrar `TRUST_PROXY`:** entrar a la app desplegada y buscar el pedido de login en los logs de Render. El campo `clientIp` tiene que coincidir con tu IP pública (por ejemplo, la que muestra `https://api.ipify.org`). Si muestra una IP de Vercel o de Render, subir el valor de a uno. Si falla, el límite de intentos de login trata a todos los usuarios como si fueran uno solo.
+**2. Backend.** *+ New → GitHub Repo* con este repositorio. En el servicio:
 
-Limitaciones del plan gratuito de Render:
-- El servicio se duerme tras 15 minutos sin tráfico, y el primer pedido después tarda alrededor de un minuto.
-- Mientras duerme, el job de alertas no corre. Las alertas se evalúan una vez al día (`ALERTS_EVAL_TIME`, 06:00 hora argentina) y también al arrancar, así que se ponen al día apenas alguien despierta el servicio. "Evaluar alertas" las evalúa en cualquier momento.
+- *Settings → Source → Root Directory*: `backend`. Sin esto Railway arma desde la raíz del repo, donde no hay `package.json`, y falla con `npm: not found`.
+- El resto lo toma de `backend/railway.json`:
+  - build con `npm ci --include=dev && npm run build`;
+  - migraciones antes de cada deploy (`npm run prisma:deploy`, que nunca borra datos);
+  - arranque con `npm start`;
+  - health check en `/health`.
+- *Settings → Networking → Generate Domain*: es la URL pública del backend.
+- *Variables*:
+
+  | Variable | Valor |
+  |:--|:--|
+  | `NODE_ENV` | `production` |
+  | `DATABASE_URL` | `${{MySQL.MYSQL_URL}}?allowPublicKeyRetrieval=true` (referencia a la base del paso 1) |
+  | `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` | dos valores distintos de `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+  | `PASSWORD_ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+  | `CORS_ORIGIN` y `APP_URL` | la URL de Vercel (paso 3). Mientras no exista, `http://localhost:5173` |
+  | `TRUST_PROXY` | `2` (Vercel + el proxy de Railway); se calibra en el paso 5 |
+
+  `PORT` lo pone Railway. Las variables de las alertas tienen valores por defecto (ver `backend/.env.example`).
+
+**3. Frontend (Vercel).** *Add New → Project*, con *Root Directory* `frontend`. El resto lo detecta solo (Vite). No necesita variables de entorno. Antes, en `frontend/vercel.json` hay que poner el dominio de Railway del paso 2 en el `destination` de `/api/:path*`. Después de crearlo, volver a Railway y poner la URL de Vercel en `CORS_ORIGIN` y `APP_URL`.
+
+**4. Datos de demostración (una sola vez).** Desde tu compu, con la URL **pública** de la base (*MySQL → Variables → `MYSQL_PUBLIC_URL`*):
+
+```bash
+cd backend
+DATABASE_URL="<MYSQL_PUBLIC_URL>?allowPublicKeyRetrieval=true" npx prisma db seed
+```
+
+**5. Calibrar `TRUST_PROXY`.** Entrar a la app desplegada y buscar el pedido de login en los logs del servicio (*Deployments → View logs*). El campo `clientIp` tiene que coincidir con tu IP pública (por ejemplo, la que muestra `https://api.ipify.org`). Si muestra una IP de Vercel o de Railway, subir el valor de a uno. Si queda mal, el límite de intentos de login trata a todos los usuarios como si fueran uno solo.
+
+*`render.yaml` queda como alternativa para Render, con la misma configuración.*
 
 ### Credenciales del seed
 
