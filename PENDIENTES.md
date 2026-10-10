@@ -16,10 +16,12 @@
 
 ## 🔴 Deploy (lo que falta para tenerlo online)
 
-1. **Elegir y crear la base de datos MySQL en internet.** Render no ofrece MySQL gratis. La opción gratuita más directa es Aiven, con 1 GB. Exige conexión cifrada, así que probablemente haya que ajustar un poco cómo se conecta el backend.
-2. **Crear los servicios** siguiendo el README (sección "Deploy"): el backend en Render con `render.yaml` y el frontend en Vercel. Después, cargar el seed de demostración desde la terminal (*Shell*) del servicio en Render.
-3. **Calibrar `TRUST_PROXY`** una vez desplegado, con los logs de Render (está explicado en el README).
-4. **Revisar la URL del backend en `frontend/vercel.json`.** Si Render le asigna al servicio un nombre distinto de `gestion-logistica-api`, hay que actualizarla ahí.
+El backend va en Railway, preparado con `backend/railway.json`; los pasos están en el README, sección "Deploy".
+
+1. **Railway:** crear la base MySQL y el servicio del backend (*Root Directory* `backend`), cargar las variables y generar el dominio.
+2. **Vercel:** poner el dominio de Railway en `frontend/vercel.json` y crear el proyecto del frontend. Después, poner la URL de Vercel en `CORS_ORIGIN` y `APP_URL` en Railway.
+3. **Cargar el seed de demostración** con la URL pública de la base.
+4. **Calibrar `TRUST_PROXY`** con los logs de Railway.
 5. **Actualizar `multer` a la versión 2.x antes de producción.** Hoy está en 1.4.5, con vulnerabilidades conocidas (capítulo 25, punto 27).
 
 ## 🟠 Falta para cumplir la consigna (aprobación)
