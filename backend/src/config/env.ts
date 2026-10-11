@@ -43,6 +43,21 @@ const envSchema = z.object({
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
 
   /**
+   * Header where a proxy in front puts the real client IP, when it does not
+   * add it to X-Forwarded-For. Vercel's rewrite to an external backend sends
+   * its own address there and the user's in "x-vercel-forwarded-for". Empty
+   * (default) = use req.ip. A header can be forged by calling the backend
+   * directly, so the login limiter also keeps a wider per-req.ip cap (see
+   * middlewares/rate-limiter.ts).
+   */
+  CLIENT_IP_HEADER: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^([a-z0-9-]+)?$/, 'CLIENT_IP_HEADER debe ser un nombre de header (ej. x-vercel-forwarded-for)')
+    .default(''),
+
+  /**
    * Time of day of the automatic alert evaluation ("HH:mm", 24 h), once a day,
    * in ALERTS_EVAL_TIMEZONE. "off" disables the daily run. There is also one
    * pass shortly after every start (see alerts.scheduler.ts), and "Evaluar

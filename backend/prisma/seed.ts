@@ -66,7 +66,13 @@ function sampleDocumentFile(doc: DocDef, expiry: Date): Uint8Array<ArrayBuffer> 
 async function createInBatches<T>(items: T[], create: (item: T) => Prisma.PrismaPromise<{ id: number }>): Promise<number[]> {
   const ids: number[] = [];
   for (let i = 0; i < items.length; i += BATCH) {
-    const created = await prisma.$transaction(items.slice(i, i + BATCH).map(create));
+    // Generous timeout: against a remote database (e.g. Railway over its public
+    // proxy) each insert is a network round trip, and 40 of them exceed
+    // Prisma's default 5 s.
+    const created = await prisma.$transaction(items.slice(i, i + BATCH).map(create), {
+      timeout: 120_000,
+      maxWait: 30_000,
+    });
     ids.push(...created.map((c) => c.id));
   }
   return ids;

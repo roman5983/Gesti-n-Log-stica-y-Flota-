@@ -140,20 +140,26 @@ El navegador habla solo con Vercel. Vercel sirve el frontend y reenvía `/api/*`
   | `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` | dos valores distintos de `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
   | `PASSWORD_ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
   | `CORS_ORIGIN` y `APP_URL` | la URL de Vercel (paso 3). Mientras no exista, `http://localhost:5173` |
-  | `TRUST_PROXY` | `2` (Vercel + el proxy de Railway); se calibra en el paso 5 |
+  | `TRUST_PROXY` | `2` (los dos saltos del proxy de Railway) |
+  | `CLIENT_IP_HEADER` | `x-vercel-forwarded-for` (ver paso 5) |
 
   `PORT` lo pone Railway. Las variables de las alertas tienen valores por defecto (ver `backend/.env.example`).
 
 **3. Frontend (Vercel).** *Add New → Project*, con *Root Directory* `frontend`. El resto lo detecta solo (Vite). No necesita variables de entorno. `frontend/vercel.json` ya apunta al backend en `gestion-logistica-api-production.up.railway.app`; si el dominio de Railway cambia, hay que corregirlo ahí. Después de crearlo, volver a Railway y poner la URL de Vercel en `CORS_ORIGIN` y `APP_URL`.
 
-**4. Datos de demostración (una sola vez).** Desde tu compu, con la URL **pública** de la base (*MySQL → Variables → `MYSQL_PUBLIC_URL`*):
+**4. Datos de demostración (una sola vez).** Desde tu compu, contra la base de Railway:
+
+- Activar el acceso público temporal: *MySQL → Settings → Networking → Add Public Access*. Eso crea `MYSQL_PUBLIC_URL` (*MySQL → Variables*, copiar con el ícono, no con *Edit*).
+- Usar **la misma** `PASSWORD_ENCRYPTION_KEY` que tiene el backend en Railway: el seed cifra con ella las contraseñas de los choferes.
 
 ```bash
 cd backend
-DATABASE_URL="<MYSQL_PUBLIC_URL>?allowPublicKeyRetrieval=true" npx prisma db seed
+DATABASE_URL='<MYSQL_PUBLIC_URL>?allowPublicKeyRetrieval=true' PASSWORD_ENCRYPTION_KEY='<la del backend>' npm run prisma:seed
 ```
 
-**5. Calibrar `TRUST_PROXY`.** Entrar a la app desplegada y buscar el pedido de login en los logs del servicio (*Deployments → View logs*). El campo `clientIp` tiene que coincidir con tu IP pública (por ejemplo, la que muestra `https://api.ipify.org`). Si muestra una IP de Vercel o de Railway, subir el valor de a uno. Si queda mal, el límite de intentos de login trata a todos los usuarios como si fueran uno solo.
+Tarda uno o dos minutos. Al terminar, quitar el acceso público (tacho en *Networking*): el backend usa la red interna. Volver a correrlo reinicia toda la demo (viajes, alertas y auditoría).
+
+**5. IP del usuario (límite de intentos de login).** El rewrite de Vercel no agrega la IP del usuario a `X-Forwarded-For`: ahí manda la suya, y la del usuario va en `x-vercel-forwarded-for`. Por eso `CLIENT_IP_HEADER=x-vercel-forwarded-for`. Para verificarlo, abrir un pedido en *Deploy Logs*: el atributo `clientIp` tiene que coincidir con tu IP pública (la que muestra `https://api.ipify.org`). Si mostrara la de Vercel, todos los usuarios compartirían el límite de 10 intentos. Como ese header se puede falsificar llamando al backend directo, hay además un tope de 100 intentos por `req.ip` (resuelto con `TRUST_PROXY=2`).
 
 *`render.yaml` queda como alternativa para Render, con la misma configuración.*
 
