@@ -18,7 +18,7 @@
 
 **Online desde el 11/10/2026:** frontend en https://gesti-n-log-stica-y-flota.vercel.app, backend en Railway (https://gestion-logistica-api-production.up.railway.app, con MySQL de Railway y el seed de demostración cargado). Pasos en el README, sección "Deploy".
 
-1. **Calibrar `TRUST_PROXY`** con los logs de Railway (README, paso 5).
+1. **Verificar la IP del usuario en los logs:** con `TRUST_PROXY=2` y `CLIENT_IP_HEADER=x-vercel-forwarded-for` en Railway, el `clientIp` de *Deploy Logs* tiene que ser tu IP (README, paso 5).
 2. **Actualizar `multer` a la versión 2.x antes de producción.** Hoy está en 1.4.5, con vulnerabilidades conocidas (capítulo 25, punto 27).
 
 ## 🟠 Falta para cumplir la consigna (aprobación)
@@ -37,4 +37,4 @@
 
 ---
 
-**Orden sugerido** (primera entrega: 12 al 16 de octubre): calibrar `TRUST_PROXY` (1), el video (3) y los links y credenciales (5). Multer (2) conviene antes de la entrega final. La gestión del proyecto (4) no depende del deploy.
+**Orden sugerido** (primera entrega: 12 al 16 de octubre): verificar la IP del usuario (1), el video (3) y los links y credenciales (5). Multer (2) conviene antes de la entrega final. La gestión del proyecto (4) no depende del deploy.

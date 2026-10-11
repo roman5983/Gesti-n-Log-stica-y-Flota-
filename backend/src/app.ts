@@ -21,6 +21,7 @@ import { auditLogsRoutes } from './modules/audit-logs/audit-logs.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
 import { settingsRoutes } from './modules/settings/settings.routes';
 import { openApiDocument } from './docs/openapi';
+import { clientIp } from './shared/utils/client-ip';
 
 /**
  * Every module router and where it is mounted under /api/v1. Exported so the
@@ -65,9 +66,9 @@ export function createApp(): express.Express {
       enabled: env.NODE_ENV !== 'test',
       transport: isProduction ? undefined : { target: 'pino-pretty' },
       redact: ['req.headers.authorization', 'req.headers.cookie'], // never log credentials
-      // The client IP as Express resolves it (after trust proxy): the same
-      // value the rate limiter keys on — used to calibrate TRUST_PROXY.
-      customProps: (req) => ({ clientIp: (req as express.Request).ip }),
+      // The user's IP, the same value the login rate limiter keys on (see
+      // env.TRUST_PROXY and env.CLIENT_IP_HEADER): used to check that setup.
+      customProps: (req) => ({ clientIp: clientIp(req as express.Request, env.CLIENT_IP_HEADER) }),
     }),
   );
 

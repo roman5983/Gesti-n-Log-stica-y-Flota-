@@ -140,7 +140,8 @@ El navegador habla solo con Vercel. Vercel sirve el frontend y reenvía `/api/*`
   | `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET` | dos valores distintos de `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
   | `PASSWORD_ENCRYPTION_KEY` | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
   | `CORS_ORIGIN` y `APP_URL` | la URL de Vercel (paso 3). Mientras no exista, `http://localhost:5173` |
-  | `TRUST_PROXY` | `2` (Vercel + el proxy de Railway); se calibra en el paso 5 |
+  | `TRUST_PROXY` | `2` (los dos saltos del proxy de Railway) |
+  | `CLIENT_IP_HEADER` | `x-vercel-forwarded-for` (ver paso 5) |
 
   `PORT` lo pone Railway. Las variables de las alertas tienen valores por defecto (ver `backend/.env.example`).
 
@@ -158,7 +159,7 @@ DATABASE_URL='<MYSQL_PUBLIC_URL>?allowPublicKeyRetrieval=true' PASSWORD_ENCRYPTI
 
 Tarda uno o dos minutos. Al terminar, quitar el acceso público (tacho en *Networking*): el backend usa la red interna. Volver a correrlo reinicia toda la demo (viajes, alertas y auditoría).
 
-**5. Calibrar `TRUST_PROXY`.** Entrar a la app desplegada y buscar el pedido de login en los logs del servicio (*Deployments → View logs*). El campo `clientIp` tiene que coincidir con tu IP pública (por ejemplo, la que muestra `https://api.ipify.org`). Si muestra una IP de Vercel o de Railway, subir el valor de a uno. Si queda mal, el límite de intentos de login trata a todos los usuarios como si fueran uno solo.
+**5. IP del usuario (límite de intentos de login).** El rewrite de Vercel no agrega la IP del usuario a `X-Forwarded-For`: ahí manda la suya, y la del usuario va en `x-vercel-forwarded-for`. Por eso `CLIENT_IP_HEADER=x-vercel-forwarded-for`. Para verificarlo, abrir un pedido en *Deploy Logs*: el atributo `clientIp` tiene que coincidir con tu IP pública (la que muestra `https://api.ipify.org`). Si mostrara la de Vercel, todos los usuarios compartirían el límite de 10 intentos. Como ese header se puede falsificar llamando al backend directo, hay además un tope de 100 intentos por `req.ip` (resuelto con `TRUST_PROXY=2`).
 
 *`render.yaml` queda como alternativa para Render, con la misma configuración.*
 
