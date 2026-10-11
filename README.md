@@ -157,7 +157,15 @@ cd backend
 DATABASE_URL='<MYSQL_PUBLIC_URL>?allowPublicKeyRetrieval=true' PASSWORD_ENCRYPTION_KEY='<la del backend>' npm run prisma:seed
 ```
 
-Tarda uno o dos minutos. Al terminar, quitar el acceso público (tacho en *Networking*): el backend usa la red interna. Volver a correrlo reinicia toda la demo (viajes, alertas y auditoría).
+Tarda uno o dos minutos. **Después, cambiar las contraseñas de la demo:** las del seed están en este README, que es público, y con ellas cualquiera entraría como administrador. Con las mismas variables:
+
+```bash
+DATABASE_URL='<MYSQL_PUBLIC_URL>?allowPublicKeyRetrieval=true' PASSWORD_ENCRYPTION_KEY='<la del backend>' npx tsx prisma/rotate-demo-passwords.ts --yes
+```
+
+Genera una contraseña aleatoria para cada cuenta de la demo, cierra sus sesiones y las muestra una sola vez. Se entregan por un canal privado, no en el repositorio. Si se vuelve a correr el seed, las contraseñas vuelven a ser las del README, así que hay que repetir este paso.
+
+Al terminar, quitar el acceso público (tacho en *Networking*): el backend usa la red interna. Volver a correrlo reinicia toda la demo (viajes, alertas y auditoría).
 
 **5. IP del usuario (límite de intentos de login).** El rewrite de Vercel no agrega la IP del usuario a `X-Forwarded-For`: ahí manda la suya, y la del usuario va en `x-vercel-forwarded-for`. Por eso `CLIENT_IP_HEADER=x-vercel-forwarded-for`. Para verificarlo, abrir un pedido en *Deploy Logs*: el atributo `clientIp` tiene que coincidir con tu IP pública (la que muestra `https://api.ipify.org`). Si mostrara la de Vercel, todos los usuarios compartirían el límite de 10 intentos. Como ese header se puede falsificar llamando al backend directo, hay además un tope de 100 intentos por `req.ip` (resuelto con `TRUST_PROXY=2`).
 
