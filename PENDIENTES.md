@@ -14,27 +14,24 @@
 
 ---
 
-## 🔴 Deploy
+## ✅ Deploy
 
-**Online desde el 11/10/2026:** frontend en https://gesti-n-log-stica-y-flota.vercel.app, backend en Railway (https://gestion-logistica-api-production.up.railway.app, con MySQL de Railway y el seed de demostración cargado). Pasos en el README, sección "Deploy".
-
-1. **Verificar la IP del usuario en los logs:** con `TRUST_PROXY=2` y `CLIENT_IP_HEADER=x-vercel-forwarded-for` en Railway, el `clientIp` de *Deploy Logs* tiene que ser tu IP (README, paso 5).
-2. **Actualizar `multer` a la versión 2.x antes de producción.** Hoy está en 1.4.5, con vulnerabilidades conocidas (capítulo 25, punto 27).
+**Online desde el 11/10/2026:** frontend en https://gesti-n-log-stica-y-flota.vercel.app, backend en Railway (https://gestion-logistica-api-production.up.railway.app, con MySQL de Railway y el seed de demostración cargado). Pasos en el README, sección "Deploy". La IP del usuario (límite de intentos de login) quedó verificada en los logs, y `multer` pasó a la 2.x (11/10).
 
 ## 🟠 Falta para cumplir la consigna (aprobación)
 
-3. **Video de demostración.**
-4. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
-5. **Links del deploy y credenciales** en la entrega (el deploy ya está online; las credenciales son las del seed, en el README).
+1. **Video de demostración.**
+2. **Gestión del proyecto:** falta declarar la metodología, las minutas de reuniones y el tracking de tareas en `docs/`.
+3. **Links del deploy y credenciales** en la entrega (el deploy ya está online; las credenciales son las del seed, en el README).
 
 ## 🟢 Menores / prolijidad
 
-6. **Vulnerabilidades que quedan en las dependencias:** 10 en el backend y 4 en el frontend (`npm audit` del 28/09). Todas requieren un cambio de versión mayor o una corrección de terceros, así que no se tocan antes de la entrega. En el backend vienen de versiones que Prisma 7 fija internamente (`mariadb`, `mysql2` y las herramientas del CLI); `npm audit fix --force` bajaría a Prisma 6, así que **no hay que correrlo**. Se resuelven cuando Prisma publique una versión que las actualice. La de `nodemailer` (un aviso nuevo, que solo afecta a quien usa varios transportes SMTP a la vez) se arregla pasando a la versión 10. En el frontend las piden Vite 5 (esbuild) y React Router 6, y solo se arreglan pasando a Vite 8 y React Router 7.
+4. **Vulnerabilidades que quedan en las dependencias:** 10 en el backend (`npm audit` del 11/10, después de pasar `multer` a 2.x y actualizar `proxy-addr`, `brace-expansion`, `fast-copy` y `source-map-js`) y 4 en el frontend (28/09). Ninguna se arregla sin un cambio de versión mayor. En el backend vienen de paquetes que Prisma 7 fija internamente (`mariadb`, `mysql2`, `deepmerge-ts`, `valibot` y `@hono/node-server`, estos dos de las herramientas del CLI); `npm audit fix --force` bajaría a Prisma 6, así que **no hay que correrlo**, y `npm audit fix` sin `--force` sube el CLI de Prisma sin el cliente, así que tampoco. Se resuelven cuando Prisma publique una versión que las actualice. La de `nodemailer` se arregla pasando a la versión 10. En el frontend las piden Vite 5 (esbuild) y React Router 6, y solo se arreglan pasando a Vite 8 y React Router 7.
 
 ## ⚪ Solo si el proyecto sigue después de la entrega
 
-7. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
+5. Paquete compartido de esquemas Zod entre backend y frontend, notificaciones al chofer, y un almacén compartido para el límite de intentos de login si hay más de una instancia del backend (capítulo 25, puntos 22, 23 y 25).
 
 ---
 
-**Orden sugerido** (primera entrega: 12 al 16 de octubre): verificar la IP del usuario (1), el video (3) y los links y credenciales (5). Multer (2) conviene antes de la entrega final. La gestión del proyecto (4) no depende del deploy.
+**Orden sugerido** (primera entrega: 12 al 16 de octubre): el video (1) y los links y credenciales (3). La gestión del proyecto (2) no depende del deploy.
